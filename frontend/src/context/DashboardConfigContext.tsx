@@ -58,6 +58,8 @@ type DashboardConfig = {
   background: boolean;
   /** Show/hide local Self-service nav item only. SelfCare link is always in header (hardcoded). */
   selfService: boolean;
+  /** Show Console page in Info menu (call start/end messages). Set show_console in adn-mon.yaml DASHBOARD. */
+  showConsole: boolean;
   /** Footer links: same structure as nav_links items (name + url) */
   footer: NavLinkItem[];
   navLinks: { name?: string; items: NavLinkItem[] };
@@ -70,6 +72,7 @@ const defaultConfig: DashboardConfig = {
   language: getDefaultLanguage(),
   background: false,
   selfService: false,
+  showConsole: false,
   footer: [],
   navLinks: { items: [] },
   aliases: defaultAliases,
@@ -117,6 +120,7 @@ export function DashboardConfigProvider({ children }: { children: React.ReactNod
           language?: string;
           background?: boolean;
           selfService?: boolean;
+          showConsole?: boolean;
           footer?: NavLinkItem[];
           navLinks?: { name?: string; items?: NavLinkItem[] };
         }) => {
@@ -131,6 +135,7 @@ export function DashboardConfigProvider({ children }: { children: React.ReactNod
           language: lang,
           background: Boolean(data.background),
           selfService: Boolean(data.selfService),
+          showConsole: Boolean(data.showConsole),
           footer,
           navLinks: { name: nav.name ?? '', items: Array.isArray(nav.items) ? nav.items : [] },
           apiBase,

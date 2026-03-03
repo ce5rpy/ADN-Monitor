@@ -49,6 +49,7 @@ const StaticTg = lazy(() => import('./pages/StaticTg'));
 const OpenBridge = lazy(() => import('./pages/OpenBridge'));
 const TopTg = lazy(() => import('./pages/TopTg'));
 const LastHeardLog = lazy(() => import('./pages/LastHeardLog'));
+const Console = lazy(() => import('./pages/Console'));
 const Calc = lazy(() => import('./pages/Calc'));
 const TgList = lazy(() => import('./pages/TgList'));
 const BridgeList = lazy(() => import('./pages/BridgeList'));
@@ -356,6 +357,11 @@ function App() {
           >
             {t('selfcare', { defaultValue: 'SelfCare' })}
           </MenuItem>
+          {dashboard.showConsole && (
+            <MenuItem component={Link} to="/console" onClick={() => setAnchorEl(null)}>
+              {t('nav_console')}
+            </MenuItem>
+          )}
           <MenuItem component={Link} to="/lastheard" onClick={() => setAnchorEl(null)}>
             {t('nav_lsthrd')}
           </MenuItem>
@@ -384,6 +390,11 @@ function App() {
         </Menu>
 
         <Menu anchorEl={infoAnchor} open={Boolean(infoAnchor)} onClose={() => setInfoAnchor(null)}>
+          {dashboard.showConsole && (
+            <MenuItem component={Link} to="/console" onClick={() => setInfoAnchor(null)}>
+              {t('nav_console')}
+            </MenuItem>
+          )}
           <MenuItem component={Link} to="/calc" onClick={() => setInfoAnchor(null)}>
             {t('nav_calc')}
           </MenuItem>
@@ -407,6 +418,7 @@ function App() {
               <Route path="/openbridge" element={<OpenBridge />} />
               <Route path="/toptg" element={<TopTg />} />
               <Route path="/lastheard" element={<LastHeardLog />} />
+              <Route path="/console" element={<Console />} />
               <Route path="/calc" element={<Calc />} />
               <Route path="/wwtg" element={<TgList />} />
               <Route path="/wwbridges" element={<BridgeList />} />

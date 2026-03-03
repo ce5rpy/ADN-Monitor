@@ -50,6 +50,7 @@ final class ConfigController
             'language' => $dashboard['LANGUAGE'] ?? $dashboard['language'] ?? 'en',
             'background' => (bool) ($dashboard['BACKGROUND'] ?? $dashboard['background'] ?? false),
             'selfService' => (bool) ($dashboard['SELF_SERVICE'] ?? $dashboard['self_service'] ?? false),
+            'showConsole' => (bool) ($dashboard['SHOW_CONSOLE'] ?? $dashboard['show_console'] ?? false),
             'footer' => $footer,
             'navLinks' => $navLinks,
         ];
