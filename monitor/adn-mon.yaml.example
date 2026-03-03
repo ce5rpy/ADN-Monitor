@@ -1,0 +1,123 @@
+# ADN Monitor configuration (YAML)
+
+# ------------------------------------------------------------------------------
+# GLOBAL
+# ------------------------------------------------------------------------------
+GLOBAL:
+  # Display Bridge status
+  BRIDGES_INC: false
+  # Display Homebrew Peers status
+  HOMEBREW_INC: true
+  # Display lastheard table on main page
+  LASTHEARD_INC: true
+  LASTHEARD_ROWS: 20
+  # Display empty masters in status
+  EMPTY_MASTERS: false
+  # Display TG Count on tgcount page
+  TGCOUNT_INC: true
+  TGCOUNT_ROWS: 20
+
+# ------------------------------------------------------------------------------
+# SELF_SERVICE – Database credentials (MySQL)
+# ------------------------------------------------------------------------------
+SELF_SERVICE:
+  DB_SERVER: localhost
+  DB_USERNAME: self_service_user
+  DB_PASSWORD: your-password
+  DB_NAME: self_service
+  DB_PORT: 3306
+
+# ------------------------------------------------------------------------------
+# ADN_CONNECTION
+# ------------------------------------------------------------------------------
+ADN_CONNECTION:
+  # ADN server's IP Address
+  ADN_IP: "127.0.0.1"
+  # ADN server's TCP reporting socket
+  ADN_PORT: 4321
+
+# ------------------------------------------------------------------------------
+# OPB_FILTER
+# Generally you don't need to use this but if you don't want to show in lastheard
+# received traffic from OBP link put NETWORK ID e.g. 260210, 260211, 260212
+# ------------------------------------------------------------------------------
+OPB_FILTER:
+  OPB_FILTER: ""
+
+# ------------------------------------------------------------------------------
+# ALIASES – ADN Systems https://github.com/Amateur-Digital-Network/ADN-DMR-Peer-Server
+# ------------------------------------------------------------------------------
+ALIASES:
+  TRY_DOWNLOAD: true
+  # Directory for alias JSON/CSV files (downloaded and local). Relative to monitor root.
+  PATH: "./json"
+  PEER_FILE: peer_ids.json
+  SUBSCRIBER_FILE: subscriber_ids.json
+  TGID_FILE: talkgroup_ids.json
+  PEER_URL: "https://adn.systems/files/peer_ids.json"
+  SUBSCRIBER_URL: "https://adn.systems/files/subscriber_ids.json"
+  TGID_URL: "https://adn.systems/files/talkgroup_ids.json"
+  LOCAL_SUBSCRIBER_FILE: local_subscriber_ids.json
+  STALE_DAYS: 1
+  SUB_MAP_FILE: ""
+  SERVER_ID_URL: "https://adn.systems/files/server_ids.tsv"
+  SERVER_ID_FILE: server_ids.tsv
+  CHECKSUM_URL: "https://adn.systems/files/file_checksums.json"
+  CHECKSUM_FILE: file_checksums.json
+  # TG List and Bridge List pages (frontend)
+  TG_LIST_URL: "https://adn.systems/files/talkgroup_ids.json"
+  BRIDGE_LIST_URL: "https://adn.systems/files/server_ids.tsv"
+
+# ------------------------------------------------------------------------------
+# LOGGER – Settings for log files
+# ------------------------------------------------------------------------------
+LOGGER:
+  LOG_PATH: "./log"
+  LOG_FILE: adn-mon.log
+  LOG_LEVEL: INFO
+
+# ------------------------------------------------------------------------------
+# WEBSOCKET_SERVER
+# ------------------------------------------------------------------------------
+WEBSOCKET_SERVER:
+  WEBSOCKET_PORT: 9000
+  # Frequency to push updates to web clients
+  FREQUENCY: 1
+  # Clients are timed out after this many seconds, 0 to disable
+  CLIENT_TIMEOUT: 0
+  # SSL configuration
+  USE_SSL: false
+  SSL_PATH: "./ssl"
+  SSL_CERTIFICATE: cert.pem
+  SSL_PRIVATEKEY: key.pem
+
+# ------------------------------------------------------------------------------
+# DASHBOARD
+# ------------------------------------------------------------------------------
+DASHBOARD:
+  # Dashboard Title (header); e.g. "ADN Systems Dashboard" or "ADN Systems Monitor"
+  DASHTITLE: "ADN Systems"
+  # Background image True or False; if True put a bk.jpg 1920x1080 in img folder
+  BACKGROUND: false
+  # Default language: en, es, fr, pt, it, nl, de
+  LANGUAGE: "en"
+
+  # Self-service (local): show/hide the "Self-service" nav item. SelfCare link is always in header (hardcoded).
+  SELF_SERVICE: true
+
+  # Navbar links: optional label + list of { name, url }. Add as many items as you need.
+  nav_links:
+    name: "Links"
+    items:
+      - name: "ADN"
+        url: "https://adn.systems"
+
+  # Footer links: same structure as nav_links — list of { name, url }
+  footer:
+    items:
+      # - name: "SYSOP"
+      #   url: "mailto:user@example.com"
+      # - name: "SYSOP 2"
+      #   url: "https://qrz.com/db/N0CALL"
+      # - name: "ADN"
+      #   url: "https://adn.systems"

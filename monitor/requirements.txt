@@ -1,0 +1,2 @@
+# ADN Monitor – Python deps (run from monitor/)
+PyYAML>=6.0

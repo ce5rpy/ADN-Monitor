@@ -1,0 +1,115 @@
+# -----------------------------------------------------------------------------
+# ADN Monitor – ignore configs, envs, deps, build and IDE/OS junk
+# -----------------------------------------------------------------------------
+
+# Env and secrets (keep .env.example)
+.env
+.env.local
+.env.*.local
+!.env.example
+backend/.env
+!backend/.env.example
+
+# Local/config overrides (keep examples)
+*.local
+*.local.yaml
+*.local.yml
+monitor/adn-mon.yaml
+
+# -----------------------------------------------------------------------------
+# Node
+# -----------------------------------------------------------------------------
+node_modules/
+frontend/node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# -----------------------------------------------------------------------------
+# Python
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+.env/
+pyenv/
+.python-version
+
+# -----------------------------------------------------------------------------
+# PHP / Composer
+# -----------------------------------------------------------------------------
+backend/vendor/
+
+# -----------------------------------------------------------------------------
+# Build / output
+# -----------------------------------------------------------------------------
+frontend/dist/
+*.local
+
+# -----------------------------------------------------------------------------
+# Logs and runtime
+# -----------------------------------------------------------------------------
+*.log
+log/
+monitor/log/
+tmp/
+temp/
+*.tmp
+*.temp
+.cache/
+
+# -----------------------------------------------------------------------------
+# IDE and OS
+# -----------------------------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+
+# -----------------------------------------------------------------------------
+# JSON data (directory kept via .gitkeep)
+# -----------------------------------------------------------------------------
+monitor/json/*.json
+
+# -----------------------------------------------------------------------------
+# Misc
+# -----------------------------------------------------------------------------
+*.bak
+*.backup
+*.orig
