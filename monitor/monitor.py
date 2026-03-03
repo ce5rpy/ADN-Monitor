@@ -430,9 +430,11 @@ def main():
     test_db(pool).addCallback(on_db_test)
     conf_global = CONF.get("GLOBAL", {})
     opb = CONF.get("OPB_FLTR", {})
+    dash = CONF.get("DASHBOARD", {})
     _config_global = {
         **conf_global,
         "OPB_FILTER": opb.get("OPB_FILTER", []),
+        "DASHBOARD_MIN_DURATION": dash.get("MIN_DURATION", 3),
     }
 
     _state = MonitorState(

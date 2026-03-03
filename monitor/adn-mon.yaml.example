@@ -105,6 +105,12 @@ DASHBOARD:
   # Self-service (local): show/hide the "Self-service" nav item. SelfCare link is always in header (hardcoded).
   SELF_SERVICE: true
 
+  # Console: show Console page in Info menu (call start/end messages). Set to true to enable.
+  SHOW_CONSOLE: true
+
+  # Minimum call duration (seconds) for dashboard table only (Last Heard page always shows all)
+  MIN_DURATION: 3
+
   # Navbar links: optional label + list of { name, url }. Add as many items as you need.
   nav_links:
     name: "Links"

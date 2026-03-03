@@ -180,6 +180,7 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
     dash = data.get("DASHBOARD") or {}
     if isinstance(dash, dict):
         CONF["DASHBOARD"] = {k: _str(v) for k, v in dash.items()}
+        CONF["DASHBOARD"]["MIN_DURATION"] = _int(dash.get("MIN_DURATION"), 3)
     else:
         CONF["DASHBOARD"] = {}
 

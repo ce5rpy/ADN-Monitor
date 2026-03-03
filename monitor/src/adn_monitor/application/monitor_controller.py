@@ -176,10 +176,13 @@ def process_message(
                         tgcount_repo.insert_tgcount(parts[8], parts[6], str(duration_sec))
                         logger.debug("(REPORT) BRDG_EVENT saved tgcount tg=%s dmr=%s", parts[8], parts[6])
                     if config_global.get("LH_INC"):
+                        # lstheard_log (Last Heard page): all calls
                         lastheard_repo.insert_lstheard_log(
                             float(duration_sec), parts[0], parts[3], int(parts[8]), int(parts[6])
                         )
-                        if duration_sec > 2:
+                        # Dashboard table only: minimum duration (seconds); Last Heard page always shows all
+                        min_duration = config_global.get("DASHBOARD_MIN_DURATION", 3)
+                        if duration_sec >= min_duration:
                             lastheard_repo.insert_last_heard(
                                 float(duration_sec), parts[0], parts[3], int(parts[8]), int(parts[6])
                             )
