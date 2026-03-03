@@ -148,7 +148,7 @@ function ActiveQsoBox({ ctable }: { ctable: Ctable | null | undefined }) {
   return (
     <Box sx={{ mb: 3, minHeight: 140 }}>
       <Typography variant="subtitle1" fontWeight={600} color="text.primary" sx={{ mb: 1.5 }}>
-        {t('active_qso', 'QSO activos')} {hasAny && `(${totalCount})`}
+        {t('active_qso')} {hasAny && `(${totalCount})`}
       </Typography>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
         {!hasAny ? (
@@ -225,7 +225,7 @@ export default function Dashboard() {
   return (
     <Box>
       {!data && (
-        <Typography color="text.secondary" sx={{ py: 2 }}>{t('pre_wait', 'Esperando información del servidor...')}</Typography>
+        <Typography color="text.secondary" sx={{ py: 2 }}>{t('pre_wait')}</Typography>
       )}
       {data != null && (
         <Typography variant="h5" fontWeight={700} color="text.primary" sx={{ mb: 2 }}>
@@ -235,7 +235,7 @@ export default function Dashboard() {
       {data != null ? <ActiveQsoBox ctable={ctable ?? undefined} /> : null}
       {rows.length > 0 && (
         <Typography variant="subtitle1" fontWeight={600} color="text.primary" sx={{ mt: 3, mb: 1.5 }}>
-          {t('lh_tbl', 'Últimas Escuchas')}
+          {t('lh_tbl')}
         </Typography>
       )}
       {rows.length > 0 && (
@@ -251,11 +251,11 @@ export default function Dashboard() {
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow sx={{ bgcolor: 'action.hover' }}>
-                <TableCell sx={{ fontWeight: 600 }}>{t('lh_date', { defaultValue: 'Fecha' })}</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{t('lh_time', { defaultValue: 'Hora' })}</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{t('lh_duration', { defaultValue: 'Duración (s)' })}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{t('lh_date')}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{t('lh_time')}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{t('lh_duration')}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{t('lh_callsignid', { defaultValue: 'Indicativo (ID)' })}</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{t('lh_tgname', { defaultValue: 'Nombre TG' })}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{t('lh_tgname')}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{t('lh_tgnum', { defaultValue: 'TG#' })}</TableCell>
               </TableRow>
             </TableHead>
