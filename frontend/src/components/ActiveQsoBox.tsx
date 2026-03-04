@@ -119,7 +119,7 @@ export default function ActiveQsoBox({ ctable }: { ctable: Ctable | null | undef
   const hasAny = totalCount > 0;
 
   return (
-    <Box sx={{ mb: 3, minHeight: 140 }}>
+    <Box sx={{ mb: 1.5, minHeight: 140 }}>
       <Typography variant="subtitle1" fontWeight={600} color="text.primary" sx={{ mb: 1.5 }}>
         {t('active_qso')} {hasAny && `(${totalCount})`}
       </Typography>
@@ -168,13 +168,13 @@ export default function ActiveQsoBox({ ctable }: { ctable: Ctable | null | undef
               );
             })}
             {openBridgeQsos.map((q, idx) => {
-              const callDisplay = q.call || '—';
               const isBridge = String(q.call ?? '').toUpperCase() === 'BRIDGE';
+              const nameDisplay = isBridge ? (q.system || '—') : (q.call || '—');
               return (
                 <Card key={`ob-${q.tg}-${q.call}-${idx}`} variant="outlined" sx={{ width: 120, flexShrink: 0, borderColor: 'divider', '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' } }}>
                   <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 }, textAlign: 'center' }}>
                     <Typography variant="body2" fontWeight={500}>
-                      {isBridge ? callDisplay : <QrzLink callsign={q.call ?? ''}>{callDisplay}</QrzLink>}
+                      {isBridge ? nameDisplay : <QrzLink callsign={q.call ?? ''}>{nameDisplay}</QrzLink>}
                     </Typography>
                     <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.25 }}>TG {q.tg}</Typography>
                   </CardContent>
