@@ -80,7 +80,7 @@ function normalizeRows(data: unknown): TgEntry[] {
 
 function FlagImg({ countryCode }: { countryCode: string }) {
   const [err, setErr] = useState(false);
-  const src = err || !countryCode ? '/flags/world.png' : `/flags/${countryCode}.png`;
+  const src = err || !countryCode ? '/img/flags/world.png' : `/img/flags/${countryCode}.png`;
   return (
     <img
       src={src}
