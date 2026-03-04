@@ -348,6 +348,10 @@ export default function Systems() {
                   const st = peer.STATS;
                   const ts1 = getTs(peer, 1);
                   const ts2 = getTs(peer, 2);
+                  const trx1 = String(ts1.TRX ?? '');
+                  const trx2 = String(ts2.TRX ?? '');
+                  const chipColor1 = trx1 === 'TX' ? 'success' : trx1 === 'RX' ? 'error' : 'default';
+                  const chipColor2 = trx2 === 'TX' ? 'success' : trx2 === 'RX' ? 'error' : 'default';
                   return [
                     <TableRow key={`svc-${name}-1`} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                       <TableCell rowSpan={2} sx={colService}><Typography fontWeight="bold" noWrap>{name}</Typography><Typography variant="caption" noWrap>{String(peer.MODE ?? '')}</Typography></TableCell>
@@ -356,13 +360,13 @@ export default function Systems() {
                         {String(st?.CONNECTED ?? '—')}
                         {typeof st?.PINGS_SENT === 'number' && <Typography variant="caption" display="block">{st.PINGS_SENT} / {String(st.PINGS_ACKD ?? 0)}</Typography>}
                       </TableCell>
-                      <TableCell><Chip size="small" label="TS1" color={ts1.TRX ? 'primary' : 'default'} /></TableCell>
+                      <TableCell><Chip size="small" label="TS1" color={chipColor1} /></TableCell>
                       <TableCell>{String(ts1.SUB ?? '')}</TableCell>
                       <TableCell>{String(ts1.DEST ?? '').replace(/&nbsp;/g, ' ')}</TableCell>
                     </TableRow>,
                     <TableRow key={`svc-${name}-2`} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                       <TableCell sx={colCallsign}><Typography variant="caption" noWrap>{String(peer.LOCATION ?? '')}</Typography></TableCell>
-                      <TableCell><Chip size="small" label="TS2" color={ts2.TRX ? 'primary' : 'default'} /></TableCell>
+                      <TableCell><Chip size="small" label="TS2" color={chipColor2} /></TableCell>
                       <TableCell>{String(ts2.SUB ?? '')}</TableCell>
                       <TableCell>{String(ts2.DEST ?? '').replace(/&nbsp;/g, ' ')}</TableCell>
                     </TableRow>,
