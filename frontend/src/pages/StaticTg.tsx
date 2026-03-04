@@ -60,6 +60,14 @@ function getTs(peer: PeerEntry, ts: 1 | 2): TsEntry {
   return (t as TsEntry) ?? {};
 }
 
+/** Extract TG number from DEST string. */
+function activeTgFromDest(dest: string | undefined): string {
+  if (!dest) return '';
+  const s = String(dest).replace(/&nbsp;/g, ' ').trim();
+  const m = s.match(/\d+/);
+  return m ? m[0] : '';
+}
+
 export default function StaticTg() {
   const { t } = useTranslation();
   const { data } = useWebSocketGroup('lnksys');
@@ -91,39 +99,55 @@ export default function StaticTg() {
       const ts2 = getTs(p, 2);
       const trx1 = String(ts1.TRX ?? '');
       const trx2 = String(ts2.TRX ?? '');
+      const activeTg1 = activeTgFromDest(ts1.DEST);
+      const activeTg2 = activeTgFromDest(ts2.DEST);
       const staticTs1 = (p.TS1_STATIC ?? []).filter(Boolean);
       const staticTs2 = (p.TS2_STATIC ?? []).filter(Boolean);
       const single1 = p.SINGLE_TS1 ?? {};
       const single2 = p.SINGLE_TS2 ?? {};
-      const singleTg1 = String(single1.TGID ?? '').trim() || '—';
-      const singleTg2 = String(single2.TGID ?? '').trim() || '—';
-      const to1 = String(single1.TO ?? '').trim() || '—';
-      const to2 = String(single2.TO ?? '').trim() || '—';
+      const singleTg1 = String(single1.TGID ?? '').trim() || '';
+      const singleTg2 = String(single2.TGID ?? '').trim() || '';
+      const to1 = String(single1.TO ?? '').trim() || '';
+      const to2 = String(single2.TO ?? '').trim() || '';
 
       rows.push(
         <TableRow key={`st-${masterName}-${peerId}-1`} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-          <TableCell rowSpan={2}>
+          <TableCell rowSpan={2} sx={{ width: 200 }}>
             <Typography variant="body2" fontWeight="bold"><QrzLink callsign={String(p.CALLSIGN ?? peerId)}>{String(p.CALLSIGN ?? peerId)}</QrzLink></Typography>
-            <Typography variant="caption" display="block">(Id: {peerId})</Typography>
+            <Chip size="small" label={peerId} sx={{ mt: 0.25 }} />
             <Typography variant="caption" display="block" color="text.secondary">{String(p.LOCATION ?? '')}</Typography>
           </TableCell>
           <TableCell rowSpan={2} align="center" sx={{ bgcolor: 'success.light', color: 'success.contrastText', width: 110, minWidth: 110, maxWidth: 110, whiteSpace: 'nowrap' }}>
-            {String(p.CONNECTED ?? '—')}
+            {String(p.CONNECTED ?? '')}
           </TableCell>
-          <TableCell align="center">
-            <Chip size="small" label="TS1" color={trx1 === 'RX' ? 'success' : trx1 === 'TX' ? 'error' : 'default'} />
+          <TableCell align="center" sx={{ width: 56, minWidth: 56 }}>
+            <Chip size="small" label="TS1" color={trx1 === 'TX' ? 'success' : trx1 === 'RX' ? 'error' : 'default'} />
           </TableCell>
-          <TableCell>{staticTs1.length > 0 ? staticTs1.join(', ') : '—'}</TableCell>
-          <TableCell align="center">{singleTg1}</TableCell>
-          <TableCell align="center">{to1}</TableCell>
+          <TableCell>
+            {staticTs1.length > 0 ? staticTs1.map((tg) => {
+              const isActive = (trx1 === 'RX' || trx1 === 'TX') && String(tg) === activeTg1;
+              return (
+                <Chip key={tg} size="small" label={tg} color={isActive ? (trx1 === 'TX' ? 'success' : 'error') : 'default'} sx={{ mr: 0.25, mb: 0.25 }} />
+              );
+            }) : ''}
+          </TableCell>
+          <TableCell align="center" sx={{ width: 80, minWidth: 80, whiteSpace: 'nowrap' }}>{singleTg1}</TableCell>
+          <TableCell align="center" sx={{ width: 80, minWidth: 80, whiteSpace: 'nowrap' }}>{to1}</TableCell>
         </TableRow>,
         <TableRow key={`st-${masterName}-${peerId}-2`} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-          <TableCell align="center">
-            <Chip size="small" label="TS2" color={trx2 === 'RX' ? 'success' : trx2 === 'TX' ? 'error' : 'default'} />
+          <TableCell align="center" sx={{ width: 56, minWidth: 56 }}>
+            <Chip size="small" label="TS2" color={trx2 === 'TX' ? 'success' : trx2 === 'RX' ? 'error' : 'default'} />
           </TableCell>
-          <TableCell>{staticTs2.length > 0 ? staticTs2.join(', ') : '—'}</TableCell>
-          <TableCell align="center">{singleTg2}</TableCell>
-          <TableCell align="center">{to2}</TableCell>
+          <TableCell>
+            {staticTs2.length > 0 ? staticTs2.map((tg) => {
+              const isActive = (trx2 === 'RX' || trx2 === 'TX') && String(tg) === activeTg2;
+              return (
+                <Chip key={tg} size="small" label={tg} color={isActive ? (trx2 === 'TX' ? 'success' : 'error') : 'default'} sx={{ mr: 0.25, mb: 0.25 }} />
+              );
+            }) : ''}
+          </TableCell>
+          <TableCell align="center" sx={{ width: 80, minWidth: 80, whiteSpace: 'nowrap' }}>{singleTg2}</TableCell>
+          <TableCell align="center" sx={{ width: 80, minWidth: 80, whiteSpace: 'nowrap' }}>{to2}</TableCell>
         </TableRow>
       );
     }
@@ -152,12 +176,12 @@ export default function StaticTg() {
             <Table size="small" stickyHeader>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'action.hover' }}>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_callsign', { defaultValue: 'Callsign' })} ({t('statictg_dmrid', { defaultValue: 'DMR Id' })})<br />{t('lnksys_loc', { defaultValue: 'Location' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, width: 200 }}>{t('lnksys_callsign', { defaultValue: 'Callsign' })} ({t('statictg_dmrid', { defaultValue: 'DMR Id' })})<br />{t('lnksys_loc', { defaultValue: 'Location' })}</TableCell>
                   <TableCell sx={{ fontWeight: 600, width: 110, minWidth: 110, maxWidth: 110 }}>{t('lnksys_connected', { defaultValue: 'Time Connected' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_slot', { defaultValue: 'Slot' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, width: 56, minWidth: 56, whiteSpace: 'nowrap' }} align="center">{t('lnksys_slot', { defaultValue: 'Slot' })}</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_static_tg', { defaultValue: 'Static TG' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_single_tg', { defaultValue: 'Single TG' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_to', { defaultValue: 'T/O' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, width: 80, minWidth: 80, whiteSpace: 'nowrap' }}>{t('lnksys_single_tg', { defaultValue: 'Single TG' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, width: 80, minWidth: 80 }}>{t('lnksys_to', { defaultValue: 'T/O' })}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>{rows}</TableBody>

@@ -17,7 +17,7 @@
  */
 
 import { useMemo, useState, lazy, Suspense } from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
 import {
   ThemeProvider,
   createTheme,
@@ -45,7 +45,6 @@ import Footer from './components/Footer';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Systems = lazy(() => import('./pages/Systems'));
-const StaticTg = lazy(() => import('./pages/StaticTg'));
 const OpenBridge = lazy(() => import('./pages/OpenBridge'));
 const TopTg = lazy(() => import('./pages/TopTg'));
 const LastHeardLog = lazy(() => import('./pages/LastHeardLog'));
@@ -237,9 +236,6 @@ function App() {
               <Button color="inherit" component={Link} to="/systems">
                 {t('nav_lnksys', { defaultValue: 'Linked Systems' })}
               </Button>
-              <Button color="inherit" component={Link} to="/systemstg">
-                {t('nav_statg', { defaultValue: 'Static TG' })}
-              </Button>
               <Button color="inherit" component={Link} to="/openbridge">
                 {t('nav_opb', { defaultValue: 'OpenBridge' })}
               </Button>
@@ -334,9 +330,6 @@ function App() {
           <MenuItem component={Link} to="/systems" onClick={() => setAnchorEl(null)}>
             {t('nav_lnksys')}
           </MenuItem>
-          <MenuItem component={Link} to="/systemstg" onClick={() => setAnchorEl(null)}>
-            {t('nav_statg')}
-          </MenuItem>
           <MenuItem component={Link} to="/openbridge" onClick={() => setAnchorEl(null)}>
             {t('nav_opb')}
           </MenuItem>
@@ -414,7 +407,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/systems" element={<Systems />} />
-              <Route path="/systemstg" element={<StaticTg />} />
+              <Route path="/systemstg" element={<Navigate to="/systems" replace />} />
               <Route path="/openbridge" element={<OpenBridge />} />
               <Route path="/toptg" element={<TopTg />} />
               <Route path="/lastheard" element={<LastHeardLog />} />
