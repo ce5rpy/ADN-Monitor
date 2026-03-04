@@ -196,4 +196,4 @@ Copy and adapt paths, domains, and certificates to your server.
 
 ---
 
-[Español](README.es)
+[Español](README_es.md)
