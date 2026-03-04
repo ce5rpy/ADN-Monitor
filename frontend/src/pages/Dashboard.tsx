@@ -27,11 +27,14 @@ import {
   TableRow,
   Paper,
   Chip,
+  Card,
+  CardContent,
+  Grid,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useWebSocketGroup } from '../hooks/useWebSocket';
-import QrzLink from '../components/QrzLink';
-import ActiveQsoBox, { type Ctable } from '../components/ActiveQsoBox';
+import QrzLink, { isCallsignLike } from '../components/QrzLink';
+import ActiveQsoBox, { type Ctable, type PeerEntry } from '../components/ActiveQsoBox';
 
 type LastHeardRow = {
   date: string;
@@ -87,6 +90,108 @@ function ProtocolIcon({ name }: { name: string }) {
       alt={name}
       sx={{ width: 18, height: 18, objectFit: 'contain', ml: 0.25 }}
     />
+  );
+}
+
+/** Classify MASTERS peers into repeaters (id length 6), hotspots (7+), bridges (freq N/A). */
+function getRepeatersHotspotsBridges(ctable: Ctable | null | undefined) {
+  const repeaters: { callsign: string; system: string }[] = [];
+  const hotspots: { callsign: string; system: string }[] = [];
+  const bridges: { callsign: string; system: string }[] = [];
+  if (!ctable?.MASTERS) return { repeaters, hotspots, bridges };
+  for (const [system, master] of Object.entries(ctable.MASTERS)) {
+    const peers = master?.PEERS ?? {};
+    for (const [peerId, peer] of Object.entries(peers)) {
+      const p = peer as PeerEntry & { RX_FREQ?: string; TX_FREQ?: string };
+      const rx = p.RX_FREQ ?? '';
+      const tx = p.TX_FREQ ?? '';
+      const call = (p.CALLSIGN ?? '').trim() || peerId;
+      const item = { callsign: call, system };
+      const idLen = String(peerId).length;
+      const hasFreq = rx !== 'N/A' && tx !== 'N/A';
+      if (hasFreq && idLen === 6) repeaters.push(item);
+      else if (hasFreq && idLen >= 7) hotspots.push(item);
+      else if (rx === 'N/A' && tx === 'N/A') bridges.push(item);
+    }
+  }
+  return { repeaters, hotspots, bridges };
+}
+
+function ConnectedChips({ ctable }: { ctable: Ctable | null | undefined }) {
+  const { t } = useTranslation();
+  const { repeaters, hotspots, bridges } = getRepeatersHotspotsBridges(ctable);
+  const chipSx = { mx: 0.25, mb: 0.5 };
+  return (
+    <Grid container spacing={2} sx={{ mb: 2 }}>
+      <Grid item xs={12} md={4}>
+        <Card variant="outlined" sx={{ borderColor: 'divider', height: '100%' }}>
+          <CardContent>
+            <Typography variant="subtitle2" fontWeight={600} color="text.primary" sx={{ mb: 1 }}>
+              {t('crd_rptrs', { defaultValue: 'Repeaters' })} ({repeaters.length})
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              {repeaters.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">—</Typography>
+              ) : (
+                repeaters.map(({ callsign, system }, i) => (
+                  <Chip
+                    key={`r-${system}-${callsign}-${i}`}
+                    size="small"
+                    label={isCallsignLike(callsign) ? <QrzLink callsign={callsign}>{callsign}</QrzLink> : callsign}
+                    sx={chipSx}
+                    variant="outlined"
+                    color="success"
+                  />
+                ))
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+      <Grid item xs={12} md={4}>
+        <Card variant="outlined" sx={{ borderColor: 'divider', height: '100%' }}>
+          <CardContent>
+            <Typography variant="subtitle2" fontWeight={600} color="text.primary" sx={{ mb: 1 }}>
+              {t('crd_htspts', { defaultValue: 'HotSpots' })} ({hotspots.length})
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              {hotspots.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">—</Typography>
+              ) : (
+                hotspots.map(({ callsign, system }, i) => (
+                  <Chip
+                    key={`h-${system}-${callsign}-${i}`}
+                    size="small"
+                    label={isCallsignLike(callsign) ? <QrzLink callsign={callsign}>{callsign}</QrzLink> : callsign}
+                    sx={chipSx}
+                    variant="outlined"
+                    color="warning"
+                  />
+                ))
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+      <Grid item xs={12} md={4}>
+        <Card variant="outlined" sx={{ borderColor: 'divider', height: '100%' }}>
+          <CardContent>
+            <Typography variant="subtitle2" fontWeight={600} color="text.primary" sx={{ mb: 1 }}>
+              {t('crd_brdg', { defaultValue: 'Bridges' })} ({bridges.length})
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              {bridges.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">—</Typography>
+              ) : (
+                bridges.map(({ callsign, system }, i) => (
+                  <Chip key={`b-${system}-${callsign}-${i}`} size="small" label={callsign} sx={chipSx} variant="outlined" color="error" />
+                ))
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
   );
 }
 
@@ -190,6 +295,7 @@ export default function Dashboard() {
           </Table>
         </TableContainer>
       )}
+      {data != null && ctable ? <ConnectedChips ctable={ctable} /> : null}
     </Box>
   );
 }

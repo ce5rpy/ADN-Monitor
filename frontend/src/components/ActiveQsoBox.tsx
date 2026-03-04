@@ -36,6 +36,8 @@ export type PeerEntry = {
   2?: TimeslotEntry;
   CALLSIGN?: string;
   CONNECTED?: string;
+  RX_FREQ?: string;
+  TX_FREQ?: string;
 };
 
 /** OPENBRIDGES[system].STREAMS[streamId] = [trx, sub_call, tgNumStr, timeout] */
