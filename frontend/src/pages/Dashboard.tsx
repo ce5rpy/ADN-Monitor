@@ -26,6 +26,7 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Chip,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useWebSocketGroup } from '../hooks/useWebSocket';
@@ -44,6 +45,50 @@ type LastHeardRow = {
 };
 
 type MainPayload = { lastheard?: LastHeardRow[]; ctable?: Ctable };
+
+/** Country code from numeric id (first 2-3 digits). */
+function getCountryCodeFromId(id: number): string {
+  const n = String(id).replace(/\D/g, '');
+  if (n.length >= 3) return n.slice(0, 3);
+  if (n.length >= 2) return n.slice(0, 2);
+  return n || '';
+}
+
+/** Country code from TG number (e.g. 21472 -> 214). */
+function getCountryCode(tgNum: number): string {
+  return getCountryCodeFromId(tgNum);
+}
+
+const PROTOCOL_ICONS = ['allstar', 'dstar', 'echolink', 'm17', 'nxdn', 'tetra', 'xlx', 'yaesu'] as const;
+
+function protocolIconsFromText(text: string): string[] {
+  const s = (text || '').toLowerCase();
+  return PROTOCOL_ICONS.filter((name) => s.includes(name));
+}
+
+function FlagImg({ code, fallback = 'world' }: { code: string; fallback?: string }) {
+  const src = code ? `/img/flags/${code}.png` : `/img/flags/${fallback}.png`;
+  return (
+    <Box
+      component="img"
+      src={src}
+      alt=""
+      onError={(e) => { (e.target as HTMLImageElement).src = `/img/flags/world.png`; }}
+      sx={{ width: 20, height: 14, objectFit: 'contain', flexShrink: 0 }}
+    />
+  );
+}
+
+function ProtocolIcon({ name }: { name: string }) {
+  return (
+    <Box
+      component="img"
+      src={`/img/bridges/${name}.png`}
+      alt={name}
+      sx={{ width: 18, height: 18, objectFit: 'contain', ml: 0.25 }}
+    />
+  );
+}
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -64,11 +109,6 @@ export default function Dashboard() {
       )}
       {data != null ? <ActiveQsoBox ctable={ctable ?? undefined} /> : null}
       {rows.length > 0 && (
-        <Typography variant="subtitle1" fontWeight={600} color="text.primary" sx={{ mt: 3, mb: 1.5 }}>
-          {t('lh_tbl')}
-        </Typography>
-      )}
-      {rows.length > 0 && (
         <TableContainer
           component={Paper}
           sx={{
@@ -83,10 +123,11 @@ export default function Dashboard() {
               <TableRow sx={{ bgcolor: 'action.hover' }}>
                 <TableCell sx={{ fontWeight: 600 }}>{t('lh_date')}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{t('lh_time')}</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{t('lh_duration')}</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{t('lh_callsignid', { defaultValue: 'Indicativo (ID)' })}</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{t('lh_tgname')}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{t('lh_callsignid', { defaultValue: 'Callsign (ID)' })}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{t('lh_name', { defaultValue: 'Name' })}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{t('lh_tgnum', { defaultValue: 'TG#' })}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{t('lh_tgname', { defaultValue: 'TG Name' })}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{t('lh_duration')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -94,20 +135,54 @@ export default function Dashboard() {
                 const dateStr = String(r.date ?? '');
                 const [datePart, timePart] = dateStr.includes(' ') ? dateStr.split(' ', 2) : [dateStr, ''];
                 const durationSec = r.qso_time != null && r.qso_time !== '' ? Math.round(Number(r.qso_time)) : null;
+                const isBridge = r.subscriber?.[0]?.toUpperCase() === 'BRIDGE';
+                const callFlagCode = getCountryCodeFromId(r.dmr_id);
+                const tgFlagCode = getCountryCode(r.tg_num);
+                const protocolIcons = protocolIconsFromText(`${r.tg_callsign} ${r.system}`);
                 return (
                   <TableRow key={i} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-                    <TableCell>{datePart}</TableCell>
+                    <TableCell sx={{ width: 105 }}>{datePart}</TableCell>
                     <TableCell>{timePart}</TableCell>
-                    <TableCell>{durationSec != null ? durationSec : '—'}</TableCell>
-                    <TableCell>
-                      {r.subscriber?.length ? (
-                        <QrzLink callsign={r.subscriber[0]}>{r.subscriber[0]} ({r.dmr_id})</QrzLink>
-                      ) : (
-                        r.dmr_id
-                      )}
+                    <TableCell sx={{ minWidth: 220 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'nowrap' }}>
+                        <FlagImg code={callFlagCode} />
+                        {isBridge ? (
+                          <Typography component="span" variant="body2" fontWeight={600}>Bridge</Typography>
+                        ) : r.subscriber?.length ? (
+                          <QrzLink callsign={r.subscriber[0]}>
+                            <Typography component="span" fontWeight={600}>{r.subscriber[0]}</Typography>
+                          </QrzLink>
+                        ) : null}
+                        <Chip
+                          label={r.dmr_id}
+                          size="small"
+                          sx={{ height: 20, fontSize: '0.7rem', fontWeight: 500 }}
+                          variant="outlined"
+                        />
+                      </Box>
                     </TableCell>
-                    <TableCell>{r.tg_callsign}</TableCell>
-                    <TableCell>{r.tg_num}</TableCell>
+                    <TableCell>
+                      <Typography component="span" variant="body2" fontWeight={600}>
+                        {r.subscriber?.[1] ?? '—'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography component="span" variant="body2" fontWeight={600}>
+                        {r.tg_num}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexWrap: 'wrap' }}>
+                        <FlagImg code={tgFlagCode} />
+                        <Typography component="span" variant="body2" fontWeight={600}>
+                          {r.tg_callsign || '—'}
+                        </Typography>
+                        {protocolIcons.map((name) => (
+                          <ProtocolIcon key={name} name={name} />
+                        ))}
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ width: 60 }}>{durationSec != null ? durationSec : '—'}</TableCell>
                   </TableRow>
                 );
               })}
