@@ -36,6 +36,20 @@ import th from './locales/th.json';
 import tr from './locales/tr.json';
 import uk from './locales/uk.json';
 
+const COOKIE_NAME = 'language';
+
+export function getLanguageCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp('(?:^|;\\s*)' + encodeURIComponent(COOKIE_NAME) + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+export function setLanguageCookie(value: string): void {
+  if (typeof document === 'undefined') return;
+  document.cookie =
+    encodeURIComponent(COOKIE_NAME) + '=' + encodeURIComponent(value) + '; path=/; max-age=31536000; SameSite=Lax';
+}
+
 const resources = {
   en: { translation: en },
   es: { translation: es },
@@ -56,10 +70,20 @@ const resources = {
   uk: { translation: uk },
 };
 
+export const SUPPORTED_LANGUAGE_CODES = [
+  'en', 'es', 'pt', 'fr', 'de', 'it', 'nl', 'ca', 'bg', 'zh', 'et', 'el', 'pl', 'sr', 'th', 'tr', 'uk',
+] as const;
+
 const DEFAULT_LANG = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_DEFAULT_LANGUAGE) || 'en';
 const browserLang = typeof navigator !== 'undefined' ? navigator.language?.split(/[-_]/)[0]?.toLowerCase() : '';
-const supported = ['en', 'es', 'pt', 'fr', 'de', 'it', 'nl', 'ca', 'bg', 'zh', 'et', 'el', 'pl', 'sr', 'th', 'tr', 'uk'];
-const initialLng = localStorage.getItem('language') || (supported.includes(browserLang) ? browserLang : DEFAULT_LANG);
+const supportedSet = new Set<string>(SUPPORTED_LANGUAGE_CODES);
+
+// On load: prefer cookie; otherwise browser or build default (config default applied in DashboardConfig when no cookie)
+const cookieLng = getLanguageCookie();
+const initialLng =
+  cookieLng && supportedSet.has(cookieLng)
+    ? cookieLng
+    : (supportedSet.has(browserLang) ? browserLang : DEFAULT_LANG);
 
 i18n.use(initReactI18next).init({
   resources,
@@ -70,7 +94,8 @@ i18n.use(initReactI18next).init({
 });
 
 i18n.on('languageChanged', (lng) => {
-  localStorage.setItem('language', lng);
+  const code = (lng && supportedSet.has(lng) ? lng : lng?.split(/[-_]/)[0]) || 'en';
+  setLanguageCookie(supportedSet.has(code) ? code : 'en');
 });
 
 export default i18n;

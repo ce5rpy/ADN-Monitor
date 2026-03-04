@@ -18,6 +18,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getLanguageCookie, setLanguageCookie, SUPPORTED_LANGUAGE_CODES } from '../i18n';
 
 const getAliasesBase = (): string =>
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ALIASES_BASE_URL) || 'https://adn.systems/files';
@@ -81,11 +82,14 @@ const defaultConfig: DashboardConfig = {
 
 const DashboardConfigContext = createContext<DashboardConfig>(defaultConfig);
 
-const SUPPORTED_LANGS = ['en', 'es', 'pt', 'fr', 'de', 'it', 'nl'];
-
-function normalizeLanguage(lang: string): string {
-  const code = lang.split(/[-_]/)[0]?.toLowerCase() || 'en';
-  return SUPPORTED_LANGS.includes(code) ? code : 'en';
+/** When no cookie: config default language → browser language → English. */
+function resolveDefaultLanguage(configLang: string): string {
+  const code = configLang.split(/[-_]/)[0]?.toLowerCase() || 'en';
+  const supported = new Set<string>(SUPPORTED_LANGUAGE_CODES);
+  if (supported.has(code)) return code;
+  const browser = typeof navigator !== 'undefined' ? navigator.language?.split(/[-_]/)[0]?.toLowerCase() ?? '' : '';
+  if (supported.has(browser)) return browser;
+  return 'en';
 }
 
 const getApiBase = (): string =>
@@ -124,7 +128,8 @@ export function DashboardConfigProvider({ children }: { children: React.ReactNod
           footer?: NavLinkItem[];
           navLinks?: { name?: string; items?: NavLinkItem[] };
         }) => {
-        const lang = normalizeLanguage(data.language ?? getDefaultLanguage());
+        const rawConfigLang = (data.language ?? getDefaultLanguage()).split(/[-_]/)[0]?.toLowerCase() || 'en';
+        const resolvedLang = resolveDefaultLanguage(rawConfigLang);
         const nav = data.navLinks ?? {};
         const footer = Array.isArray(data.footer)
           ? data.footer.filter((e): e is NavLinkItem => e && typeof e === 'object' && 'name' in e && 'url' in e)
@@ -132,7 +137,7 @@ export function DashboardConfigProvider({ children }: { children: React.ReactNod
         const title = data.title ?? defaultConfig.title;
         setConfig({
           title,
-          language: lang,
+          language: resolvedLang,
           background: Boolean(data.background),
           selfService: Boolean(data.selfService),
           showConsole: Boolean(data.showConsole),
@@ -141,8 +146,16 @@ export function DashboardConfigProvider({ children }: { children: React.ReactNod
           apiBase,
           aliases: defaultAliases,
         });
-        if (i18n.language !== lang) {
-          i18n.changeLanguage(lang);
+        const cookieLang = getLanguageCookie();
+        if (cookieLang && SUPPORTED_LANGUAGE_CODES.includes(cookieLang as (typeof SUPPORTED_LANGUAGE_CODES)[number])) {
+          if (i18n.language !== cookieLang) {
+            i18n.changeLanguage(cookieLang);
+          }
+        } else {
+          setLanguageCookie(resolvedLang);
+          if (i18n.language !== resolvedLang) {
+            i18n.changeLanguage(resolvedLang);
+          }
         }
       })
       .catch(() => {
