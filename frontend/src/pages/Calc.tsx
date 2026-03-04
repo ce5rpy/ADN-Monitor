@@ -48,11 +48,12 @@ function buildOptions(p: {
   mode: string;
 }): string {
   const parts: string[] = [];
-  // TS1: used in both Duplex and Simplex (in Simplex there is only one slot = TS1)
-  if (p.ts1.length > 0) parts.push('TS1=' + p.ts1.join(','));
-  // TS2: only in Duplex; not used in Simplex
-  if (p.mode === 'Duplex' && p.ts2.length > 0 && p.dial <= 0) parts.push('TS2=' + p.ts2.join(','));
-  if (p.dial > 0) parts.push('DIAL=' + p.dial);
+  // Duplex: TS1 and TS2 always (both slots)
+  if (p.mode === 'Duplex' && p.ts1.length > 0) parts.push('TS1=' + p.ts1.join(','));
+  if (p.mode === 'Duplex' && p.ts2.length > 0) parts.push('TS2=' + p.ts2.join(','));
+  // Simplex: single slot is always TS2 (we use ts2 state for it)
+  if (p.mode === 'Simplex' && p.ts2.length > 0) parts.push('TS2=' + p.ts2.join(','));
+  parts.push('DIAL=' + (p.dial ? 1 : 0));
   if (p.voice !== '-1') parts.push('VOICE=' + p.voice);
   if (p.voice === '1') parts.push('LANG=' + p.lang);
   if (p.single !== '-1') parts.push('SINGLE=' + p.single);
@@ -65,7 +66,7 @@ export default function Calc() {
   const [mode, setMode] = useState<'Duplex' | 'Simplex'>('Duplex');
   const [ts1, setTs1] = useState<number[]>([0]);
   const [ts2, setTs2] = useState<number[]>([0]);
-  const [dial, setDial] = useState(0);
+  const [dial, setDial] = useState(0); // 0 or 1
   const [voice, setVoice] = useState('-1');
   const [lang] = useState('en_GB');
   const [single, setSingle] = useState('-1');
@@ -100,49 +101,55 @@ export default function Calc() {
         </Select>
       </FormControl>
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        <Box>
-          <Typography variant="subtitle2">{t('calc_ts1')}</Typography>
-          <Table size="small">
-            <TableBody>
-              {ts1.map((v, i) => (
-                <TableRow key={i}>
-                  <TableCell>TG {i + 1}</TableCell>
-                  <TableCell>
-                    <TextField type="number" size="small" value={v} onChange={(e) => setSlotValue(1, i, Number(e.target.value) || 0)} inputProps={{ min: 0 }} />
-                  </TableCell>
-                  <TableCell>
-                    <IconButton size="small" onClick={() => removeRow(1, i)}><DeleteIcon /></IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Button startIcon={<AddIcon />} onClick={() => addRow(1)} size="small">{t('calc_addts1')}</Button>
-        </Box>
         {mode === 'Duplex' && (
           <Box>
-            <Typography variant="subtitle2">{t('calc_ts2')}</Typography>
+            <Typography variant="subtitle2">{t('calc_ts1')}</Typography>
             <Table size="small">
               <TableBody>
-                {ts2.map((v, i) => (
+                {ts1.map((v, i) => (
                   <TableRow key={i}>
                     <TableCell>TG {i + 1}</TableCell>
                     <TableCell>
-                      <TextField type="number" size="small" value={v} onChange={(e) => setSlotValue(2, i, Number(e.target.value) || 0)} inputProps={{ min: 0 }} />
+                      <TextField type="number" size="small" value={v} onChange={(e) => setSlotValue(1, i, Number(e.target.value) || 0)} inputProps={{ min: 0 }} />
                     </TableCell>
                     <TableCell>
-                      <IconButton size="small" onClick={() => removeRow(2, i)}><DeleteIcon /></IconButton>
+                      <IconButton size="small" onClick={() => removeRow(1, i)}><DeleteIcon /></IconButton>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-            <Button startIcon={<AddIcon />} onClick={() => addRow(2)} size="small">{t('calc_addts2')}</Button>
+            <Button startIcon={<AddIcon />} onClick={() => addRow(1)} size="small">{t('calc_addts1')}</Button>
           </Box>
         )}
+        <Box>
+          <Typography variant="subtitle2">{t('calc_ts2')}</Typography>
+          <Table size="small">
+            <TableBody>
+              {ts2.map((v, i) => (
+                <TableRow key={i}>
+                  <TableCell>TG {i + 1}</TableCell>
+                  <TableCell>
+                    <TextField type="number" size="small" value={v} onChange={(e) => setSlotValue(2, i, Number(e.target.value) || 0)} inputProps={{ min: 0 }} />
+                  </TableCell>
+                  <TableCell>
+                    <IconButton size="small" onClick={() => removeRow(2, i)}><DeleteIcon /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <Button startIcon={<AddIcon />} onClick={() => addRow(2)} size="small">{t('calc_addts2')}</Button>
+        </Box>
       </Box>
-      <Box sx={{ mt: 2 }}>
-        <TextField label={t('calc_dialtg')} type="number" value={dial} onChange={(e) => setDial(Number(e.target.value) || 0)} size="small" sx={{ mr: 1 }} />
+      <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
+        <FormControl size="small" sx={{ minWidth: 140 }}>
+          <InputLabel>{t('calc_dialtg')}</InputLabel>
+          <Select value={String(dial)} label={t('calc_dialtg')} onChange={(e) => setDial(Number(e.target.value))}>
+            <MenuItem value="0">{t('calc_voiceoff')}</MenuItem>
+            <MenuItem value="1">{t('calc_voiceon')}</MenuItem>
+          </Select>
+        </FormControl>
         <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>{t('calc_voice')}</InputLabel>
           <Select value={voice} label={t('calc_voice')} onChange={(e) => setVoice(e.target.value)}>
@@ -151,7 +158,7 @@ export default function Calc() {
             <MenuItem value="1">{t('calc_voiceon')}</MenuItem>
           </Select>
         </FormControl>
-        <FormControl size="small" sx={{ minWidth: 140, ml: 1 }}>
+        <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>{t('calc_smode')}</InputLabel>
           <Select value={single} label={t('calc_smode')} onChange={(e) => setSingle(e.target.value)}>
             <MenuItem value="-1">{t('calc_smodesrv')}</MenuItem>
@@ -159,7 +166,7 @@ export default function Calc() {
             <MenuItem value="1">{t('calc_smodeon')}</MenuItem>
           </Select>
         </FormControl>
-        <TextField label={t('calc_tgto')} type="number" value={timer} onChange={(e) => setTimer(Number(e.target.value) || 0)} size="small" sx={{ ml: 1 }} />
+        <TextField label={t('calc_tgto')} type="number" value={timer} onChange={(e) => setTimer(Number(e.target.value) || 0)} size="small" />
       </Box>
       <Box sx={{ mt: 3 }}>
         <Typography variant="subtitle2">{t('calc_dmrgw')}</Typography>
