@@ -144,7 +144,7 @@ export default function Systems() {
               <Chip size="small" label={peerId} sx={{ mt: 0.25 }} />
               <Typography variant="caption" display="block" color="text.secondary">{String(p.LOCATION ?? '')}</Typography>
             </TableCell>
-            <TableCell rowSpan={2} align="center" sx={{ bgcolor: 'success.light', color: 'success.contrastText', width: 110, minWidth: 110, maxWidth: 110, whiteSpace: 'nowrap' }}>
+            <TableCell rowSpan={2} align="center" sx={{ bgcolor: 'success.light', color: 'success.contrastText', whiteSpace: 'nowrap' }}>
               {String(p.CONNECTED ?? '—')}
             </TableCell>
             <TableCell align="center">
@@ -178,6 +178,12 @@ export default function Systems() {
     mb: 2,
     boxShadow: (t: { palette: { mode: string } }) => (t.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)'),
   };
+
+  /** Same column proportions for all tables (6 columns). */
+  const tableLayoutSx = { tableLayout: 'fixed' as const, width: '100%' };
+  const col = (pct: number) => ({ width: `${pct}%`, minWidth: 0 });
+  const masterCols = [col(24), col(14), col(10), col(20), col(18), col(14)];
+  const peerCols = [col(20), col(18), col(14), col(10), col(20), col(18)];
 
   return (
     <Box>
@@ -226,15 +232,15 @@ export default function Systems() {
             {t('lnksys_repeaters', { defaultValue: 'Repeaters' })}
           </Typography>
           <TableContainer>
-            <Table size="small" stickyHeader>
+            <Table size="small" stickyHeader sx={tableLayoutSx}>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'action.hover' }}>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_callsign', { defaultValue: 'Callsign' })} / ID / {t('lnksys_loc', { defaultValue: 'Location' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600, width: 110, minWidth: 110, maxWidth: 110 }}>{t('lnksys_connected', { defaultValue: 'Time Connected' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_slot', { defaultValue: 'Slot' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_static_tg', { defaultValue: 'Static TG' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_single_tg', { defaultValue: 'Single TG' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_to', { defaultValue: 'T/O' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[0] }}>{t('lnksys_callsign', { defaultValue: 'Callsign' })} / ID / {t('lnksys_loc', { defaultValue: 'Location' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[1] }}>{t('lnksys_connected', { defaultValue: 'Time Connected' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[2] }}>{t('lnksys_slot', { defaultValue: 'Slot' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[3] }}>{t('lnksys_static_tg', { defaultValue: 'Static TG' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[4] }}>{t('lnksys_single_tg', { defaultValue: 'Single TG' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[5] }}>{t('lnksys_to', { defaultValue: 'T/O' })}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>{renderMasterPeerRows(isRepeater, 'rpt')}</TableBody>
@@ -249,15 +255,15 @@ export default function Systems() {
             {t('lnksys_hotspots', { defaultValue: 'Hotspots' })}
           </Typography>
           <TableContainer>
-            <Table size="small" stickyHeader>
+            <Table size="small" stickyHeader sx={tableLayoutSx}>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'action.hover' }}>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_callsign', { defaultValue: 'Callsign' })} / ID / {t('lnksys_loc', { defaultValue: 'Location' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600, width: 110, minWidth: 110, maxWidth: 110 }}>{t('lnksys_connected', { defaultValue: 'Time Connected' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_slot', { defaultValue: 'Slot' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_static_tg', { defaultValue: 'Static TG' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_single_tg', { defaultValue: 'Single TG' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_to', { defaultValue: 'T/O' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[0] }}>{t('lnksys_callsign', { defaultValue: 'Callsign' })} / ID / {t('lnksys_loc', { defaultValue: 'Location' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[1] }}>{t('lnksys_connected', { defaultValue: 'Time Connected' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[2] }}>{t('lnksys_slot', { defaultValue: 'Slot' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[3] }}>{t('lnksys_static_tg', { defaultValue: 'Static TG' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[4] }}>{t('lnksys_single_tg', { defaultValue: 'Single TG' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[5] }}>{t('lnksys_to', { defaultValue: 'T/O' })}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>{renderMasterPeerRows(isHotspot, 'hts')}</TableBody>
@@ -272,15 +278,15 @@ export default function Systems() {
             {t('lnksys_bridges', { defaultValue: 'Bridges (IP)' })}
           </Typography>
           <TableContainer>
-            <Table size="small" stickyHeader>
+            <Table size="small" stickyHeader sx={tableLayoutSx}>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'action.hover' }}>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_callsign', { defaultValue: 'Callsign' })} / ID / {t('lnksys_loc', { defaultValue: 'Location' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600, width: 110, minWidth: 110, maxWidth: 110 }}>{t('lnksys_connected', { defaultValue: 'Time Connected' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_slot', { defaultValue: 'Slot' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_static_tg', { defaultValue: 'Static TG' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_single_tg', { defaultValue: 'Single TG' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_to', { defaultValue: 'T/O' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[0] }}>{t('lnksys_callsign', { defaultValue: 'Callsign' })} / ID / {t('lnksys_loc', { defaultValue: 'Location' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[1] }}>{t('lnksys_connected', { defaultValue: 'Time Connected' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[2] }}>{t('lnksys_slot', { defaultValue: 'Slot' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[3] }}>{t('lnksys_static_tg', { defaultValue: 'Static TG' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[4] }}>{t('lnksys_single_tg', { defaultValue: 'Single TG' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...masterCols[5] }}>{t('lnksys_to', { defaultValue: 'T/O' })}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>{renderMasterPeerRows((_, p) => isBridge(p), 'brg')}</TableBody>
@@ -295,15 +301,15 @@ export default function Systems() {
             {t('lnksys_peers', { defaultValue: 'Services (PEERS)' })}
           </Typography>
           <TableContainer>
-            <Table size="small" stickyHeader>
+            <Table size="small" stickyHeader sx={tableLayoutSx}>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'action.hover' }}>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_system', { defaultValue: 'Service' })} / {t('lnksys_mode', { defaultValue: 'Mode' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_callsign', { defaultValue: 'Callsign' })} / ID</TableCell>
-                  <TableCell sx={{ fontWeight: 600, width: 110, minWidth: 110, maxWidth: 110 }}>{t('lnksys_connected', { defaultValue: 'Connected' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_slot', { defaultValue: 'Slot' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_src', { defaultValue: 'Source' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_dst', { defaultValue: 'Destination' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...peerCols[0] }}>{t('lnksys_system', { defaultValue: 'Service' })} / {t('lnksys_mode', { defaultValue: 'Mode' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...peerCols[1] }}>{t('lnksys_callsign', { defaultValue: 'Callsign' })} / ID</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...peerCols[2] }}>{t('lnksys_connected', { defaultValue: 'Connected' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...peerCols[3] }}>{t('lnksys_slot', { defaultValue: 'Slot' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...peerCols[4] }}>{t('lnksys_src', { defaultValue: 'Source' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, ...peerCols[5] }}>{t('lnksys_dst', { defaultValue: 'Destination' })}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -316,7 +322,7 @@ export default function Systems() {
                     <TableRow key={`svc-${name}-1`} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                       <TableCell rowSpan={2}><Typography fontWeight="bold">{name}</Typography><Typography variant="caption">{String(peer.MODE ?? '')}</Typography></TableCell>
                       <TableCell><Typography fontWeight="bold" component="span"><QrzLink callsign={String(peer.CALLSIGN ?? '')}>{String(peer.CALLSIGN ?? '')}</QrzLink></Typography> <Chip size="small" label={String(peer.RADIO_ID ?? '')} /></TableCell>
-                      <TableCell rowSpan={2} align="center" sx={{ bgcolor: st?.CONNECTION === 'YES' ? 'success.light' : 'warning.light', width: 110, minWidth: 110, maxWidth: 110, whiteSpace: 'nowrap' }}>
+                      <TableCell rowSpan={2} align="center" sx={{ bgcolor: st?.CONNECTION === 'YES' ? 'success.light' : 'warning.light', whiteSpace: 'nowrap' }}>
                         {String(st?.CONNECTED ?? '—')}
                         {typeof st?.PINGS_SENT === 'number' && <Typography variant="caption" display="block">{st.PINGS_SENT} / {String(st.PINGS_ACKD ?? 0)}</Typography>}
                       </TableCell>

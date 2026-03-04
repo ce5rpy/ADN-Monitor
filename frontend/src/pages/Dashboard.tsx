@@ -226,13 +226,13 @@ export default function Dashboard() {
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow sx={{ bgcolor: 'action.hover' }}>
-                <TableCell sx={{ fontWeight: 600 }}>{t('lh_date')}</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{t('lh_time')}</TableCell>
+                <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{t('lh_date')}</TableCell>
+                <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{t('lh_time')}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{t('lh_callsignid', { defaultValue: 'Callsign (ID)' })}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{t('lh_name', { defaultValue: 'Name' })}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{t('lh_tgnum', { defaultValue: 'TG#' })}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{t('lh_tgname', { defaultValue: 'TG Name' })}</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{t('lh_duration')}</TableCell>
+                <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{t('lh_duration')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -246,8 +246,8 @@ export default function Dashboard() {
                 const protocolIcons = protocolIconsFromText(`${r.tg_callsign} ${r.system}`);
                 return (
                   <TableRow key={i} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-                    <TableCell sx={{ width: 105 }}>{datePart}</TableCell>
-                    <TableCell>{timePart}</TableCell>
+                    <TableCell sx={{ width: 105, minWidth: 105, whiteSpace: 'nowrap' }}>{datePart}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{timePart}</TableCell>
                     <TableCell sx={{ minWidth: 220 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'nowrap' }}>
                         <FlagImg code={callFlagCode} />
