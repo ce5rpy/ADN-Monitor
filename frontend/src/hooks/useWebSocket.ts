@@ -21,6 +21,9 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 const WS_GROUPS = ['main', 'bridge', 'lnksys', 'opb', 'statictg', 'log', 'lsthrd_log', 'tgcount'] as const;
 export type WsGroup = (typeof WS_GROUPS)[number];
 
+const RECONNECT_INITIAL_MS = 2000;
+const RECONNECT_MAX_DELAY_MS = 15000;
+
 function getWsUrl(): string {
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = window.location.host;
@@ -36,6 +39,9 @@ export function useWebSocket({ groups, onMessage }: UseWebSocketOptions) {
   const [connected, setConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<{ opcode: string; payload: string } | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
+  const attemptRef = useRef(0);
   const onMessageRef = useRef(onMessage);
   onMessageRef.current = onMessage;
 
@@ -46,6 +52,7 @@ export function useWebSocket({ groups, onMessage }: UseWebSocketOptions) {
     wsRef.current = ws;
 
     ws.onopen = () => {
+      attemptRef.current = 0;
       setConnected(true);
       if (groups.length > 0) {
         ws.send('conf,' + groups.join(','));
@@ -55,6 +62,20 @@ export function useWebSocket({ groups, onMessage }: UseWebSocketOptions) {
     ws.onclose = () => {
       setConnected(false);
       wsRef.current = null;
+      if (!mountedRef.current) return;
+      const delay = Math.min(
+        RECONNECT_INITIAL_MS * Math.pow(1.5, attemptRef.current),
+        RECONNECT_MAX_DELAY_MS
+      );
+      attemptRef.current += 1;
+      reconnectTimeoutRef.current = setTimeout(() => {
+        reconnectTimeoutRef.current = null;
+        connect();
+      }, delay);
+    };
+
+    ws.onerror = () => {
+      // Close will follow; no extra handling needed
     };
 
     ws.onmessage = (event) => {
@@ -67,8 +88,14 @@ export function useWebSocket({ groups, onMessage }: UseWebSocketOptions) {
   }, [groups.join(',')]);
 
   useEffect(() => {
+    mountedRef.current = true;
     connect();
     return () => {
+      mountedRef.current = false;
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
       wsRef.current?.close();
       wsRef.current = null;
     };
