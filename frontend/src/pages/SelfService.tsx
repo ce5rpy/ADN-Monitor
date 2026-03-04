@@ -29,8 +29,14 @@ import {
   TextField,
   Box,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
+import Calc from './Calc';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
@@ -68,6 +74,7 @@ export default function SelfService() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [saving, setSaving] = useState(false);
+  const [calcOpen, setCalcOpen] = useState(false);
 
   useEffect(() => {
     fetch(API_BASE + '/api/auth/me', { credentials: 'include' })
@@ -164,6 +171,22 @@ export default function SelfService() {
 
       {device && (
         <>
+          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mb: 2 }}>
+            {t('ss_calc_hint')}{' '}
+            <Button variant="text" size="small" onClick={() => setCalcOpen(true)} sx={{ fontWeight: 600, p: 0, minWidth: 'auto', textTransform: 'none', verticalAlign: 'baseline' }}>
+              {t('nav_calc')}
+            </Button>
+          </Typography>
+          <Dialog open={calcOpen} onClose={() => setCalcOpen(false)} maxWidth="lg" fullWidth scroll="paper">
+            <DialogTitle sx={{ py: 0.5, px: 1, display: 'flex', justifyContent: 'flex-end' }}>
+              <IconButton aria-label="close" onClick={() => setCalcOpen(false)} size="small">
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent sx={{ p: 0, overflow: 'auto' }}>
+              <Calc />
+            </DialogContent>
+          </Dialog>
           <TextField
             fullWidth
             multiline
