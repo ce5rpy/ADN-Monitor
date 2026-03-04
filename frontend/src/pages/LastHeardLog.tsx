@@ -16,10 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useWebSocketGroup } from '../hooks/useWebSocket';
 import QrzLink from '../components/QrzLink';
+import ActiveQsoBox, { type Ctable } from '../components/ActiveQsoBox';
 
 type LastHeardRow = {
   date: string;
@@ -32,31 +43,36 @@ type LastHeardRow = {
   subscriber: string[];
 };
 
+type MainPayload = { ctable?: Ctable };
 type LogPayload = { rows?: LastHeardRow[] };
+
+const tablePaperSx = {
+  mt: 0,
+  overflow: 'hidden' as const,
+  boxShadow: (theme: { palette: { mode: string } }) => (theme.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)'),
+};
 
 export default function LastHeardLog() {
   const { t } = useTranslation();
-  const { data } = useWebSocketGroup('lsthrd_log');
-  const payload = data as LogPayload | null;
-  const rows = payload?.rows ?? [];
+  const { data: mainData } = useWebSocketGroup('main');
+  const { data: logData } = useWebSocketGroup('lsthrd_log');
+  const mainPayload = mainData as MainPayload | null;
+  const logPayload = logData as LogPayload | null;
+  const logRows = logPayload?.rows ?? [];
+  const ctable = mainPayload?.ctable;
+  const hasAnyData = mainData != null || logData != null;
 
   return (
     <Box>
       <Typography variant="h5" fontWeight={700} color="text.primary" sx={{ mb: 2 }}>
         {t('nav_lsthrd', { defaultValue: 'Last Heard Log' })}
       </Typography>
-      {!data && (
+      {!hasAnyData && (
         <Typography color="text.secondary" sx={{ py: 2 }}>{t('pre_wait')}</Typography>
       )}
-      {rows.length > 0 && (
-        <TableContainer
-          component={Paper}
-          sx={{
-            mt: 0,
-            overflow: 'hidden',
-            boxShadow: (t: { palette: { mode: string } }) => (t.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)'),
-          }}
-        >
+      {mainData != null && <ActiveQsoBox ctable={ctable ?? undefined} />}
+      {logRows.length > 0 && (
+        <TableContainer component={Paper} sx={tablePaperSx}>
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow sx={{ bgcolor: 'action.hover' }}>
@@ -68,7 +84,7 @@ export default function LastHeardLog() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((r, i) => (
+              {logRows.map((r, i) => (
                 <TableRow key={i} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                   <TableCell>{r.date}</TableCell>
                   <TableCell>
