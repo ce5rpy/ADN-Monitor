@@ -207,7 +207,7 @@ export default function TgList() {
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow sx={{ bgcolor: 'action.hover' }}>
-                <TableCell sx={{ width: 48, fontWeight: 600 }}>{t('tbl_flag', { defaultValue: '' })}</TableCell>
+                <TableCell sx={{ minWidth: 140, fontWeight: 600 }}>{t('tbl_country', { defaultValue: 'Country' })}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{t('lh_tgnum', { defaultValue: 'TG#' })}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{t('lh_tgname', { defaultValue: 'Name' })}</TableCell>
               </TableRow>
@@ -216,8 +216,13 @@ export default function TgList() {
               {byCountry.flatMap(([countryCode, list]) =>
                 list.map((r) => (
                   <TableRow key={`${r.countryCode}-${r.id}`} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-                    <TableCell sx={{ width: 48, py: 0.5 }}>
-                      <FlagImg countryCode={countryCode} />
+                    <TableCell sx={{ minWidth: 140, py: 0.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <FlagImg countryCode={countryCode} />
+                        <Typography component="span" variant="body2">
+                          {list[0]?.name ?? countryCode}
+                        </Typography>
+                      </Box>
                     </TableCell>
                     <TableCell>{r.id}</TableCell>
                     <TableCell>{r.name}</TableCell>
