@@ -320,7 +320,7 @@ function App() {
           <Container maxWidth="xl" sx={{ display: 'flex', justifyContent: 'center' }}>
             <Box
               component="img"
-              src="/logo.png"
+              src="/img/logo.png"
               alt=""
               sx={{ width: '50%', maxWidth: '50%', height: 'auto', objectFit: 'contain', display: 'block' }}
             />
