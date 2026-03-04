@@ -74,10 +74,12 @@ export default function Login() {
   };
 
   return (
-    <Box sx={{ maxWidth: 400, mx: 'auto', py: 4 }}>
-      <Paper sx={{ p: 3 }}>
-        <Box component="img" src="/logo.png" alt="" sx={{ maxWidth: 280, maxHeight: 120, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block', mb: 2 }} />
+    <Box sx={{ maxWidth: 960, mx: 'auto', py: 4, px: 2 }}>
+      <Paper sx={{ p: 3, mb: 2, maxWidth: 400, mx: 'auto' }}>
         <Typography variant="h5" gutterBottom>{t('self_service')}</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          {t('ss_intro')}
+        </Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <form onSubmit={handleSubmit}>
           <TextField fullWidth label={t('sslog_call')} value={callsign} onChange={(e) => setCallsign(e.target.value)} required sx={{ mb: 2 }} />
@@ -85,6 +87,22 @@ export default function Login() {
           <Button type="submit" variant="contained" fullWidth disabled={loading}>{t('sslog_login')}</Button>
         </form>
         <Button fullWidth sx={{ mt: 2 }} onClick={tryIpLogin} disabled={loading}>{t('sslog_login_ip')}</Button>
+      </Paper>
+
+      <Paper sx={{ p: 3, bgcolor: 'action.hover', minWidth: 0 }}>
+        <Typography variant="subtitle1" fontWeight={700} sx={{ textAlign: 'center', mb: 2 }}>
+          {t('sslog_use')}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          {t('sslog_manage_options_tg')}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          {t('sslog_instruc')}
+        </Typography>
+        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>{t('sslog_pistar')}</Typography>
+        <Box component="img" src="/img/pi-star_pass.png" alt="Pi-star options" sx={{ maxWidth: 900, width: '100%', height: 'auto', display: 'block', mb: 3, borderRadius: 1 }} />
+        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>{t('sslog_wpsd')}</Typography>
+        <Box component="img" src="/img/wpsd_pass.png" alt="WPSD options" sx={{ maxWidth: 900, width: '100%', height: 'auto', display: 'block', borderRadius: 1 }} />
       </Paper>
     </Box>
   );

@@ -66,7 +66,10 @@
   "sslog_pass": "Parool",
   "sslog_login": "Logi sisse",
   "sslog_use": "*** KASUTAMINE ***",
+  "sslog_manage_options_tg": "Isteenindus võimaldab hallata seadme valikurida ja staatilisi rühmi.",
   "sslog_instruc": "Seadme haldamiseks Isteeninduse kaudu võite peama seadme tarkvaras kõik valikud eemaldama ja parooli määrama PASS=teie_parool.",
+  "sslog_pistar": "Pi-star:",
+  "sslog_wpsd": "WPSD:",
   "footer_brand": "ADN Systems",
   "footer_copyright": "Copyright {{year}} - Autoriõigused - Kõik õigused kaitstud.",
   "footer_app": "ADN Systems Monitor",
@@ -143,5 +146,7 @@
     "USA_West": "USA Läänerannik",
     "Uruguay": "Uruguay",
     "Venezuela": "Venezuela"
-  }
+  },
+  "ss_intro": "Siin saate hallata oma hotspoti eelistusi ja staatilisi rühmi.",
+  "ss_calc_hint": "Vajate abi valikute rea koostamiseks? Kasutage"
 }

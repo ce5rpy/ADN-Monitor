@@ -66,7 +66,10 @@
   "sslog_pass": "Contrasenya",
   "sslog_login": "Iniciar sessió",
   "sslog_use": "*** ÚS ***",
+  "sslog_manage_options_tg": "L'Autoservei us permet gestionar la línia d'Opcions i els grups estàtics del vostre dispositiu.",
   "sslog_instruc": "Per gestionar el vostre dispositiu amb Autoservei, pot ser que hàgiu d'eliminar totes les opcions al programari del dispositiu i establir la contrasenya amb PASS=la_vostra_contrasenya.",
+  "sslog_pistar": "Pi-star:",
+  "sslog_wpsd": "WPSD:",
   "footer_brand": "ADN Systems",
   "footer_copyright": "Copyright {{year}} - Tots els drets reservats.",
   "footer_app": "ADN Systems Monitor",
@@ -143,5 +146,7 @@
     "USA_West": "EUA Oest",
     "Uruguay": "Uruguai",
     "Venezuela": "Veneçuela"
-  }
+  },
+  "ss_intro": "Aquí podeu gestionar les preferències del vostre hotspot i els grups estàtics.",
+  "ss_calc_hint": "Necessiteu ajuda per muntar la línia d'opcions? Feu servir la"
 }

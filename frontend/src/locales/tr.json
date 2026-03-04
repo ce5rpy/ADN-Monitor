@@ -66,7 +66,10 @@
   "sslog_pass": "Parola",
   "sslog_login": "Giriş",
   "sslog_use": "*** KULLANIM ***",
+  "sslog_manage_options_tg": "Self servis, cihazınızın Seçenek satırını ve statik konuşma gruplarını yönetmenizi sağlar.",
   "sslog_instruc": "Cihazınızı Self servis ile yönetmek için cihaz yazılımındaki tüm seçenekleri kaldırmanız ve PASS=parolanız ile parola ayarlamanız gerekebilir.",
+  "sslog_pistar": "Pi-star:",
+  "sslog_wpsd": "WPSD:",
   "footer_brand": "ADN Systems",
   "footer_copyright": "Copyright {{year}} - Telif hakkı - Tüm hakları saklıdır.",
   "footer_app": "ADN Systems Monitor",
@@ -143,5 +146,7 @@
     "USA_West": "ABD Batı",
     "Uruguay": "Uruguay",
     "Venezuela": "Venezuela"
-  }
+  },
+  "ss_intro": "Burada hotspot tercihlerinizi ve statik talk gruplarınızı yönetebilirsiniz.",
+  "ss_calc_hint": "Seçenek satırını oluşturmak için yardım mı gerekiyor? Şunu kullanın:"
 }

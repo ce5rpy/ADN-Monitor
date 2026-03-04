@@ -66,7 +66,10 @@
   "sslog_pass": "密码",
   "sslog_login": "登录",
   "sslog_use": "*** 使用说明 ***",
+  "sslog_manage_options_tg": "自助服务可让您管理设备的选项行和静态通话组。",
   "sslog_instruc": "要使用自助服务管理您的设备，您可能需要在设备软件中删除所有选项，并使用 PASS=您的密码 设置密码。",
+  "sslog_pistar": "Pi-star:",
+  "sslog_wpsd": "WPSD:",
   "footer_brand": "ADN Systems",
   "footer_copyright": "Copyright {{year}} - 版权所有。",
   "footer_app": "ADN Systems 监控",
@@ -143,5 +146,7 @@
     "USA_West": "美国西部",
     "Uruguay": "乌拉圭",
     "Venezuela": "委内瑞拉"
-  }
+  },
+  "ss_intro": "在此您可以管理热点偏好设置和静态通话组。",
+  "ss_calc_hint": "需要帮助构建选项行？请使用"
 }

@@ -66,7 +66,10 @@
   "sslog_pass": "Hasło",
   "sslog_login": "Zaloguj",
   "sslog_use": "*** UŻYCIE ***",
+  "sslog_manage_options_tg": "Samoobsługa umożliwia zarządzanie linią Opcji i statycznymi grupami rozmów urządzenia.",
   "sslog_instruc": "Aby zarządzać urządzeniem przez Samoobsługę, może być konieczne usunięcie wszystkich opcji w oprogramowaniu urządzenia i ustawienie hasła przez PASS=twoje_hasło.",
+  "sslog_pistar": "Pi-star:",
+  "sslog_wpsd": "WPSD:",
   "footer_brand": "ADN Systems",
   "footer_copyright": "Copyright {{year}} - Wszelkie prawa zastrzeżone.",
   "footer_app": "ADN Systems Monitor",
@@ -143,5 +146,7 @@
     "USA_West": "USA Zachód",
     "Uruguay": "Urugwaj",
     "Venezuela": "Wenezuela"
-  }
+  },
+  "ss_intro": "Tutaj możesz zarządzać ustawieniami swojego hotspotu i statycznymi grupami rozmów.",
+  "ss_calc_hint": "Potrzebujesz pomocy w zbudowaniu linii opcji? Użyj"
 }
