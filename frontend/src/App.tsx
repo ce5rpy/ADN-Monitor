@@ -82,7 +82,7 @@ function App() {
   const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('mode');
-    return saved === 'dark' || saved === null;
+    return saved !== 'light';
   });
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [infoAnchor, setInfoAnchor] = useState<null | HTMLElement>(null);
@@ -127,10 +127,15 @@ function App() {
           },
           MuiPaper: {
             styleOverrides: {
-              root: {
+              root: ({ theme }) => ({
                 borderRadius: 12,
                 backgroundImage: 'none',
-              },
+                ...(theme.palette.mode === 'light' && {
+                  border: '1px solid',
+                  borderColor: theme.palette.divider,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                }),
+              }),
             },
           },
           MuiCard: {

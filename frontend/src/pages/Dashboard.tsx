@@ -93,11 +93,13 @@ function ProtocolIcon({ name }: { name: string }) {
   );
 }
 
-/** Classify MASTERS peers into repeaters (id length 6), hotspots (7+), bridges (freq N/A). */
+type PeerChipItem = { callsign: string; system: string; activeTrx: 'RX' | 'TX' | null };
+
+/** Classify MASTERS peers into repeaters (id length 6), hotspots (7+), bridges (freq N/A). Include activeTrx from timeslots for chip color. */
 function getRepeatersHotspotsBridges(ctable: Ctable | null | undefined) {
-  const repeaters: { callsign: string; system: string }[] = [];
-  const hotspots: { callsign: string; system: string }[] = [];
-  const bridges: { callsign: string; system: string }[] = [];
+  const repeaters: PeerChipItem[] = [];
+  const hotspots: PeerChipItem[] = [];
+  const bridges: PeerChipItem[] = [];
   if (!ctable?.MASTERS) return { repeaters, hotspots, bridges };
   for (const [system, master] of Object.entries(ctable.MASTERS)) {
     const peers = master?.PEERS ?? {};
@@ -106,7 +108,12 @@ function getRepeatersHotspotsBridges(ctable: Ctable | null | undefined) {
       const rx = p.RX_FREQ ?? '';
       const tx = p.TX_FREQ ?? '';
       const call = (p.CALLSIGN ?? '').trim() || peerId;
-      const item = { callsign: call, system };
+      const ts1 = p[1] ?? (p as Record<string, { TRX?: string } | undefined>)[String(1)];
+      const ts2 = p[2] ?? (p as Record<string, { TRX?: string } | undefined>)[String(2)];
+      const trx1 = String(ts1?.TRX ?? '').toUpperCase();
+      const trx2 = String(ts2?.TRX ?? '').toUpperCase();
+      const activeTrx: 'RX' | 'TX' | null = trx1 === 'RX' || trx2 === 'RX' ? 'RX' : trx1 === 'TX' || trx2 === 'TX' ? 'TX' : null;
+      const item: PeerChipItem = { callsign: call, system, activeTrx };
       const idLen = String(peerId).length;
       const hasFreq = rx !== 'N/A' && tx !== 'N/A';
       if (hasFreq && idLen === 6) repeaters.push(item);
@@ -121,6 +128,11 @@ function ConnectedChips({ ctable }: { ctable: Ctable | null | undefined }) {
   const { t } = useTranslation();
   const { repeaters, hotspots, bridges } = getRepeatersHotspotsBridges(ctable);
   const chipSx = { mx: 0.25, mb: 0.5 };
+  const chipFilledSx = (color: 'error' | 'success') => ({
+    ...chipSx,
+    color: (theme: { palette: { error: { contrastText: string }; success: { contrastText: string } } }) => theme.palette[color].contrastText,
+    '& .MuiChip-label, & a': { color: 'inherit' },
+  });
   return (
     <Grid container spacing={2} sx={{ mb: 2 }}>
       <Grid item xs={12} md={4}>
@@ -133,14 +145,14 @@ function ConnectedChips({ ctable }: { ctable: Ctable | null | undefined }) {
               {repeaters.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">—</Typography>
               ) : (
-                repeaters.map(({ callsign, system }, i) => (
+                repeaters.map(({ callsign, system, activeTrx }, i) => (
                   <Chip
                     key={`r-${system}-${callsign}-${i}`}
                     size="small"
                     label={isCallsignLike(callsign) ? <QrzLink callsign={callsign}>{callsign}</QrzLink> : callsign}
-                    sx={chipSx}
-                    variant="outlined"
-                    color="success"
+                    sx={activeTrx ? chipFilledSx(activeTrx === 'RX' ? 'error' : 'success') : chipSx}
+                    variant={activeTrx ? 'filled' : 'outlined'}
+                    color={activeTrx === 'RX' ? 'error' : activeTrx === 'TX' ? 'success' : 'default'}
                   />
                 ))
               )}
@@ -158,14 +170,14 @@ function ConnectedChips({ ctable }: { ctable: Ctable | null | undefined }) {
               {hotspots.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">—</Typography>
               ) : (
-                hotspots.map(({ callsign, system }, i) => (
+                hotspots.map(({ callsign, system, activeTrx }, i) => (
                   <Chip
                     key={`h-${system}-${callsign}-${i}`}
                     size="small"
                     label={isCallsignLike(callsign) ? <QrzLink callsign={callsign}>{callsign}</QrzLink> : callsign}
-                    sx={chipSx}
-                    variant="outlined"
-                    color="warning"
+                    sx={activeTrx ? chipFilledSx(activeTrx === 'RX' ? 'error' : 'success') : chipSx}
+                    variant={activeTrx ? 'filled' : 'outlined'}
+                    color={activeTrx === 'RX' ? 'error' : activeTrx === 'TX' ? 'success' : 'default'}
                   />
                 ))
               )}
@@ -183,8 +195,8 @@ function ConnectedChips({ ctable }: { ctable: Ctable | null | undefined }) {
               {bridges.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">—</Typography>
               ) : (
-                bridges.map(({ callsign, system }, i) => (
-                  <Chip key={`b-${system}-${callsign}-${i}`} size="small" label={callsign} sx={chipSx} variant="outlined" color="error" />
+                bridges.map(({ callsign, system, activeTrx }, i) => (
+                  <Chip key={`b-${system}-${callsign}-${i}`} size="small" label={callsign} sx={activeTrx ? chipFilledSx(activeTrx === 'RX' ? 'error' : 'success') : chipSx} variant={activeTrx ? 'filled' : 'outlined'} color={activeTrx === 'RX' ? 'error' : activeTrx === 'TX' ? 'success' : 'default'} />
                 ))
               )}
             </Box>

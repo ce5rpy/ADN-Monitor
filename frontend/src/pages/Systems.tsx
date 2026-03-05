@@ -352,6 +352,10 @@ export default function Systems() {
                   const trx2 = String(ts2.TRX ?? '');
                   const chipColor1 = trx1 === 'TX' ? 'success' : trx1 === 'RX' ? 'error' : 'default';
                   const chipColor2 = trx2 === 'TX' ? 'success' : trx2 === 'RX' ? 'error' : 'default';
+                  const sub1 = String(ts1.SUB ?? '').replace(/&nbsp;/g, ' ').trim();
+                  const sub2 = String(ts2.SUB ?? '').replace(/&nbsp;/g, ' ').trim();
+                  const dest1 = String(ts1.DEST ?? '').replace(/&nbsp;/g, ' ').trim();
+                  const dest2 = String(ts2.DEST ?? '').replace(/&nbsp;/g, ' ').trim();
                   return [
                     <TableRow key={`svc-${name}-1`} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                       <TableCell rowSpan={2} sx={colService}><Typography fontWeight="bold" noWrap>{name}</Typography><Typography variant="caption" noWrap>{String(peer.MODE ?? '')}</Typography></TableCell>
@@ -361,14 +365,14 @@ export default function Systems() {
                         {typeof st?.PINGS_SENT === 'number' && <Typography variant="caption" display="block">{st.PINGS_SENT} / {String(st.PINGS_ACKD ?? 0)}</Typography>}
                       </TableCell>
                       <TableCell><Chip size="small" label="TS1" color={chipColor1} /></TableCell>
-                      <TableCell>{String(ts1.SUB ?? '')}</TableCell>
-                      <TableCell>{String(ts1.DEST ?? '').replace(/&nbsp;/g, ' ')}</TableCell>
+                      <TableCell align="center">{sub1 ? <Chip size="small" label={sub1} color={chipColor1} /> : ''}</TableCell>
+                      <TableCell align="center">{dest1 ? <Chip size="small" label={dest1} color={chipColor1} /> : ''}</TableCell>
                     </TableRow>,
                     <TableRow key={`svc-${name}-2`} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                       <TableCell sx={colCallsign}><Typography variant="caption" noWrap>{String(peer.LOCATION ?? '')}</Typography></TableCell>
                       <TableCell><Chip size="small" label="TS2" color={chipColor2} /></TableCell>
-                      <TableCell>{String(ts2.SUB ?? '')}</TableCell>
-                      <TableCell>{String(ts2.DEST ?? '').replace(/&nbsp;/g, ' ')}</TableCell>
+                      <TableCell align="center">{sub2 ? <Chip size="small" label={sub2} color={chipColor2} /> : ''}</TableCell>
+                      <TableCell align="center">{dest2 ? <Chip size="small" label={dest2} color={chipColor2} /> : ''}</TableCell>
                     </TableRow>,
                   ];
                 })}
