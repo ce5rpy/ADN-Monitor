@@ -139,7 +139,7 @@ export default function ActiveQsoBox({ ctable }: { ctable: Ctable | null | undef
               const tg = ts?.TG ?? '';
               const displayText = (call && isCallsignLike(call)) ? call : (sub || call);
               return (
-                <Card key={`m-${system}-${peerId}-${tsNum}-${idx}`} variant="outlined" sx={{ width: 120, flexShrink: 0, borderColor: 'divider', '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' } }}>
+                <Card key={`m-${system}-${peerId}-${tsNum}-${idx}`} variant="outlined" sx={{ width: 120, flexShrink: 0, borderColor: 'error.main', borderWidth: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(211, 47, 47, 0.12)' : 'rgba(211, 47, 47, 0.06)' }}>
                   <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 }, textAlign: 'center' }}>
                     {(sub || call) && (
                       <Typography variant="body2" fontWeight={500}>
@@ -157,7 +157,7 @@ export default function ActiveQsoBox({ ctable }: { ctable: Ctable | null | undef
               const tg = ts?.TG ?? '';
               const displayText = (call && isCallsignLike(call)) ? call : (sub || call);
               return (
-                <Card key={`p-${system}-${tsNum}-${idx}`} variant="outlined" sx={{ width: 120, flexShrink: 0, borderColor: 'divider', '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' } }}>
+                <Card key={`p-${system}-${tsNum}-${idx}`} variant="outlined" sx={{ width: 120, flexShrink: 0, borderColor: 'error.main', borderWidth: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(211, 47, 47, 0.12)' : 'rgba(211, 47, 47, 0.06)' }}>
                   <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 }, textAlign: 'center' }}>
                     {(sub || call) && (
                       <Typography variant="body2" fontWeight={500}>
@@ -173,7 +173,7 @@ export default function ActiveQsoBox({ ctable }: { ctable: Ctable | null | undef
               const isBridge = String(q.call ?? '').toUpperCase() === 'BRIDGE';
               const nameDisplay = isBridge ? (q.system || '—') : (q.call || '—');
               return (
-                <Card key={`ob-${q.tg}-${q.call}-${idx}`} variant="outlined" sx={{ width: 120, flexShrink: 0, borderColor: 'divider', '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' } }}>
+                <Card key={`ob-${q.tg}-${q.call}-${idx}`} variant="outlined" sx={{ width: 120, flexShrink: 0, borderColor: 'success.main', borderWidth: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(46, 125, 50, 0.12)' : 'rgba(46, 125, 50, 0.06)' }}>
                   <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 }, textAlign: 'center' }}>
                     <Typography variant="body2" fontWeight={500}>
                       {isBridge ? nameDisplay : <QrzLink callsign={q.call ?? ''}>{nameDisplay}</QrzLink>}
