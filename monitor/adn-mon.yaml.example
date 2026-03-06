@@ -115,7 +115,7 @@ DASHBOARD:
   nav_links:
     name: "Links"
     items:
-      - name: "ADN"
+      - name: "ADN Systems"
         url: "https://adn.systems"
 
   # Footer links: same structure as nav_links — list of { name, url }

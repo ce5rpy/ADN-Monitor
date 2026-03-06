@@ -54,6 +54,7 @@ const TgList = lazy(() => import('./pages/TgList'));
 const BridgeList = lazy(() => import('./pages/BridgeList'));
 const Login = lazy(() => import('./pages/Login'));
 const SelfService = lazy(() => import('./pages/SelfService'));
+const Help = lazy(() => import('./pages/Help'));
 import { useDashboardConfig } from './context/DashboardConfigContext';
 
 const LANGUAGES = [
@@ -265,6 +266,9 @@ function App() {
               <Button color="inherit" onClick={(e) => setInfoAnchor(e.currentTarget)}>
                 {t('nav_info', { defaultValue: 'Info' })}
               </Button>
+              <Button color="inherit" component={Link} to="/help">
+                {t('nav_help', { defaultValue: 'Help' })}
+              </Button>
               {(dashboard.navLinks?.items?.length ?? 0) > 0 &&
                 dashboard.navLinks.items.map((item, idx) => (
                   <Button
@@ -355,6 +359,9 @@ function App() {
           >
             {t('selfcare', { defaultValue: 'SelfCare' })}
           </MenuItem>
+          <MenuItem component={Link} to="/help" onClick={() => setAnchorEl(null)}>
+            {t('nav_help', { defaultValue: 'Help' })}
+          </MenuItem>
           {dashboard.showConsole && (
             <MenuItem component={Link} to="/console" onClick={() => setAnchorEl(null)}>
               {t('nav_console')}
@@ -422,6 +429,7 @@ function App() {
               <Route path="/wwbridges" element={<BridgeList />} />
               <Route path="/login" element={<Login />} />
               <Route path="/self-service" element={<SelfService />} />
+              <Route path="/help" element={<Help />} />
             </Routes>
           </Suspense>
         </Container>
