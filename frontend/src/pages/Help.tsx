@@ -30,7 +30,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import { useTranslation } from 'react-i18next';
 
-const SELFCARE_GUIDE_URL = 'https://adn.systems/selfcare/';
+const SELFCARE_GUIDE_URL = 'https://adn.systems/how-to-selfcare/';
 const SELFCARE_VIDEO_URL = 'https://www.youtube.com/watch?v=OMQOuqtGCMc';
 const SELFCARE_DIRECT_URL = 'https://selfcare.adn.systems/';
 
