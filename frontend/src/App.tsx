@@ -545,9 +545,9 @@ function App() {
               '@media (orientation: landscape) and (max-height: 500px)': {
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'flex-start',
-                py: 0.25,
-                px: 1.5,
+                justifyContent: 'center',
+                py: 0.5,
+                px: 2,
                 borderBottom: 1,
                 borderColor: 'divider',
                 bgcolor: 'background.default',
@@ -560,8 +560,8 @@ function App() {
               src="/img/logo.png"
               alt=""
               sx={{
-                maxWidth: 72,
-                maxHeight: '5vh',
+                maxWidth: 160,
+                maxHeight: '10vh',
                 height: 'auto',
                 objectFit: 'contain',
                 display: 'block',
