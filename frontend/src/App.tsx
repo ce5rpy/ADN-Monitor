@@ -448,65 +448,6 @@ function App() {
         </Menu>
 
         <Menu anchorEl={infoAnchor} open={Boolean(infoAnchor)} onClose={() => setInfoAnchor(null)}>
-          <MenuItem component={Link} to="/systems" onClick={() => setAnchorEl(null)}>
-            {t('nav_lnksys')}
-          </MenuItem>
-          <MenuItem component={Link} to="/openbridge" onClick={() => setAnchorEl(null)}>
-            {t('nav_opb')}
-          </MenuItem>
-          <MenuItem component={Link} to="/toptg" onClick={() => setAnchorEl(null)}>
-            {t('nav_tptg')}
-          </MenuItem>
-          {dashboard.selfService && (
-            <MenuItem component={Link} to="/self-service" onClick={() => setAnchorEl(null)}>
-              {t('self_service', { defaultValue: 'Self-service' })}
-            </MenuItem>
-          )}
-          <MenuItem
-            component="a"
-            href="https://selfcare.adn.systems/"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => setAnchorEl(null)}
-          >
-            {t('selfcare', { defaultValue: 'SelfCare' })}
-          </MenuItem>
-          <MenuItem component={Link} to="/help" onClick={() => setAnchorEl(null)}>
-            {t('nav_help', { defaultValue: 'Help' })}
-          </MenuItem>
-          {dashboard.showConsole && (
-            <MenuItem component={Link} to="/console" onClick={() => setAnchorEl(null)}>
-              {t('nav_console')}
-            </MenuItem>
-          )}
-          <MenuItem component={Link} to="/lastheard" onClick={() => setAnchorEl(null)}>
-            {t('nav_lsthrd')}
-          </MenuItem>
-          <MenuItem component={Link} to="/calc" onClick={() => setAnchorEl(null)}>
-            {t('nav_calc')}
-          </MenuItem>
-          <MenuItem component={Link} to="/wwtg" onClick={() => setAnchorEl(null)}>
-            {t('nav_tglst')}
-          </MenuItem>
-          <MenuItem component={Link} to="/wwbridges" onClick={() => setAnchorEl(null)}>
-            {t('nav_brdglst')}
-          </MenuItem>
-          {(dashboard.navLinks?.items?.length ?? 0) > 0 &&
-            dashboard.navLinks.items.map((item, idx) => (
-              <MenuItem
-                key={idx}
-                component="a"
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setAnchorEl(null)}
-              >
-                {item.name}
-              </MenuItem>
-            ))}
-        </Menu>
-
-        <Menu anchorEl={infoAnchor} open={Boolean(infoAnchor)} onClose={() => setInfoAnchor(null)}>
           {dashboard.showConsole && (
             <MenuItem component={Link} to="/console" onClick={() => setInfoAnchor(null)}>
               {t('nav_console')}
