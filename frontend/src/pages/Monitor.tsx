@@ -46,13 +46,15 @@ export default function Monitor() {
       <Box
         component="pre"
         sx={{
-          height: 40 * 16,
+          minHeight: 120,
+          maxHeight: '60vh',
           overflow: 'auto',
           fontFamily: 'monospace',
-          fontSize: 12,
+          fontSize: { xs: 11, sm: 12 },
           color: 'success.light',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-all',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {log.length === 0 && t('mon_wait')}

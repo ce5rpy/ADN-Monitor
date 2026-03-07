@@ -31,13 +31,19 @@ export default function Footer() {
     <Box
       component="footer"
       sx={{
-        py: 2,
-        px: 2,
+        py: { xs: 1.5, sm: 2 },
+        px: { xs: 1.5, sm: 2 },
         mt: 'auto',
+        flexShrink: 0,
         borderTop: '1px solid',
         borderColor: 'divider',
         backgroundColor: 'background.paper',
         textAlign: 'center',
+        '@media (orientation: landscape) and (max-height: 500px)': {
+          py: 0.5,
+          px: 1,
+          '& .MuiTypography-root': { fontSize: '0.75rem' },
+        },
       }}
     >
       {footer.length > 0 && (

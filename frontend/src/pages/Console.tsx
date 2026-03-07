@@ -60,10 +60,12 @@ export default function Console() {
         sx={{
           p: 1.5,
           fontFamily: 'monospace',
-          fontSize: '0.8rem',
-          maxHeight: '70vh',
+          fontSize: { xs: '0.75rem', sm: '0.8rem' },
+          minHeight: 120,
+          maxHeight: '60vh',
           overflow: 'auto',
           bgcolor: 'action.hover',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {lines.length === 0 && (

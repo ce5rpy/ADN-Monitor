@@ -201,12 +201,13 @@ export default function Systems() {
   };
 
   const tablePaperSx = {
-    overflow: 'hidden' as const,
+    overflow: 'auto' as const,
     mb: 2,
     boxShadow: (t: { palette: { mode: string } }) => (t.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)'),
   };
 
-  /** Column widths: 1 and 2 fixed (200px, 150px); rest share remaining space. */
+  /** Column widths: fixed so table scrolls horizontally on narrow viewports instead of overlapping. */
+  const tableMinWidth = 720;
   const colCallsign = { width: 200, minWidth: 200, maxWidth: 200, boxSizing: 'border-box' as const };
   const colConnected = { width: 150, minWidth: 150, maxWidth: 150, boxSizing: 'border-box' as const };
   const colSlot = { width: 75, minWidth: 75, whiteSpace: 'nowrap' as const };
@@ -261,8 +262,8 @@ export default function Systems() {
           <Typography variant="subtitle1" fontWeight={600} sx={{ p: 1.5 }}>
             {t('lnksys_repeaters', { defaultValue: 'Repeaters' })}
           </Typography>
-          <TableContainer>
-            <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', width: '100%' }}>
+          <TableContainer sx={{ minWidth: 0 }}>
+            <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', width: '100%', minWidth: tableMinWidth }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'action.hover' }}>
                   <TableCell sx={{ fontWeight: 600, ...masterCols[0] }}>{t('lnksys_callsign', { defaultValue: 'Callsign' })} ({t('statictg_dmrid', { defaultValue: 'DMR Id' })})<br />{t('lnksys_loc', { defaultValue: 'Location' })}</TableCell>
@@ -284,8 +285,8 @@ export default function Systems() {
           <Typography variant="subtitle1" fontWeight={600} sx={{ p: 1.5 }}>
             {t('lnksys_hotspots', { defaultValue: 'Hotspots' })}
           </Typography>
-          <TableContainer>
-            <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', width: '100%' }}>
+          <TableContainer sx={{ minWidth: 0 }}>
+            <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', width: '100%', minWidth: tableMinWidth }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'action.hover' }}>
                   <TableCell sx={{ fontWeight: 600, ...masterCols[0] }}>{t('lnksys_callsign', { defaultValue: 'Callsign' })} ({t('statictg_dmrid', { defaultValue: 'DMR Id' })})<br />{t('lnksys_loc', { defaultValue: 'Location' })}</TableCell>
@@ -307,8 +308,8 @@ export default function Systems() {
           <Typography variant="subtitle1" fontWeight={600} sx={{ p: 1.5 }}>
             {t('lnksys_bridges', { defaultValue: 'Bridges (IP)' })}
           </Typography>
-          <TableContainer>
-            <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', width: '100%' }}>
+          <TableContainer sx={{ minWidth: 0 }}>
+            <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', width: '100%', minWidth: tableMinWidth }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'action.hover' }}>
                   <TableCell sx={{ fontWeight: 600, ...masterCols[0] }}>{t('lnksys_callsign', { defaultValue: 'Callsign' })} ({t('statictg_dmrid', { defaultValue: 'DMR Id' })})<br />{t('lnksys_loc', { defaultValue: 'Location' })}</TableCell>

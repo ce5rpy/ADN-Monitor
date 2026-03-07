@@ -154,7 +154,7 @@ export default function StaticTg() {
   }
 
   const tablePaperSx = {
-    overflow: 'hidden' as const,
+    overflow: 'auto' as const,
     boxShadow: (t: { palette: { mode: string } }) => (t.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)'),
   };
 

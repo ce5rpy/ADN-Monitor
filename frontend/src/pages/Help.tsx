@@ -71,7 +71,7 @@ export default function Help() {
         {t('help_subtitle', { defaultValue: 'ADN SelfCare – Frequently asked questions and setup guide.' })}
       </Typography>
 
-      <Paper sx={{ p: 2, mb: 3 }}>
+      <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 3 }}>
         <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
           {t('help_guide', { defaultValue: 'Full guide and video' })}
         </Typography>

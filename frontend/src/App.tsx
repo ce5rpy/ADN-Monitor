@@ -146,6 +146,21 @@ function App() {
               },
             },
           },
+          MuiChip: {
+            styleOverrides: {
+              root: {
+                overflow: 'visible',
+                height: 'auto',
+                minHeight: 32,
+              },
+              label: {
+                overflow: 'visible',
+                whiteSpace: 'normal',
+                textOverflow: 'clip',
+                wordBreak: 'break-word',
+              },
+            },
+          },
           MuiAppBar: {
             styleOverrides: {
               root: {
@@ -190,7 +205,8 @@ function App() {
         sx={{
           display: 'flex',
           flexDirection: 'column',
-          minHeight: '100vh',
+          minHeight: '100%',
+          height: '100%',
           ...(dashboard.background && {
             backgroundImage: 'url(/img/bk.jpg)',
             backgroundAttachment: 'fixed',
@@ -209,7 +225,18 @@ function App() {
             bgcolor: 'background.paper',
           }}
         >
-          <Toolbar sx={{ flexWrap: 'wrap', gap: 0.5, minHeight: { xs: 56, sm: 64 }, py: 0.5 }}>
+          <Toolbar
+            sx={{
+              flexWrap: 'wrap',
+              gap: 0.5,
+              minHeight: { xs: 56, sm: 64 },
+              py: 0.5,
+              '@media (orientation: landscape) and (max-height: 500px)': {
+                minHeight: 40,
+                py: 0.25,
+              },
+            }}
+          >
             <IconButton
               edge="start"
               color="inherit"
@@ -285,7 +312,7 @@ function App() {
                 ))}
             </Box>
 
-            <FormControl size="small" sx={{ minWidth: 120, mx: 0.5 }}>
+            <FormControl size="small" sx={{ minWidth: 120, mx: 0.5, display: { xs: 'none', md: 'block' } }}>
               <Select
                 value={LANGUAGES.find((l) => l.code === i18n.language || l.code === i18n.language?.split(/[-_]/)[0])?.code ?? 'en'}
                 onChange={handleLanguageChange}
@@ -315,11 +342,15 @@ function App() {
             width: '100%',
             display: 'flex',
             justifyContent: 'center',
-            py: 2,
+            py: { xs: 1.5, sm: 2 },
             px: 2,
             borderBottom: 1,
             borderColor: 'divider',
             bgcolor: 'background.default',
+            flexShrink: 0,
+            '@media (orientation: landscape) and (max-height: 500px)': {
+              display: 'none',
+            },
           }}
         >
           <Container maxWidth="xl" sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -327,7 +358,13 @@ function App() {
               component="img"
               src="/img/logo.png"
               alt=""
-              sx={{ width: '50%', maxWidth: '50%', height: 'auto', objectFit: 'contain', display: 'block' }}
+              sx={{
+                width: '100%',
+                maxWidth: { xs: 200, sm: 320 },
+                height: 'auto',
+                objectFit: 'contain',
+                display: 'block',
+              }}
             />
           </Container>
         </Box>
@@ -336,6 +373,81 @@ function App() {
           <MenuItem component={Link} to="/" onClick={() => setAnchorEl(null)}>
             {t('nav_dash')}
           </MenuItem>
+          <MenuItem component={Link} to="/systems" onClick={() => setAnchorEl(null)}>
+            {t('nav_lnksys')}
+          </MenuItem>
+          <MenuItem component={Link} to="/openbridge" onClick={() => setAnchorEl(null)}>
+            {t('nav_opb')}
+          </MenuItem>
+          <MenuItem component={Link} to="/toptg" onClick={() => setAnchorEl(null)}>
+            {t('nav_tptg')}
+          </MenuItem>
+          {dashboard.selfService && (
+            <MenuItem component={Link} to="/self-service" onClick={() => setAnchorEl(null)}>
+              {t('self_service', { defaultValue: 'Self-service' })}
+            </MenuItem>
+          )}
+          <MenuItem
+            component="a"
+            href="https://selfcare.adn.systems/"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setAnchorEl(null)}
+          >
+            {t('selfcare', { defaultValue: 'SelfCare' })}
+          </MenuItem>
+          <MenuItem component={Link} to="/help" onClick={() => setAnchorEl(null)}>
+            {t('nav_help', { defaultValue: 'Help' })}
+          </MenuItem>
+          {dashboard.showConsole && (
+            <MenuItem component={Link} to="/console" onClick={() => setAnchorEl(null)}>
+              {t('nav_console')}
+            </MenuItem>
+          )}
+          <MenuItem component={Link} to="/lastheard" onClick={() => setAnchorEl(null)}>
+            {t('nav_lsthrd')}
+          </MenuItem>
+          <MenuItem component={Link} to="/calc" onClick={() => setAnchorEl(null)}>
+            {t('nav_calc')}
+          </MenuItem>
+          <MenuItem component={Link} to="/wwtg" onClick={() => setAnchorEl(null)}>
+            {t('nav_tglst')}
+          </MenuItem>
+          <MenuItem component={Link} to="/wwbridges" onClick={() => setAnchorEl(null)}>
+            {t('nav_brdglst')}
+          </MenuItem>
+          {(dashboard.navLinks?.items?.length ?? 0) > 0 &&
+            dashboard.navLinks.items.map((item, idx) => (
+              <MenuItem
+                key={idx}
+                component="a"
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setAnchorEl(null)}
+              >
+                {item.name}
+              </MenuItem>
+            ))}
+          <MenuItem disabled sx={{ borderTop: 1, borderColor: 'divider', mt: 0.5, pt: 1 }}>
+            <Typography variant="caption" color="text.secondary">
+              {t('nav_language', { defaultValue: 'Language' })}
+            </Typography>
+          </MenuItem>
+          {LANGUAGES.map(({ code, label }) => (
+            <MenuItem
+              key={code}
+              onClick={() => {
+                i18n.changeLanguage(code);
+                setAnchorEl(null);
+              }}
+            >
+              {label}
+            </MenuItem>
+          ))}
+        </Menu>
+
+        <Menu anchorEl={infoAnchor} open={Boolean(infoAnchor)} onClose={() => setInfoAnchor(null)}>
           <MenuItem component={Link} to="/systems" onClick={() => setAnchorEl(null)}>
             {t('nav_lnksys')}
           </MenuItem>
@@ -414,27 +526,79 @@ function App() {
           </MenuItem>
         </Menu>
 
-        <Container component="main" sx={{ flex: 1, py: 3, px: { xs: 2, sm: 3 } }} maxWidth="xl">
-          <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/systems" element={<Systems />} />
-              <Route path="/systemstg" element={<Navigate to="/systems" replace />} />
-              <Route path="/openbridge" element={<OpenBridge />} />
-              <Route path="/toptg" element={<TopTg />} />
-              <Route path="/lastheard" element={<LastHeardLog />} />
-              <Route path="/console" element={<Console />} />
-              <Route path="/calc" element={<Calc />} />
-              <Route path="/wwtg" element={<TgList />} />
-              <Route path="/wwbridges" element={<BridgeList />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/self-service" element={<SelfService />} />
-              <Route path="/help" element={<Help />} />
-            </Routes>
-          </Suspense>
-        </Container>
-
-        <Footer />
+        <Box
+          component="main"
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            overflowX: 'hidden',
+            overflowY: 'scroll',
+            WebkitOverflowScrolling: 'touch',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {/* Logo que hace scroll con el contenido solo en horizontal (poco alto) */}
+          <Box
+            sx={{
+              display: 'none',
+              '@media (orientation: landscape) and (max-height: 500px)': {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                py: 0.25,
+                px: 1.5,
+                borderBottom: 1,
+                borderColor: 'divider',
+                bgcolor: 'background.default',
+                flexShrink: 0,
+              },
+            }}
+          >
+            <Box
+              component="img"
+              src="/img/logo.png"
+              alt=""
+              sx={{
+                maxWidth: 72,
+                maxHeight: '5vh',
+                height: 'auto',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+          </Box>
+          <Container
+            sx={{
+              flex: 1,
+              py: 3,
+              px: { xs: 1.5, sm: 2, md: 3 },
+              '@media (orientation: landscape) and (max-height: 500px)': {
+                py: 1,
+              },
+            }}
+            maxWidth="xl"
+          >
+            <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/systems" element={<Systems />} />
+                <Route path="/systemstg" element={<Navigate to="/systems" replace />} />
+                <Route path="/openbridge" element={<OpenBridge />} />
+                <Route path="/toptg" element={<TopTg />} />
+                <Route path="/lastheard" element={<LastHeardLog />} />
+                <Route path="/console" element={<Console />} />
+                <Route path="/calc" element={<Calc />} />
+                <Route path="/wwtg" element={<TgList />} />
+                <Route path="/wwbridges" element={<BridgeList />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/self-service" element={<SelfService />} />
+                <Route path="/help" element={<Help />} />
+              </Routes>
+            </Suspense>
+          </Container>
+          <Footer />
+        </Box>
       </Box>
     </ThemeProvider>
   );

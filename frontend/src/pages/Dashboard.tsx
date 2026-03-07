@@ -231,7 +231,7 @@ export default function Dashboard() {
           sx={{
             mt: 0,
             mb: 2,
-            overflow: 'hidden',
+            overflow: 'auto',
             boxShadow: (t) => t.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
           }}
         >

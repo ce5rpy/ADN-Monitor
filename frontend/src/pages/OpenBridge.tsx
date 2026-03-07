@@ -78,13 +78,13 @@ export default function OpenBridge() {
 
       {hasAny && (
         <Paper sx={{ overflow: 'auto' }}>
-          <TableContainer>
-            <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', width: '100%' }}>
+          <TableContainer sx={{ minWidth: 0 }}>
+            <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', width: '100%', minWidth: 480 }}>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ width: 180, minWidth: 180, maxWidth: 180 }}>{t('lnksys_system', { defaultValue: 'OpenBridge' })}</TableCell>
-                  <TableCell sx={{ width: 110, minWidth: 110, maxWidth: 110 }}>{t('lnksys_network_id', { defaultValue: 'Network ID' })}</TableCell>
-                  <TableCell>{t('opb_activity', { defaultValue: 'Active streams' })}</TableCell>
+                  <TableCell sx={{ width: '18%', minWidth: 88, maxWidth: 140, whiteSpace: 'nowrap' }}>{t('lnksys_system', { defaultValue: 'OpenBridge' })}</TableCell>
+                  <TableCell sx={{ width: '12%', minWidth: 72, maxWidth: 88, whiteSpace: 'nowrap' }}>{t('lnksys_network_id', { defaultValue: 'Network ID' })}</TableCell>
+                  <TableCell sx={{ width: '70%', minWidth: 120 }}>{t('opb_activity', { defaultValue: 'Active streams' })}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -96,9 +96,13 @@ export default function OpenBridge() {
                   });
                   return (
                     <TableRow key={name}>
-                      <TableCell sx={{ width: 180, minWidth: 180, maxWidth: 180 }}><Typography fontWeight="bold">{name}</Typography></TableCell>
-                      <TableCell sx={{ width: 110, minWidth: 110, maxWidth: 110 }}><Typography fontWeight="bold">{String(ob?.NETWORK_ID ?? '')}</Typography></TableCell>
-                      <TableCell sx={{ overflow: 'auto', minWidth: 0 }}>
+                      <TableCell sx={{ width: '18%', minWidth: 88, maxWidth: 140, whiteSpace: 'nowrap' }}>
+                        <Typography fontWeight="bold" component="span" noWrap>{name}</Typography>
+                      </TableCell>
+                      <TableCell sx={{ width: '12%', minWidth: 72, maxWidth: 88, whiteSpace: 'nowrap' }}>
+                        <Typography fontWeight="bold" component="span" noWrap>{String(ob?.NETWORK_ID ?? '')}</Typography>
+                      </TableCell>
+                      <TableCell sx={{ width: '70%', overflow: 'auto', minWidth: 120 }}>
                         <Box component="span" sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                           {streamList.length === 0 ? (
                             <Typography variant="body2" color="text.secondary">—</Typography>

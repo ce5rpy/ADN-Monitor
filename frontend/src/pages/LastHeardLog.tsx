@@ -91,7 +91,7 @@ function ProtocolIcon({ name }: { name: string }) {
 
 const tablePaperSx = {
   mt: 0,
-  overflow: 'hidden' as const,
+  overflow: 'auto' as const,
   boxShadow: (theme: { palette: { mode: string } }) => (theme.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)'),
 };
 
