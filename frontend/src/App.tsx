@@ -337,38 +337,6 @@ function App() {
           </Toolbar>
         </AppBar>
 
-        <Box
-          sx={{
-            width: '100%',
-            display: 'flex',
-            justifyContent: 'center',
-            py: { xs: 1.5, sm: 2 },
-            px: 2,
-            borderBottom: 1,
-            borderColor: 'divider',
-            bgcolor: 'background.default',
-            flexShrink: 0,
-            '@media (orientation: landscape) and (max-height: 500px)': {
-              display: 'none',
-            },
-          }}
-        >
-          <Container maxWidth="xl" sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Box
-              component="img"
-              src="/img/logo.png"
-              alt=""
-              sx={{
-                width: '100%',
-                maxWidth: { xs: 200, sm: 320 },
-                height: 'auto',
-                objectFit: 'contain',
-                display: 'block',
-              }}
-            />
-          </Container>
-        </Box>
-
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
           <MenuItem component={Link} to="/" onClick={() => setAnchorEl(null)}>
             {t('nav_dash')}
@@ -479,35 +447,41 @@ function App() {
             flexDirection: 'column',
           }}
         >
-          {/* Logo que hace scroll con el contenido solo en horizontal (poco alto) */}
+          {/* Logo scrolls with content on all viewports */}
           <Box
             sx={{
-              display: 'none',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              py: { xs: 1.5, sm: 2 },
+              px: 2,
+              borderBottom: 1,
+              borderColor: 'divider',
+              bgcolor: 'background.default',
+              flexShrink: 0,
               '@media (orientation: landscape) and (max-height: 500px)': {
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
                 py: 0.5,
-                px: 2,
-                borderBottom: 1,
-                borderColor: 'divider',
-                bgcolor: 'background.default',
-                flexShrink: 0,
               },
             }}
           >
-            <Box
-              component="img"
-              src="/img/logo.png"
-              alt=""
-              sx={{
-                maxWidth: 160,
-                maxHeight: '10vh',
-                height: 'auto',
-                objectFit: 'contain',
-                display: 'block',
-              }}
-            />
+            <Container maxWidth="xl" sx={{ display: 'flex', justifyContent: 'center' }}>
+              <Box
+                component="img"
+                src="/img/logo.png"
+                alt=""
+                sx={{
+                  width: '100%',
+                  maxWidth: { xs: 200, sm: 320, md: '100%' },
+                  height: 'auto',
+                  objectFit: 'contain',
+                  display: 'block',
+                  '@media (orientation: landscape) and (max-height: 500px)': {
+                    maxWidth: 160,
+                    maxHeight: '10vh',
+                  },
+                }}
+              />
+            </Container>
           </Box>
           <Container
             sx={{
