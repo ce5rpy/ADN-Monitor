@@ -258,7 +258,7 @@ def _download_file_http(url: str, dest_path: str, dest_name: str, timeout: int =
 
 
 def _fetch_checksums_json(checksum_url: str, timeout: int = 15) -> Optional[dict]:
-    """Fetch file_checksums.json and return dict (filename_no_ext -> sha512 hex). Runs in thread."""
+    """Fetch file_checksums.json and return dict (filename_no_ext -> blake2b hex). Runs in thread."""
     try:
         req = urllib.request.Request(checksum_url, headers={"User-Agent": "ADN-Monitor/1.0"})
         with urllib.request.urlopen(req, timeout=timeout) as resp:
