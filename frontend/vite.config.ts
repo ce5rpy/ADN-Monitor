@@ -16,14 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import fs from 'fs';
 import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const projectRoot = path.resolve(__dirname, '..');
+const rootEnv = path.join(projectRoot, '.env');
+// Root .env first (shared with backend/monitor); fallback to frontend/.env if root has none
+const envDir = fs.existsSync(rootEnv) ? projectRoot : __dirname;
+
 export default defineConfig({
   plugins: [react()],
   base: '/',
-  envDir: path.resolve(__dirname, '..'),
+  envDir,
   build: {
     outDir: 'dist',
     emptyOutDir: true,

@@ -1,6 +1,7 @@
 # ADN Systems Monitor – systemd unit example
 # Copy to /etc/systemd/system/adn-monitor.service and adjust paths.
 # Enable: sudo systemctl enable adn-monitor && sudo systemctl start adn-monitor
+# Uses the same .env as backend/frontend (ADN_CONFIG_PATH, etc.).
 
 [Unit]
 Description=ADN Systems Monitor
@@ -11,6 +12,8 @@ Type=simple
 Restart=always
 RestartSec=3
 SyslogIdentifier=adn-monitor
+# Root .env (optional: leading - means do not fail if file is missing)
+EnvironmentFile=-/opt/adn-monitor/.env
 WorkingDirectory=/opt/adn-monitor/monitor
 ExecStart=/usr/bin/python3 /opt/adn-monitor/monitor/monitor.py
 

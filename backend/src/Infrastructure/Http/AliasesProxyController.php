@@ -43,7 +43,7 @@ final class AliasesProxyController
     {
         $config = $this->configLoader->load();
         $aliases = $config['ALIASES'] ?? $config['FILES'] ?? [];
-        $baseUrl = getenv('ALIASES_BASE_URL') ?: self::BASE_URL_FALLBACK;
+        $baseUrl = ($_ENV['ALIASES_BASE_URL'] ?? getenv('ALIASES_BASE_URL') ?: null) ?: self::BASE_URL_FALLBACK;
         return [
             'tgListUrl' => $aliases['TG_LIST_URL'] ?? $aliases['tg_list_url'] ?? $baseUrl . '/talkgroup_ids.json',
             'bridgeListUrl' => $aliases['BRIDGE_LIST_URL'] ?? $aliases['bridge_list_url'] ?? $baseUrl . '/server_ids.tsv',

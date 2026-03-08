@@ -44,7 +44,7 @@ Las rutas dentro del YAML (p. ej. `LOG_PATH`, `PATH` para archivos de alias) son
 
 ### 2. Variables de entorno: `.env`
 
-En la **raíz del proyecto** crea `.env` a partir del ejemplo:
+Un único **`.env` en la raíz del proyecto** lo usan todos los componentes. Créalo a partir del ejemplo:
 
 ```bash
 cp .env.example .env
@@ -60,7 +60,13 @@ Edita `.env` y ajusta al menos:
 | **VITE_ALIASES_BASE_URL** | URL base para listas/alias (build). |
 | **VITE_DEFAULT_LANGUAGE** | Idioma por defecto (build). |
 
-El backend y el monitor leen `ADN_CONFIG_PATH`; el frontend solo usa las `VITE_*` en **tiempo de build** (`npm run build`).
+Orden de carga (primero raíz, luego fallbacks):
+
+- **Backend (PHP)** carga primero el **`.env` de la raíz**; si no existe, carga `backend/.env`.
+- **Frontend (Vite)** lee primero el **`.env` de la raíz** (VITE_* en build/dev); si no existe, lee `frontend/.env`.
+- **Monitor**: `monitor/run.sh` y el ejemplo systemd usan el `.env` de la raíz cuando existe.
+
+Puedes usar solo `backend/.env` o solo `frontend/.env` si ejecutas una sola parte y prefieres no tener `.env` en la raíz.
 
 ---
 

@@ -44,20 +44,25 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 $projectRoot = dirname(__DIR__, 2);
 $backendRoot = dirname(__DIR__);
 
-// Load .env: first project root (monorepo), then backend dir (so backend can have its own .env)
+// Load .env: root first (shared with frontend/monitor); then backend/.env as fallback (frontend uses frontend/.env as fallback in its own build).
 if (is_file($projectRoot . '/.env')) {
-    $dotenv = Dotenv\Dotenv::createImmutable($projectRoot);
+    $dotenv = Dotenv\Dotenv::createMutable($projectRoot);
     $dotenv->safeLoad();
 } elseif (is_file($backendRoot . '/.env')) {
-    $dotenv = Dotenv\Dotenv::createImmutable($backendRoot);
+    $dotenv = Dotenv\Dotenv::createMutable($backendRoot);
     $dotenv->safeLoad();
 }
 
-// Path to adn-mon.yaml: nginx fastcgi_param → $_SERVER; else getenv / .env; else default
-$configPath = ($_SERVER['ADN_CONFIG_PATH'] ?? null) ?: getenv('ADN_CONFIG_PATH') ?: ($_ENV['ADN_CONFIG_PATH'] ?? $projectRoot . '/monitor/adn-mon.yaml');
-$configPath = is_string($configPath) ? $configPath : $projectRoot . '/monitor/adn-mon.yaml';
+// Path to adn-mon.yaml: after .env load, prefer $_ENV (what Dotenv wrote), then $_SERVER (e.g. nginx), then getenv, then default
+$configPath = ($_ENV['ADN_CONFIG_PATH'] ?? $_SERVER['ADN_CONFIG_PATH'] ?? null);
+if ($configPath !== null && $configPath !== '') {
+    $configPath = trim((string) $configPath);
+} else {
+    $configPath = getenv('ADN_CONFIG_PATH') ?: null;
+    $configPath = ($configPath !== false && $configPath !== '') ? trim((string) $configPath) : null;
+}
 $defaultYaml = $projectRoot . '/monitor/adn-mon.yaml';
-if (!is_readable($configPath)) {
+if ($configPath === null || $configPath === '' || !is_readable($configPath)) {
     $configPath = $defaultYaml;
 }
 

@@ -44,7 +44,7 @@ Paths inside the YAML (e.g. `LOG_PATH`, `PATH` for alias files) are relative to 
 
 ### 2. Environment: `.env`
 
-In the **project root** create `.env` from the example:
+A single **`.env` in the project root** is used by all components. Create it from the example:
 
 ```bash
 cp .env.example .env
@@ -60,7 +60,13 @@ Edit `.env` and set at least:
 | **VITE_ALIASES_BASE_URL** | Base URL for alias lists (build). |
 | **VITE_DEFAULT_LANGUAGE** | Default language (build). |
 
-Backend and monitor read `ADN_CONFIG_PATH`; the frontend only uses `VITE_*` at **build time** (`npm run build`).
+Load order (root first, then fallbacks):
+
+- **Backend (PHP)** loads **root `.env`** first; if missing, loads `backend/.env`.
+- **Frontend (Vite)** reads **root `.env`** first (VITE_* at build/dev); if missing, reads `frontend/.env`.
+- **Monitor**: `monitor/run.sh` and the systemd example use the root `.env` when present.
+
+You can use only `backend/.env` or only `frontend/.env` when you run a single part and prefer not to have a root `.env`.
 
 ---
 
