@@ -1,4 +1,5 @@
 # ADN Monitor configuration (YAML)
+# Config is read only at startup; changes take effect after restarting the monitor.
 
 # ------------------------------------------------------------------------------
 # GLOBAL
@@ -58,7 +59,10 @@ ALIASES:
   SUBSCRIBER_URL: "https://adn.systems/files/subscriber_ids.json"
   TGID_URL: "https://adn.systems/files/talkgroup_ids.json"
   LOCAL_SUBSCRIBER_FILE: local_subscriber_ids.json
-  STALE_DAYS: 1
+  # If file is older than STALE_HOURS or missing, download and verify checksum.
+  # REVIEW_INTERVAL_MINUTES = how often to check (if missing, re-download). Defaults: 24 h, 5 min.
+  STALE_HOURS: 24
+  REVIEW_INTERVAL_MINUTES: 5
   SUB_MAP_FILE: ""
   SERVER_ID_URL: "https://adn.systems/files/server_ids.tsv"
   SERVER_ID_FILE: server_ids.tsv

@@ -28,10 +28,13 @@ Default config: monitor/adn-mon.yaml
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
+import urllib.request
 from pathlib import Path
+from typing import Optional
 
 # This folder (monitor) is the root for the monitor
 _ROOT = Path(__file__).resolve().parent
@@ -55,7 +58,7 @@ from adn_monitor.infrastructure import create_logger, load_config
 from adn_monitor.domain import is_fail
 from adn_monitor.infrastructure.persistence import create_pool, test_db
 
-# dmr_utils3 for try_download (optional)
+# dmr_utils3 for try_download (optional fallback when no checksum verification)
 try:
     from dmr_utils3.utils import try_download
 except ImportError:
@@ -80,7 +83,7 @@ from adn_monitor.infrastructure import (
     make_dashboard_factory,
 )
 
-__version__ = "2.0.0"
+__version__ = "1.0.0"
 
 # Config file: env ADN_CONFIG_PATH, or --config, or this folder
 CONFIG_FILE = os.environ.get("ADN_CONFIG_PATH", str(_ROOT / "adn-mon.yaml"))
@@ -240,23 +243,113 @@ def timeout_clients():
         logger.info("CLIENT TIMEOUT: %s", e)
 
 
+def _download_file_http(url: str, dest_path: str, dest_name: str, timeout: int = 30) -> bool:
+    """Download url to dest_path/dest_name. Returns True on success. Runs in thread."""
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "ADN-Monitor/1.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = resp.read()
+        Path(dest_path).mkdir(parents=True, exist_ok=True)
+        out = Path(dest_path) / dest_name
+        out.write_bytes(data)
+        return True
+    except Exception as e:
+        return False
+
+
+def _fetch_checksums_json(checksum_url: str, timeout: int = 15) -> Optional[dict]:
+    """Fetch file_checksums.json and return dict (filename_no_ext -> sha512 hex). Runs in thread."""
+    try:
+        req = urllib.request.Request(checksum_url, headers={"User-Agent": "ADN-Monitor/1.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        return {k: v for k, v in data.items() if k != "timestamp" and isinstance(v, str)}
+    except Exception:
+        return None
+
+
+def _verify_file_blake2b(filepath: Path, expected_hex: str) -> bool:
+    """Verify file at filepath has BLAKE2b digest equal to expected_hex (matches ADN server utils.blake2bsum). Runs in thread."""
+    try:
+        h = hashlib.blake2b()
+        with open(filepath, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                h.update(chunk)
+        return h.hexdigest() == expected_hex.lower()
+    except Exception:
+        return False
+
+
+def _download_and_verify_one(
+    path: str,
+    file_name: str,
+    url: str,
+    checksum_url: str,
+    checksums: Optional[dict],
+) -> str:
+    """Download one file, optionally verify checksum (BLAKE2b, same as ADN server). Returns 'successfully' or error message. Runs in thread."""
+    if not url:
+        return "no url"
+    if not _download_file_http(url, path, file_name):
+        return "download failed"
+    filepath = Path(path) / file_name
+    if not filepath.exists():
+        return "download failed (file missing)"
+    if checksums is not None:
+        key = Path(file_name).stem  # e.g. subscriber_ids.json -> subscriber_ids (matches ADN keys: peer_ids, subscriber_ids, talkgroup_ids, server_ids)
+        expected = checksums.get(key)
+        if not expected:
+            return "checksum key missing for " + key
+        if not _verify_file_blake2b(filepath, expected):
+            return "checksum verification failed for " + file_name
+    return "successfully"
+
+
 @inlineCallbacks
 def update_table(path: str, file_name: str, url: str, stale: int, table: str):
-    """path should be the directory that contains file_name (e.g. .../json for alias JSON files)."""
+    """Download alias file when older than STALE_HOURS or missing; verify checksum, use only if OK."""
     try:
         Path(path).mkdir(parents=True, exist_ok=True)
         count = yield get_alias_table_repo().table_count(table)
+        file_path = Path(path) / file_name
+        need_download = not file_path.exists() or (time() - file_path.stat().st_mtime) >= stale
         result = None
-        if try_download:
-            # path already has trailing / (from _alias_files_path)
-            result = yield deferToThread(try_download, path, file_name, url, stale)
-        if (result and "successfully" in result) or (count is not None and count <= 2):
+        conf = CONF.get("FILES", {})
+        checksum_url = conf.get("CHECKSUM_URL", "").strip() or None
+
+        if need_download:
+            if checksum_url:
+                checksums = yield deferToThread(_fetch_checksums_json, checksum_url)
+                if checksums is None:
+                    result = "checksum fetch failed"
+                else:
+                    result = yield deferToThread(
+                        _download_and_verify_one,
+                        path,
+                        file_name,
+                        url,
+                        checksum_url,
+                        checksums,
+                    )
+            else:
+                if try_download:
+                    result = yield deferToThread(try_download, path, file_name, url, stale)
+                else:
+                    ok = yield deferToThread(_download_file_http, url, path, file_name)
+                    result = "successfully" if ok else "download failed"
+
+        use_file = (result and "successfully" in result) or (
+            not need_download and count is not None and count <= 2
+        )
+        if use_file:
             alias_table_repo = get_alias_table_repo()
             alias_table_repo.populate_from_file(path, file_name, table)
             alias_repo = get_alias_repo()
             if hasattr(alias_repo, "_not_in_db"):
                 alias_repo._not_in_db.clear()
             reactor.callLater(3, update_local)
+        elif result and "successfully" not in result and logger:
+            logger.warning("update_table %s: %s", table, result)
     except Exception as err:
         logger.error("update_table: %s %s", err, type(err))
 
@@ -319,7 +412,7 @@ def clean_tgcount():
 def files_update():
     path = _alias_files_path()
     conf = CONF.get("FILES", {})
-    reload_time = conf.get("RELOAD_TIME", 15 * 86400)
+    reload_time = conf.get("RELOAD_TIME", 24 * 3600)
     for file_name, url_key, tbl in (
         (conf.get("PEER_FILE", conf.get("PEER")), "PEER_URL", "peer_ids"),
         (conf.get("SUBSCRIBER_FILE", conf.get("SUBS")), "SUBSCRIBER_URL", "subscriber_ids"),
@@ -517,7 +610,10 @@ def main():
         task.LoopingCall(timeout_clients).start(10).addErrback(error_hdl)
     if conf_global.get("TGC_INC"):
         task.LoopingCall(render_fromdb, "tgcount", conf_global.get("TGC_ROWS", 20)).start(60).addErrback(error_hdl)
-    task.LoopingCall(files_update).start(1800).addErrback(error_hdl)
+    # Alias files: check at startup and every REVIEW_INTERVAL_MINUTES; if missing or older than STALE_HOURS, download and verify checksum
+    review_sec = CONF.get("FILES", {}).get("REVIEW_INTERVAL", 5 * 60)
+    reactor.callLater(1, files_update)
+    task.LoopingCall(files_update).start(review_sec).addErrback(error_hdl)
     task.LoopingCall(cleaning_loop).start(900, now=False).addErrback(error_hdl)
     # Memory leak mitigation: clean STREAMS and sys_dict periodically (not only on CONFIG_SND / END)
     task.LoopingCall(clean_ctable_streams).start(60).addErrback(error_hdl)

@@ -118,9 +118,14 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
         CONF["ALIASES"] = {}
     path_val = _str(aliases.get("PATH", "./json")).strip().rstrip("/") or "./json"
     path_val = path_val.rstrip("/") + "/"  # always end with / for downstream (e.g. try_download)
-    reload_days = 5
+    reload_hours = 24
     try:
-        reload_days = _int(aliases.get("STALE_DAYS"), 5)
+        reload_hours = _int(aliases.get("STALE_HOURS"), 24)
+    except (TypeError, ValueError):
+        pass
+    review_minutes = 5
+    try:
+        review_minutes = _int(aliases.get("REVIEW_INTERVAL_MINUTES"), 5)
     except (TypeError, ValueError):
         pass
     su = _str(aliases.get("SUBSCRIBER_URL", "https://adn.systems/files/subscriber_ids.json"))
@@ -132,11 +137,14 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
         "LCL_SUBS": _str(aliases.get("LOCAL_SUBSCRIBER_FILE", "")),
         "LCL_PEER": _str(aliases.get("LOCAL_PEER_FILE", "")),
         "LCL_TGID": _str(aliases.get("LOCAL_TGID_FILE", "")),
-        "RELOAD_TIME": reload_days * 86400,
+        "RELOAD_TIME": reload_hours * 3600,
+        "REVIEW_INTERVAL": review_minutes * 60,
         "PEER_URL": _str(aliases.get("PEER_URL", "https://adn.systems/files/peer_ids.json")),
         "SUBS_URL": su,
         "SUBSCRIBER_URL": su,
         "TGID_URL": _str(aliases.get("TGID_URL", "https://adn.systems/files/talkgroup_ids.json")),
+        "CHECKSUM_URL": _str(aliases.get("CHECKSUM_URL", "https://adn.systems/files/file_checksums.json")),
+        "CHECKSUM_FILE": _str(aliases.get("CHECKSUM_FILE", "file_checksums.json")),
     }
 
     # LOGGER
