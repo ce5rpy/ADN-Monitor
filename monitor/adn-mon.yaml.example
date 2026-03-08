@@ -49,7 +49,6 @@ OPB_FILTER:
 # ALIASES – ADN Systems https://github.com/Amateur-Digital-Network/ADN-DMR-Peer-Server
 # ------------------------------------------------------------------------------
 ALIASES:
-  TRY_DOWNLOAD: true
   # Directory for alias JSON/CSV files (downloaded and local). Relative to monitor root.
   PATH: "./json"
   PEER_FILE: peer_ids.json
@@ -63,12 +62,9 @@ ALIASES:
   # REVIEW_INTERVAL_MINUTES = how often to check (if missing, re-download). Defaults: 24 h, 5 min.
   STALE_HOURS: 24
   REVIEW_INTERVAL_MINUTES: 5
-  SUB_MAP_FILE: ""
-  SERVER_ID_URL: "https://adn.systems/files/server_ids.tsv"
-  SERVER_ID_FILE: server_ids.tsv
   CHECKSUM_URL: "https://adn.systems/files/file_checksums.json"
   CHECKSUM_FILE: file_checksums.json
-  # TG List and Bridge List pages (frontend)
+  # TG List and Bridge List pages (backend proxy for frontend)
   TG_LIST_URL: "https://adn.systems/files/talkgroup_ids.json"
   BRIDGE_LIST_URL: "https://adn.systems/files/server_ids.tsv"
 

@@ -287,21 +287,26 @@ def _download_and_verify_one(
     checksum_url: str,
     checksums: Optional[dict],
 ) -> str:
-    """Download one file, optionally verify checksum (BLAKE2b, same as ADN server). Returns 'successfully' or error message. Runs in thread."""
+    """Download to a .tmp file, verify checksum; only on success replace the final file (so prod is never overwritten by a bad download). Runs in thread."""
     if not url:
         return "no url"
-    if not _download_file_http(url, path, file_name):
+    temp_name = file_name + ".tmp"
+    if not _download_file_http(url, path, temp_name):
         return "download failed"
-    filepath = Path(path) / file_name
-    if not filepath.exists():
+    temp_path = Path(path) / temp_name
+    if not temp_path.exists():
         return "download failed (file missing)"
     if checksums is not None:
         key = Path(file_name).stem  # e.g. subscriber_ids.json -> subscriber_ids (matches ADN keys: peer_ids, subscriber_ids, talkgroup_ids, server_ids)
         expected = checksums.get(key)
         if not expected:
+            temp_path.unlink(missing_ok=True)
             return "checksum key missing for " + key
-        if not _verify_file_blake2b(filepath, expected):
+        if not _verify_file_blake2b(temp_path, expected):
+            temp_path.unlink(missing_ok=True)
             return "checksum verification failed for " + file_name
+    final_path = Path(path) / file_name
+    os.replace(temp_path, final_path)  # atomic on same filesystem; only then prod is updated
     return "successfully"
 
 
@@ -317,7 +322,11 @@ def update_table(path: str, file_name: str, url: str, stale: int, table: str):
         conf = CONF.get("FILES", {})
         checksum_url = conf.get("CHECKSUM_URL", "").strip() or None
 
+        if not need_download:
+            logger.info("(alias) %s: using existing file (fresh)", table)
         if need_download:
+            reason = "missing" if not file_path.exists() else "stale"
+            logger.info("(alias) %s: %s, downloading from %s", table, reason, url[:60] + "..." if len(url) > 60 else url)
             if checksum_url:
                 checksums = yield deferToThread(_fetch_checksums_json, checksum_url)
                 if checksums is None:
@@ -338,6 +347,12 @@ def update_table(path: str, file_name: str, url: str, stale: int, table: str):
                     ok = yield deferToThread(_download_file_http, url, path, file_name)
                     result = "successfully" if ok else "download failed"
 
+        if need_download and result and "successfully" in result:
+            if checksum_url:
+                logger.info("(alias) %s: downloaded and checksum verified", table)
+            else:
+                logger.info("(alias) %s: downloaded", table)
+
         use_file = (result and "successfully" in result) or (
             not need_download and count is not None and count <= 2
         )
@@ -349,7 +364,7 @@ def update_table(path: str, file_name: str, url: str, stale: int, table: str):
                 alias_repo._not_in_db.clear()
             reactor.callLater(3, update_local)
         elif result and "successfully" not in result and logger:
-            logger.warning("update_table %s: %s", table, result)
+            logger.warning("(alias) %s: %s", table, result)
     except Exception as err:
         logger.error("update_table: %s %s", err, type(err))
 
@@ -610,10 +625,10 @@ def main():
         task.LoopingCall(timeout_clients).start(10).addErrback(error_hdl)
     if conf_global.get("TGC_INC"):
         task.LoopingCall(render_fromdb, "tgcount", conf_global.get("TGC_ROWS", 20)).start(60).addErrback(error_hdl)
-    # Alias files: check at startup and every REVIEW_INTERVAL_MINUTES; if missing or older than STALE_HOURS, download and verify checksum
+    # Alias files: check at startup (1s) and every REVIEW_INTERVAL_MINUTES; if missing or older than STALE_HOURS, download and verify checksum
     review_sec = CONF.get("FILES", {}).get("REVIEW_INTERVAL", 5 * 60)
     reactor.callLater(1, files_update)
-    task.LoopingCall(files_update).start(review_sec).addErrback(error_hdl)
+    task.LoopingCall(files_update).start(review_sec, now=False).addErrback(error_hdl)
     task.LoopingCall(cleaning_loop).start(900, now=False).addErrback(error_hdl)
     # Memory leak mitigation: clean STREAMS and sys_dict periodically (not only on CONFIG_SND / END)
     task.LoopingCall(clean_ctable_streams).start(60).addErrback(error_hdl)
