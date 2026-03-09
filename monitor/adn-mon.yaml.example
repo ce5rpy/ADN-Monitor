@@ -127,3 +127,10 @@ DASHBOARD:
       #   url: "https://qrz.com/db/N0CALL"
       # - name: "ADN"
       #   url: "https://adn.systems"
+
+  # News/events marquee (below logo). Same structure as footer — list of { name, url } (url optional).
+  news:
+    items:
+      # - name: "Scheduled maintenance Sunday 10:00–12:00 UTC"
+      # - name: "New reflector"
+      #   url: "https://adn.systems"

@@ -88,6 +88,7 @@ function App() {
   });
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [infoAnchor, setInfoAnchor] = useState<null | HTMLElement>(null);
+  const [linksAnchor, setLinksAnchor] = useState<null | HTMLElement>(null);
 
   const theme = useMemo(
     () =>
@@ -297,20 +298,23 @@ function App() {
               <Button color="inherit" component={Link} to="/help">
                 {t('nav_help', { defaultValue: 'Help' })}
               </Button>
-              {(dashboard.navLinks?.items?.length ?? 0) > 0 &&
-                dashboard.navLinks.items.map((item, idx) => (
-                  <Button
-                    key={idx}
-                    color="inherit"
-                    component="a"
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    sx={{ fontWeight: 500 }}
-                  >
-                    {item.name}
-                  </Button>
-                ))}
+              {(dashboard.navLinks?.items?.length ?? 0) === 1 && (
+                <Button
+                  color="inherit"
+                  component="a"
+                  href={dashboard.navLinks!.items[0].url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ fontWeight: 500 }}
+                >
+                  {dashboard.navLinks!.items[0].name}
+                </Button>
+              )}
+              {(dashboard.navLinks?.items?.length ?? 0) > 1 && (
+                <Button color="inherit" onClick={(e) => setLinksAnchor(e.currentTarget)}>
+                  {t('nav_links', { defaultValue: dashboard.navLinks?.name || 'Links' })}
+                </Button>
+              )}
             </Box>
 
             <FormControl size="small" sx={{ minWidth: 120, mx: 0.5, display: { xs: 'none', md: 'block' } }}>
@@ -385,19 +389,38 @@ function App() {
           <MenuItem component={Link} to="/wwbridges" onClick={() => setAnchorEl(null)}>
             {t('nav_brdglst')}
           </MenuItem>
-          {(dashboard.navLinks?.items?.length ?? 0) > 0 &&
-            dashboard.navLinks.items.map((item, idx) => (
-              <MenuItem
-                key={idx}
-                component="a"
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setAnchorEl(null)}
-              >
-                {item.name}
+          {(dashboard.navLinks?.items?.length ?? 0) === 1 && (
+            <MenuItem
+              component="a"
+              href={dashboard.navLinks!.items[0].url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setAnchorEl(null)}
+            >
+              {dashboard.navLinks!.items[0].name}
+            </MenuItem>
+          )}
+          {(dashboard.navLinks?.items?.length ?? 0) > 1 && (
+            <>
+              <MenuItem disabled sx={{ borderTop: 1, borderColor: 'divider', mt: 0.5, pt: 1 }}>
+                <Typography variant="caption" color="text.secondary">
+                  {t('nav_links', { defaultValue: dashboard.navLinks?.name || 'Links' })}
+                </Typography>
               </MenuItem>
-            ))}
+              {dashboard.navLinks!.items.map((item, idx) => (
+                <MenuItem
+                  key={idx}
+                  component="a"
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setAnchorEl(null)}
+                >
+                  {item.name}
+                </MenuItem>
+              ))}
+            </>
+          )}
           <MenuItem disabled sx={{ borderTop: 1, borderColor: 'divider', mt: 0.5, pt: 1 }}>
             <Typography variant="caption" color="text.secondary">
               {t('nav_language', { defaultValue: 'Language' })}
@@ -434,6 +457,21 @@ function App() {
           <MenuItem component={Link} to="/lastheard" onClick={() => setInfoAnchor(null)}>
             {t('nav_lsthrd')}
           </MenuItem>
+        </Menu>
+
+        <Menu anchorEl={linksAnchor} open={Boolean(linksAnchor)} onClose={() => setLinksAnchor(null)}>
+          {(dashboard.navLinks?.items ?? []).map((item, idx) => (
+            <MenuItem
+              key={idx}
+              component="a"
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setLinksAnchor(null)}
+            >
+              {item.name}
+            </MenuItem>
+          ))}
         </Menu>
 
         <Box
