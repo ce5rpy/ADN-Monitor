@@ -44,6 +44,7 @@ final class ConfigController
 
         $navLinks = $this->normalizeNavLinks($dashboard);
         $footer = $this->normalizeFooter($dashboard);
+        $news = $this->normalizeNews($dashboard);
 
         $out = [
             'title' => $title,
@@ -52,6 +53,7 @@ final class ConfigController
             'selfService' => (bool) ($dashboard['SELF_SERVICE'] ?? $dashboard['self_service'] ?? false),
             'showConsole' => (bool) ($dashboard['SHOW_CONSOLE'] ?? $dashboard['show_console'] ?? false),
             'footer' => $footer,
+            'news' => $news,
             'navLinks' => $navLinks,
         ];
         $response->getBody()->write(json_encode($out, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE));
@@ -117,6 +119,37 @@ final class ConfigController
         $list = [];
         for ($i = 1; true; $i++) {
             $val = $dashboard['FOOTER' . $i] ?? $dashboard['footer' . $i] ?? null;
+            if ($val === null || $val === '') {
+                break;
+            }
+            $parts = explode(',', (string) $val, 2);
+            $list[] = ['name' => trim($parts[0] ?? ''), 'url' => trim($parts[1] ?? '')];
+        }
+        return $list;
+    }
+
+    /** @return list<array{name: string, url: string}> Same structure as footer (name + url). For marquee. */
+    private function normalizeNews(array $dashboard): array
+    {
+        $news = $dashboard['news'] ?? $dashboard['NEWS'] ?? null;
+        if (is_array($news)) {
+            $items = $news['items'] ?? $news['Items'] ?? $news;
+            if (is_array($items)) {
+                $list = [];
+                foreach ($items as $entry) {
+                    if (is_array($entry) && isset($entry['name'])) {
+                        $list[] = ['name' => (string) $entry['name'], 'url' => (string) ($entry['url'] ?? '')];
+                    } elseif (is_string($entry)) {
+                        $parts = explode(',', $entry, 2);
+                        $list[] = ['name' => trim($parts[0] ?? ''), 'url' => trim($parts[1] ?? '')];
+                    }
+                }
+                return $list;
+            }
+        }
+        $list = [];
+        for ($i = 1; true; $i++) {
+            $val = $dashboard['NEWS' . $i] ?? $dashboard['news' . $i] ?? null;
             if ($val === null || $val === '') {
                 break;
             }

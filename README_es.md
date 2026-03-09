@@ -38,7 +38,7 @@ Todo el comportamiento del dashboard y del monitor se define en **un solo YAML**
   - **SELF_SERVICE**: credenciales MySQL (backend + monitor).
   - **ADN_CONNECTION**: IP y puerto del servidor de reportes ADN.
   - **ALIASES**: URLs y archivos de alias (peers, subscribers, talkgroups).
-  - **LOGGER**, **WEBSOCKET_SERVER**, **DASHBOARD** (título, idioma, enlaces nav/footer).
+  - **LOGGER**, **WEBSOCKET_SERVER**, **DASHBOARD** (título, idioma, enlaces nav/footer y marquesina de noticias).
 
 Las rutas dentro del YAML (p. ej. `LOG_PATH`, `PATH` para archivos de alias) son relativas al directorio **monitor/** cuando ejecutas el monitor desde ahí.
 

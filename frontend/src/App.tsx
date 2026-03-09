@@ -42,6 +42,7 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { useTranslation } from 'react-i18next';
 
 import Footer from './components/Footer';
+import NewsMarquee from './components/NewsMarquee';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Systems = lazy(() => import('./pages/Systems'));
@@ -455,8 +456,6 @@ function App() {
               alignItems: 'center',
               py: { xs: 1.5, sm: 2 },
               px: 2,
-              borderBottom: 1,
-              borderColor: 'divider',
               bgcolor: 'background.default',
               flexShrink: 0,
               '@media (orientation: landscape) and (max-height: 500px)': {
@@ -494,6 +493,7 @@ function App() {
             }}
             maxWidth="xl"
           >
+            <NewsMarquee />
             <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>}>
               <Routes>
                 <Route path="/" element={<Dashboard />} />

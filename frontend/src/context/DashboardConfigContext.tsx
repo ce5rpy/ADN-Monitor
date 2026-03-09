@@ -63,6 +63,8 @@ type DashboardConfig = {
   showConsole: boolean;
   /** Footer links: same structure as nav_links items (name + url) */
   footer: NavLinkItem[];
+  /** News/events for the marquee below the logo (name + optional url). Same structure as footer. */
+  news: NavLinkItem[];
   navLinks: { name?: string; items: NavLinkItem[] };
   aliases: AliasesConfig;
   apiBase: string;
@@ -75,6 +77,7 @@ const defaultConfig: DashboardConfig = {
   selfService: false,
   showConsole: false,
   footer: [],
+  news: [],
   navLinks: { items: [] },
   aliases: defaultAliases,
   apiBase: '',
@@ -126,6 +129,7 @@ export function DashboardConfigProvider({ children }: { children: React.ReactNod
           selfService?: boolean;
           showConsole?: boolean;
           footer?: NavLinkItem[];
+          news?: NavLinkItem[];
           navLinks?: { name?: string; items?: NavLinkItem[] };
         }) => {
         const rawConfigLang = (data.language ?? getDefaultLanguage()).split(/[-_]/)[0]?.toLowerCase() || 'en';
@@ -133,6 +137,9 @@ export function DashboardConfigProvider({ children }: { children: React.ReactNod
         const nav = data.navLinks ?? {};
         const footer = Array.isArray(data.footer)
           ? data.footer.filter((e): e is NavLinkItem => e && typeof e === 'object' && 'name' in e && 'url' in e)
+          : [];
+        const news = Array.isArray(data.news)
+          ? data.news.filter((e): e is NavLinkItem => e && typeof e === 'object' && 'name' in e)
           : [];
         const title = data.title ?? defaultConfig.title;
         setConfig({
@@ -142,6 +149,7 @@ export function DashboardConfigProvider({ children }: { children: React.ReactNod
           selfService: Boolean(data.selfService),
           showConsole: Boolean(data.showConsole),
           footer,
+          news,
           navLinks: { name: nav.name ?? '', items: Array.isArray(nav.items) ? nav.items : [] },
           apiBase,
           aliases: defaultAliases,
