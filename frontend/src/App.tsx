@@ -494,7 +494,7 @@ function App() {
               alignItems: 'center',
               py: { xs: 1.5, sm: 2 },
               px: 2,
-              bgcolor: 'background.default',
+              bgcolor: 'transparent',
               flexShrink: 0,
               '@media (orientation: landscape) and (max-height: 500px)': {
                 py: 0.5,
@@ -512,6 +512,7 @@ function App() {
                   height: 'auto',
                   objectFit: 'contain',
                   display: 'block',
+                  borderRadius: 2,
                   '@media (orientation: landscape) and (max-height: 500px)': {
                     maxWidth: 160,
                     maxHeight: '10vh',

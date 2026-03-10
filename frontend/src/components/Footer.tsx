@@ -37,7 +37,10 @@ export default function Footer() {
         flexShrink: 0,
         borderTop: '1px solid',
         borderColor: 'divider',
-        backgroundColor: 'background.paper',
+        backgroundColor: (theme) =>
+          theme.palette.mode === 'dark'
+            ? 'rgba(30, 30, 30, 0.75)'
+            : 'rgba(255, 255, 255, 0.75)',
         textAlign: 'center',
         '@media (orientation: landscape) and (max-height: 500px)': {
           py: 0.5,
