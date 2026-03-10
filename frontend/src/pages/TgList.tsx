@@ -163,14 +163,33 @@ export default function TgList() {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} color="text.primary" sx={{ mb: 2 }}>
-        {t('tbl_tgs', { defaultValue: 'World Wide Talk Groups' })}
-      </Typography>
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2,
+          mb: 2,
+          bgcolor: 'background.paper',
+          boxShadow: (t: { palette: { mode: string } }) => (t.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)'),
+        }}
+      >
+        <Typography variant="h5" fontWeight={700} color="text.primary">
+          {t('tbl_tgs', { defaultValue: 'World Wide Talk Groups' })}
+        </Typography>
+      </Paper>
 
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-        <TextField
-          size="small"
-          label={t('tbl_filter_tg', { defaultValue: 'Filter by TG' })}
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2,
+          mb: 2,
+          bgcolor: 'background.paper',
+          boxShadow: (t: { palette: { mode: string } }) => (t.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)'),
+        }}
+      >
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          <TextField
+            size="small"
+            label={t('tbl_filter_tg', { defaultValue: 'Filter by TG' })}
           placeholder={t('tbl_placeholder_tg', { defaultValue: 'e.g. 730' })}
           value={searchTg}
           onChange={(e) => setSearchTg(e.target.value)}
@@ -200,7 +219,8 @@ export default function TgList() {
           sx={{ minWidth: 180 }}
           helperText={t('tbl_filter_name_hint', { defaultValue: 'Shows TGs whose name contains this text' })}
         />
-      </Box>
+        </Box>
+      </Paper>
 
       <Paper sx={tablePaperSx}>
         <TableContainer>

@@ -46,25 +46,40 @@ export default function Console() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [lines]);
 
+  const paperSx = {
+    bgcolor: 'background.paper',
+    boxShadow: (theme: { palette: { mode: string } }) =>
+      theme.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
+  };
+
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} color="text.primary" sx={{ mb: 2 }}>
-        {t('nav_console')}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        {t('console_desc')}
-        {!connected && ` — ${t('pre_wait')}`}
-      </Typography>
       <Paper
         variant="outlined"
         sx={{
+          ...paperSx,
+          p: 2,
+          mb: 2,
+        }}
+      >
+        <Typography variant="h5" fontWeight={700} color="text.primary" sx={{ mb: 1 }}>
+          {t('nav_console')}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {t('console_desc')}
+          {!connected && ` — ${t('pre_wait')}`}
+        </Typography>
+      </Paper>
+      <Paper
+        variant="outlined"
+        sx={{
+          ...paperSx,
           p: 1.5,
           fontFamily: 'monospace',
           fontSize: { xs: '0.75rem', sm: '0.8rem' },
           minHeight: 120,
           maxHeight: '60vh',
           overflow: 'auto',
-          bgcolor: 'action.hover',
           WebkitOverflowScrolling: 'touch',
         }}
       >

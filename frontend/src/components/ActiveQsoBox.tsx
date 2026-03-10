@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { Box, Typography, Card, CardContent } from '@mui/material';
+import { Box, Typography, Card, CardContent, Paper } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import QrzLink, { isCallsignLike } from './QrzLink';
 
@@ -121,11 +121,18 @@ export default function ActiveQsoBox({ ctable }: { ctable: Ctable | null | undef
   const hasAny = totalCount > 0;
 
   return (
-    <Box sx={{ mb: 1.5, minHeight: 140 }}>
-      <Typography variant="subtitle1" fontWeight={600} color="text.primary" sx={{ mb: 1.5 }}>
-        {t('active_qso')} {hasAny && `(${totalCount})`}
-      </Typography>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+    <Paper
+      sx={{
+        mb: 2,
+        p: 2,
+        boxShadow: (theme) => theme.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
+      }}
+    >
+      <Box sx={{ minHeight: 140 }}>
+        <Typography variant="subtitle1" fontWeight={600} color="text.primary" sx={{ mb: 1.5 }}>
+          {t('active_qso')} {hasAny && `(${totalCount})`}
+        </Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
         {!hasAny ? (
           <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
             {t('active_qso_none', 'No active QSO at the moment.')}
@@ -185,7 +192,8 @@ export default function ActiveQsoBox({ ctable }: { ctable: Ctable | null | undef
             })}
           </>
         )}
+        </Box>
       </Box>
-    </Box>
+    </Paper>
   );
 }

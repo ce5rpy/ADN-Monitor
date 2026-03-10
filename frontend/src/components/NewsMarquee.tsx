@@ -16,12 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { Box, Link, Typography, useTheme } from '@mui/material';
+import { Box, Link, Typography } from '@mui/material';
 import Marquee from 'react-fast-marquee';
 import { useDashboardConfig } from '../context/DashboardConfigContext';
 
 export default function NewsMarquee() {
-  const theme = useTheme();
   const { news } = useDashboardConfig();
 
   if (news.length === 0) return null;
@@ -32,10 +31,13 @@ export default function NewsMarquee() {
         width: '100%',
         minWidth: 0,
         mb: 2,
+        px: 2,
+        py: 1,
+        borderRadius: 1,
         borderBottom: 1,
         borderColor: 'divider',
-        background: `linear-gradient(90deg, ${theme.palette.primary.main}22 0%, ${theme.palette.primary.dark}18 50%, ${theme.palette.primary.main}22 100%)`,
-        py: 0.75,
+        bgcolor: 'background.paper',
+        boxShadow: (theme) => theme.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
         overflow: 'hidden',
       }}
     >

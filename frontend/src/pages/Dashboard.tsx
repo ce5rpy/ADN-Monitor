@@ -220,9 +220,19 @@ export default function Dashboard() {
         <Typography color="text.secondary" sx={{ py: 2 }}>{t('pre_wait')}</Typography>
       )}
       {data != null && (
-        <Typography variant="h5" fontWeight={700} color="text.primary" sx={{ mb: 2 }}>
-          {t('nav_dash', { defaultValue: 'Dashboard' })}
-        </Typography>
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 2,
+            mb: 2,
+            bgcolor: 'background.paper',
+            boxShadow: (t) => t.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
+          }}
+        >
+          <Typography variant="h5" fontWeight={700} color="text.primary">
+            {t('nav_dash', { defaultValue: 'Dashboard' })}
+          </Typography>
+        </Paper>
       )}
       {data != null ? <ActiveQsoBox ctable={ctable ?? undefined} /> : null}
       {rows.length > 0 && (

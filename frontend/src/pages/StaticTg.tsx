@@ -160,9 +160,19 @@ export default function StaticTg() {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} color="text.primary" sx={{ mb: 2 }}>
-        {t('statictg_title', { defaultValue: 'Static TG' })}
-      </Typography>
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2,
+          mb: 2,
+          bgcolor: 'background.paper',
+          boxShadow: (t: { palette: { mode: string } }) => (t.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)'),
+        }}
+      >
+        <Typography variant="h5" fontWeight={700} color="text.primary">
+          {t('statictg_title', { defaultValue: 'Static TG' })}
+        </Typography>
+      </Paper>
 
       {!hasMasters && (
         <Typography color="text.secondary" sx={{ py: 2 }}>

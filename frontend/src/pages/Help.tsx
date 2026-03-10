@@ -64,12 +64,22 @@ export default function Help() {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} color="text.primary" sx={{ mb: 2 }}>
-        {t('help_title', { defaultValue: 'Help' })}
-      </Typography>
-      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
-        {t('help_subtitle', { defaultValue: 'ADN SelfCare – Frequently asked questions and setup guide.' })}
-      </Typography>
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2,
+          mb: 2,
+          bgcolor: 'background.paper',
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
+        }}
+      >
+        <Typography variant="h5" fontWeight={700} color="text.primary" sx={{ mb: 1 }}>
+          {t('help_title', { defaultValue: 'Help' })}
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary">
+          {t('help_subtitle', { defaultValue: 'ADN SelfCare – Frequently asked questions and setup guide.' })}
+        </Typography>
+      </Paper>
 
       <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 3 }}>
         <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>

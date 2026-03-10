@@ -66,9 +66,19 @@ export default function OpenBridge() {
 
   return (
     <Box>
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        {t('opb_title', { defaultValue: 'OpenBridge' })}
-      </Typography>
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2,
+          mb: 2,
+          bgcolor: 'background.paper',
+          boxShadow: (theme) => theme.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
+        }}
+      >
+        <Typography variant="h6" fontWeight={600}>
+          {t('opb_title', { defaultValue: 'OpenBridge' })}
+        </Typography>
+      </Paper>
 
       {!hasAny && (
         <Typography color="text.secondary">
