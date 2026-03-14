@@ -19,14 +19,18 @@ GLOBAL:
   TGCOUNT_ROWS: 20
 
 # ------------------------------------------------------------------------------
-# SELF_SERVICE – Database credentials (MySQL)
+# SELF_SERVICE – Database credentials (MySQL) and password hash (must match hotspot_proxy_self_service.py)
 # ------------------------------------------------------------------------------
 SELF_SERVICE:
+  USE_SELFSERVICE: true
   DB_SERVER: localhost
   DB_USERNAME: self_service_user
   DB_PASSWORD: your-password
   DB_NAME: self_service
   DB_PORT: 3306
+  # Password hash: same salt/iterations as hotspot_proxy_self_service.py
+  PBKDF2_SALT: "ADN"
+  PBKDF2_ITERATIONS: 2000
 
 # ------------------------------------------------------------------------------
 # ADN_CONNECTION
@@ -36,6 +40,24 @@ ADN_CONNECTION:
   ADN_IP: "127.0.0.1"
   # ADN server's TCP reporting socket
   ADN_PORT: 4321
+
+# ------------------------------------------------------------------------------
+# PROXY – Hotspot Proxy for ADN DMR Peer Server (repeaters <-> peer server)
+# Same file as monitor; set ADN_CONFIG_PATH in .env so the proxy uses this YAML.
+# ------------------------------------------------------------------------------
+PROXY:
+  # ADN DMR Peer Server (master) IP
+  MASTER: "127.0.0.1"
+  LISTEN_PORT: 62031
+  LISTEN_IP: ""
+  DESTPORT_START: 54000
+  DEST_PORT_END: 54100
+  TIMEOUT: 30
+  STATS: false
+  DEBUG: false
+  CLIENT_INFO: true
+  BLACK_LIST: []
+  IP_BLACK_LIST: {}
 
 # ------------------------------------------------------------------------------
 # OPB_FILTER
@@ -69,11 +91,12 @@ ALIASES:
   BRIDGE_LIST_URL: "https://adn.systems/files/server_ids.tsv"
 
 # ------------------------------------------------------------------------------
-# LOGGER – Settings for log files
+# LOGGER – Settings for log files (LOG_FILE = monitor; PROXY_LOG_FILE = Hotspot Proxy)
 # ------------------------------------------------------------------------------
 LOGGER:
   LOG_PATH: "./log"
   LOG_FILE: adn-mon.log
+  PROXY_LOG_FILE: hotspot-proxy.log
   LOG_LEVEL: INFO
 
 # ------------------------------------------------------------------------------
@@ -95,18 +118,18 @@ WEBSOCKET_SERVER:
 # DASHBOARD
 # ------------------------------------------------------------------------------
 DASHBOARD:
-  # Dashboard Title (header); e.g. "ADN Systems Dashboard" or "ADN Systems Monitor"
+  # Dashboard Title (header); e.g. "ADN Systems Dashboard" or "ADN Systems Chile"
   DASHTITLE: "ADN Systems"
   # Background image True or False; if True put a bk.jpg 1920x1080 in img folder
   BACKGROUND: false
   # Default language: en, es, fr, pt, it, nl, de
   LANGUAGE: "en"
 
-  # Self-service (local): show/hide the "Self-service" nav item. SelfCare link is always in header (hardcoded).
+  # Self-service (local): show/hide the "Self-service" nav item (local server).
   SELF_SERVICE: true
 
   # Console: show Console page in Info menu (call start/end messages). Set to true to enable.
-  SHOW_CONSOLE: true
+  SHOW_CONSOLE: false
 
   # Minimum call duration (seconds) for dashboard table only (Last Heard page always shows all)
   MIN_DURATION: 3

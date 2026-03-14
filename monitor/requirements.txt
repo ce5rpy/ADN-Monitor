@@ -1,4 +1,4 @@
 # ADN Monitor – Python deps (run from monitor/)
-PyYAML>=6.0
+pyyaml>=6.0
 twisted>=22.0
 autobahn>=23.0
