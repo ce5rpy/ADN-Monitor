@@ -46,7 +46,6 @@ import { useTranslation } from 'react-i18next';
 function buildOptions(p: {
   ts1: number[];
   ts2: number[];
-  dial: number;
   voice: string;
   lang: string;
   single: string;
@@ -59,12 +58,11 @@ function buildOptions(p: {
   if (p.mode === 'Duplex' && p.ts2.length > 0) parts.push('TS2=' + p.ts2.join(','));
   // Simplex: single slot is always TS2 (we use ts2 state for it)
   if (p.mode === 'Simplex' && p.ts2.length > 0) parts.push('TS2=' + p.ts2.join(','));
-  parts.push('DIAL=' + (p.dial ? 1 : 0));
   if (p.voice !== '-1') parts.push('VOICE=' + p.voice);
   if (p.voice === '1') parts.push('LANG=' + p.lang);
   if (p.single !== '-1') parts.push('SINGLE=' + p.single);
   if (p.timer > 0) parts.push('TIMER=' + p.timer);
-  return parts.join(';');
+  return parts.join(';') + ';';
 }
 
 export default function Calc() {
@@ -72,13 +70,12 @@ export default function Calc() {
   const [mode, setMode] = useState<'Duplex' | 'Simplex'>('Duplex');
   const [ts1, setTs1] = useState<number[]>([0]);
   const [ts2, setTs2] = useState<number[]>([0]);
-  const [dial, setDial] = useState(0); // 0 or 1
   const [voice, setVoice] = useState('-1');
   const [lang] = useState('en_GB');
   const [single, setSingle] = useState('-1');
   const [timer, setTimer] = useState(0);
 
-  const optionsStr = buildOptions({ ts1, ts2, dial, voice, lang, single, timer, mode });
+  const optionsStr = buildOptions({ ts1, ts2, voice, lang, single, timer, mode });
   const withQuotes = `Options="${optionsStr}"`;
 
   const addRow = useCallback((slot: 1 | 2) => {
@@ -149,13 +146,6 @@ export default function Calc() {
         </Box>
       </Box>
       <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
-        <FormControl size="small" sx={{ minWidth: 140 }}>
-          <InputLabel>{t('calc_dialtg')}</InputLabel>
-          <Select value={String(dial)} label={t('calc_dialtg')} onChange={(e) => setDial(Number(e.target.value))}>
-            <MenuItem value="0">{t('calc_voiceoff')}</MenuItem>
-            <MenuItem value="1">{t('calc_voiceon')}</MenuItem>
-          </Select>
-        </FormControl>
         <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>{t('calc_voice')}</InputLabel>
           <Select value={voice} label={t('calc_voice')} onChange={(e) => setVoice(e.target.value)}>
