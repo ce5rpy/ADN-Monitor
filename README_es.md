@@ -195,7 +195,38 @@ Copia y adapta rutas, dominios y certificados a tu servidor.
 
 ---
 
-## Más detalles
+## Soporte IPv6
+
+Para que todo el proyecto funcione por IPv6 (o dual-stack):
+
+| Componente | Qué hacer |
+|-------------|-----------|
+| **Monitor – WebSocket** | En `adn-mon.yaml`, dentro de `WEBSOCKET_SERVER`, pon `LISTEN_INTERFACE: "::"` para que el WebSocket del dashboard acepte IPv4 e IPv6. Por defecto `""` enlaza solo a IPv4. |
+| **Monitor – conexión al ADN** | Pon en `ADN_CONNECTION.ADN_IP` la IPv6 del servidor de reportes (o un hostname que resuelva a IPv6). No hace falta cambiar código. |
+| **Proxy** | Define la variable de entorno `ADN_PROXY_IPV6=1` y deja `PROXY.LISTEN_IP` vacío para que el proxy escuche en `::`. Usa una IPv6 o un hostname en `PROXY.MASTER` (los hostnames se resuelven al arranque). Ver `proxy/README.md`. |
+| **Backend (PHP)** | No hay que tocar la app. Configura el servidor web (Nginx/Apache) para escuchar en `[::]:80` y/o `[::]:443` y que la API sea accesible por IPv6. |
+| **Frontend** | Sin cambios; usa las mismas URLs de API/WebSocket. Si el servidor es accesible por IPv6, el navegador la usará cuando corresponda. |
+
+---
+
+## Licencia y créditos
+
+Este proyecto es **GPL v3**. El **monitor** (Python), el **frontend** (dashboard React) y el **backend** (API PHP) son derivados de los siguientes trabajos:
+
+| Proyecto | Autor | Descripción |
+|----------|-------|-------------|
+| **FDMR Monitor** | OA4DOA | FDMR Monitor para FreeDMR Server basado en HBMonv2 — [github.com/yuvelq/FDMR-Monitor](https://github.com/yuvelq/FDMR-Monitor) |
+| **HBMonv2** | SP2ONG | HBMonitor v2 para DMR Server basado en HBlink/FreeDMR — [github.com/sp2ong/HBMonv2](https://github.com/sp2ong/HBMonv2) |
+| **hbmonitor3** | KC1AWV | Implementación en Python 3 del HBmonitor de N0MJS para HBlink — [github.com/kc1awv/hbmonitor3](https://github.com/kc1awv/hbmonitor3) |
+| **HBmonitor** | Cortney T. Buffington, N0MJS | HBmonitor original (Copyright (C) 2013-2018, n0mjs@me.com) |
+
+El **proxy** (Hotspot Proxy para ADN DMR Peer Server) es derivado del hotspot proxy de Simon Adlem, G7RZU; créditos: Jon Lee G4TSN, Norman Williams M6NBP, Christian OA4DOA (ver `proxy/README.md`).
+
+**Este código:** Copyright (C) 2026 Rodrigo Pérez, CE5RPY. Las obras originales y estos derivados son software libre bajo la [Licencia Pública General de GNU v3](https://www.gnu.org/licenses/gpl-3.0.html). Conserva la licencia y la atribución al distribuir o modificar.
+
+---
+
+## Más información
 
 - **Monitor (WebSocket, DB, ADN):** ver `monitor/README.md`.
 - **Config en YAML:** opciones y secciones en `monitor/adn-mon.yaml` (comentarios en el propio archivo).
