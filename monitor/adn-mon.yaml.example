@@ -46,7 +46,7 @@ ADN_CONNECTION:
 # Same file as monitor; set ADN_CONFIG_PATH in .env so the proxy uses this YAML.
 # ------------------------------------------------------------------------------
 PROXY:
-  # ADN DMR Peer Server (master) IP
+  # ADN DMR Peer Server (master): IP or DNS hostname
   MASTER: "127.0.0.1"
   LISTEN_PORT: 62031
   LISTEN_IP: ""

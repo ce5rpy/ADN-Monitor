@@ -19,6 +19,8 @@ Configuration lives in the **monitor YAML** (`adn-mon.yaml`). The proxy reads th
 - **Env**: In the **project root** there is a **`.env.example`** with the variables (including `ADN_CONFIG_PATH`). Copy it to `.env` and set the path to your `adn-mon.yaml`; `.env` is not committed.
 - **ADN_CONFIG_PATH**: Path to `adn-mon.yaml` (used by backend, monitor and proxy).
 
+**PROXY.MASTER** in the YAML can be an **IP address** or a **DNS hostname**; the OS resolves the name when sending UDP to the master.
+
 The YAML must include a **PROXY** section (see `monitor/adn-mon.yaml.example`). Optional env overrides: `ADN_PROXY_DEBUG` (log raw packets), `ADN_PROXY_IPV6`, `ADN_PROXY_STATS`, `ADN_PROXY_CLIENTINFO`, `ADN_PROXY_LISTENPORT`.
 
 ### Debug (temporary)
