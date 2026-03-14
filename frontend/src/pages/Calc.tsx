@@ -43,6 +43,12 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useTranslation } from 'react-i18next';
 
+/** Voice identification languages (LANG=). Shown only when Voice=On. Labels from i18n. */
+const VOICE_LANGUAGE_KEYS = [
+  'en_GB', 'en_US', 'es_ES', 'fr_FR', 'de_DE', 'dk_DK', 'it_IT', 'no_NO',
+  'pl_PL', 'se_SE', 'pt_PT', 'cy_GB', 'el_GR', 'CW',
+] as const;
+
 function buildOptions(p: {
   ts1: number[];
   ts2: number[];
@@ -71,7 +77,7 @@ export default function Calc() {
   const [ts1, setTs1] = useState<number[]>([0]);
   const [ts2, setTs2] = useState<number[]>([0]);
   const [voice, setVoice] = useState('-1');
-  const [lang] = useState('en_GB');
+  const [lang, setLang] = useState('en_GB');
   const [single, setSingle] = useState('-1');
   const [timer, setTimer] = useState(0);
 
@@ -154,6 +160,16 @@ export default function Calc() {
             <MenuItem value="1">{t('calc_voiceon')}</MenuItem>
           </Select>
         </FormControl>
+        {voice === '1' && (
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel>{t('calc_lang')}</InputLabel>
+            <Select value={lang} label={t('calc_lang')} onChange={(e) => setLang(e.target.value)}>
+              {VOICE_LANGUAGE_KEYS.map((value) => (
+                <MenuItem key={value} value={value}>{t(`calc_voice_lang_${value}`)}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
         <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>{t('calc_smode')}</InputLabel>
           <Select value={single} label={t('calc_smode')} onChange={(e) => setSingle(e.target.value)}>
