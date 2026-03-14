@@ -195,6 +195,23 @@ Copy and adapt paths, domains, and certificates to your server.
 
 ---
 
+## License and credits
+
+This project is **GPL v3**. The **monitor** (Python), **frontend** (React dashboard), and **backend** (PHP API) are derivatives of the following works:
+
+| Project | Author | Description |
+|--------|--------|-------------|
+| **FDMR Monitor** | OA4DOA | FDMR Monitor for FreeDMR Server based on HBMonv2 — [github.com/yuvelq/FDMR-Monitor](https://github.com/yuvelq/FDMR-Monitor) |
+| **HBMonv2** | SP2ONG | HBMonitor v2 for DMR Server based on HBlink/FreeDMR — [github.com/sp2ong/HBMonv2](https://github.com/sp2ong/HBMonv2) |
+| **hbmonitor3** | KC1AWV | Python 3 implementation of N0MJS HBmonitor for HBlink — [github.com/kc1awv/hbmonitor3](https://github.com/kc1awv/hbmonitor3) |
+| **HBmonitor** | Cortney T. Buffington, N0MJS | Original HBmonitor (Copyright (C) 2013-2018, n0mjs@me.com) |
+
+The **proxy** (Hotspot Proxy for ADN DMR Peer Server) is a derivative of the hotspot proxy by Simon Adlem, G7RZU; credits: Jon Lee G4TSN, Norman Williams M6NBP, Christian OA4DOA (see `proxy/README.md`).
+
+**This codebase:** Copyright (C) 2026 Rodrigo Pérez, CE5RPY. Original works and these derivatives are free software under the [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html). Preserve license and attribution when distributing or modifying.
+
+---
+
 ## Further reading
 
 - **Monitor (WebSocket, DB, ADN):** see `monitor/README.md`.

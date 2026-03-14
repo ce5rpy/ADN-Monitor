@@ -13,6 +13,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Derived from: FDMR Monitor (OA4DOA, https://github.com/yuvelq/FDMR-Monitor);
+# HBMonv2 (SP2ONG, https://github.com/sp2ong/HBMonv2);
+# hbmonitor3 (KC1AWV, https://github.com/kc1awv/hbmonitor3);
+# HBmonitor (Cortney T. Buffington, N0MJS, Copyright (C) 2013-2018).
+# Original works and this derivative are under GPLv3.
 
 """Report payload decoder (CONFIG_SND / BRIDGE_SND). Implements ReportPayloadDecoder port."""
 
