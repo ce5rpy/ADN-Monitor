@@ -1,0 +1,26 @@
+# Hotspot Proxy - ADN DMR Peer Server – systemd unit example
+# Copy to /etc/systemd/system/hotspot-proxy.service and adjust paths.
+# Enable: sudo systemctl enable hotspot-proxy && sudo systemctl start hotspot-proxy
+# Uses the same .env as backend/frontend (ADN_CONFIG_PATH, etc.).
+
+
+[Unit]
+Description=Hotspot Proxy - ADN DMR Peer Server
+
+[Service]
+User=root
+Type=simple
+Restart=always
+RestartSec=3
+SyslogIdentifier=hotspot-proxy
+# Root .env (optional: leading - means do not fail if file is missing)
+EnvironmentFile=-/opt/adn-monitor/.env
+# Optional: enable debug (raw packets). Use 1/true/yes; use 0/false to disable.
+# After editing: sudo systemctl daemon-reload && sudo systemctl restart hotspot-proxy
+# Check env: systemctl show hotspot-proxy -p Environment
+Environment=ADN_PROXY_DEBUG=1
+WorkingDirectory=/opt/adn-monitor/proxy
+ExecStart=/usr/bin/python3 /opt/adn-monitor/proxy/proxy.py --config /opt/adn-monitor/monitor/adn-mon.yaml
+
+[Install]
+WantedBy=multi-user.target

@@ -84,6 +84,9 @@ frontend/dist/
 *.log
 log/
 monitor/log/
+# proxy/log: keep directory in repo via .gitkeep, do not commit log files
+proxy/log/*
+!proxy/log/.gitkeep
 tmp/
 temp/
 *.tmp
