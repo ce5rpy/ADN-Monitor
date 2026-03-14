@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import logging
 import os
+import socket
 import signal
 import sys
 from pathlib import Path
@@ -108,7 +109,10 @@ def main() -> None:
 
     px = CONF["PROXY"]
     ss = CONF["SELF_SERVICE"]
-    master = px["Master"]
+    master_raw = px["Master"]
+    master = _resolve_master(master_raw)
+    if master != master_raw:
+        logger.info("Resolved MASTER %r to %s", master_raw, master)
     listen_port = px["ListenPort"]
     listen_ip = px["ListenIP"] or ""
     dest_start = px["DestportStart"]
@@ -267,6 +271,35 @@ def _is_ipv4(ip: str) -> bool:
         return True
     except ValueError:
         return False
+
+
+def _resolve_master(host: str) -> str:
+    """Resolve MASTER to an IP. Twisted UDP write() accepts only IPs, not hostnames."""
+    import ipaddress
+    if not host or not host.strip():
+        return host
+    host = host.strip()
+    try:
+        ipaddress.IPv4Address(host)
+        return host
+    except ValueError:
+        pass
+    try:
+        ipaddress.IPv6Address(host)
+        return host
+    except ValueError:
+        pass
+    try:
+        # Prefer IPv4 for compatibility with existing IPv4-mapped logic
+        infos = socket.getaddrinfo(host, None, socket.AF_UNSPEC, socket.SOCK_DGRAM)
+        for family, _, _, _, sockaddr in infos:
+            if family == socket.AF_INET:
+                return sockaddr[0]
+        if infos:
+            return infos[0][4][0]
+    except (socket.gaierror, OSError) as e:
+        raise SystemExit(f"Could not resolve MASTER hostname {host!r}: {e}") from e
+    raise SystemExit(f"Could not resolve MASTER hostname {host!r}: no address returned")
 
 
 if __name__ == "__main__":
