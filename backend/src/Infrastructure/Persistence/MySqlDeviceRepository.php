@@ -60,8 +60,10 @@ final class MySqlDeviceRepository implements DeviceRepository
 
     public function updateOptions(int $intId, string $options): int
     {
+        // Set modified=1 so the hotspot proxy send_opts (every 10s) will push RPTO to the peer server
+        // and the new options (e.g. TG list) apply to the hotspot without restart. Proxy then sets modified=0.
         $stmt = $this->pdo->prepare(
-            'UPDATE Clients SET options = :options, modified = 0 WHERE int_id = :id'
+            'UPDATE Clients SET options = :options, modified = 1 WHERE int_id = :id'
         );
         $stmt->execute(['options' => $options, 'id' => $intId]);
         return $stmt->rowCount();
