@@ -95,6 +95,9 @@ final class SelfServiceController
         if ($options === '') {
             return $this->json($response, ['error' => 'Options cannot be empty'], 400);
         }
+        if (!str_ends_with($options, ';')) {
+            $options .= ';';
+        }
         if (strlen($options) > self::OPTIONS_MAX_LENGTH) {
             return $this->json($response, ['error' => 'Options too long'], 400);
         }

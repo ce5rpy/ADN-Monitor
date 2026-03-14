@@ -58,10 +58,9 @@ interface DeviceOptions {
 
 function optionsToStr(d: { options: DeviceOptions }): string {
   const o = d.options;
-  return [
+  const s = [
     o.TS1?.length ? 'TS1=' + o.TS1.join(',') : '',
     o.TS2?.length ? 'TS2=' + o.TS2.join(',') : '',
-    o.DIAL !== '0' ? 'DIAL=' + o.DIAL : '',
     o.VOICE !== '-1' ? 'VOICE=' + o.VOICE : '',
     o.LANG !== '0' ? 'LANG=' + o.LANG : '',
     o.SINGLE !== '-1' ? 'SINGLE=' + o.SINGLE : '',
@@ -69,6 +68,7 @@ function optionsToStr(d: { options: DeviceOptions }): string {
   ]
     .filter(Boolean)
     .join(';');
+  return s ? s + ';' : s;
 }
 
 export default function SelfService() {
