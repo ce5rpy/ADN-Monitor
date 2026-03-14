@@ -27,6 +27,20 @@ from __future__ import annotations
 from .monitor_controller import MonitorState
 
 
+def parse_options_to_static(options_str: str | None) -> dict:
+    """Parse Clients.options string (e.g. TS1=1,2;TS2=730,7304;TIMER=15;) into TS1_STATIC/TS2_STATIC lists."""
+    out: dict = {"TS1_STATIC": [], "TS2_STATIC": []}
+    if not options_str or not isinstance(options_str, str):
+        return out
+    for part in options_str.strip().split(";"):
+        part = part.strip()
+        if part.upper().startswith("TS1=") and len(part) > 4:
+            out["TS1_STATIC"] = [x.strip() for x in part[4:].split(",") if x.strip()]
+        elif part.upper().startswith("TS2=") and len(part) > 4:
+            out["TS2_STATIC"] = [x.strip() for x in part[4:].split(",") if x.strip()]
+    return out
+
+
 def _tgid_to_int(raw) -> int:
     """Normalize TGID from int, str, or bytes (e.g. BRIDGES pickle)."""
     if isinstance(raw, int):
@@ -81,6 +95,13 @@ def build_tgstats_impl(state: MonitorState, time_str_fn) -> None:
             ctable["MASTERS"][system]["PEERS"][peer]["TS2_STATIC"] = (
                 ts2.split(",") if isinstance(ts2, str) else (ts2 if isinstance(ts2, list) else [])
             )
+            # Override with per-peer options from self-service DB (Clients.options)
+            peer_opts = getattr(state, "PEER_OPTIONS", None) or {}
+            if peer in peer_opts:
+                if peer_opts[peer].get("TS1_STATIC"):
+                    ctable["MASTERS"][system]["PEERS"][peer]["TS1_STATIC"] = peer_opts[peer]["TS1_STATIC"]
+                if peer_opts[peer].get("TS2_STATIC"):
+                    ctable["MASTERS"][system]["PEERS"][peer]["TS2_STATIC"] = peer_opts[peer]["TS2_STATIC"]
     for bridge_name in bridges or []:
         for system in bridges[bridge_name]:
             if not system.get("ACTIVE") or (system.get("SYSTEM") or "")[:3] == "OBP" or system.get("TO_TYPE") == "OFF":

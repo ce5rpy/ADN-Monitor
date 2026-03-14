@@ -105,6 +105,8 @@ class MonitorState:
         self.empty_masters = empty_masters
         self.brdg_inc = brdg_inc
         self.sys_dict: dict = {"lst_clean": 0}
+        # Per-peer static TG from Clients.options (self-service DB); int_id -> {TS1_STATIC, TS2_STATIC}
+        self.PEER_OPTIONS: dict = {}
 
 
 def process_message(

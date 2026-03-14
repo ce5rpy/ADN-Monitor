@@ -78,6 +78,7 @@ from adn_monitor.application import (
     process_message,
     time_str,
 )
+from adn_monitor.application.tgstats import parse_options_to_static
 from adn_monitor.application.hblink_table import clean_te
 from adn_monitor.infrastructure import (
     MoniDBAliasRepository,
@@ -639,6 +640,50 @@ def main():
     # Memory leak mitigation: clean STREAMS and sys_dict periodically (not only on CONFIG_SND / END)
     task.LoopingCall(clean_ctable_streams).start(60).addErrback(error_hdl)
     task.LoopingCall(lambda: clean_sys_dict(get_state())).start(60).addErrback(error_hdl)
+
+    # Self-service: load Clients.options into PEER_OPTIONS and merge into ctable so Static TG reflects DB
+    def merge_peer_options_from_db():
+        state = get_state()
+        conf = get_config_global()
+        groups = get_groups()
+        d = pool.runQuery(
+            "SELECT int_id, options FROM Clients WHERE logged_in=1 AND options IS NOT NULL AND options != ''"
+        )
+
+        def on_rows(rows):
+            state.PEER_OPTIONS.clear()
+            for row in rows or []:
+                if len(row) >= 2:
+                    int_id_val = int(row[0]) if row[0] is not None else None
+                    opts = row[1]
+                    if int_id_val is not None:
+                        state.PEER_OPTIONS[int_id_val] = parse_options_to_static(opts)
+            # Merge into ctable so dashboard shows DB options
+            for sys_name in state.CTABLE.get("MASTERS", {}):
+                peers = state.CTABLE["MASTERS"][sys_name].get("PEERS", {})
+                for peer_id in peers:
+                    if peer_id in state.PEER_OPTIONS:
+                        po = state.PEER_OPTIONS[peer_id]
+                        if po.get("TS1_STATIC"):
+                            state.CTABLE["MASTERS"][sys_name]["PEERS"][peer_id]["TS1_STATIC"] = po["TS1_STATIC"]
+                        if po.get("TS2_STATIC"):
+                            state.CTABLE["MASTERS"][sys_name]["PEERS"][peer_id]["TS2_STATIC"] = po["TS2_STATIC"]
+            if groups.get("lnksys"):
+                dashboard_server.broadcast(
+                    "c" + json.dumps({"ctable": state.CTABLE, "emaster": conf.get("EMPTY_MASTERS", False)}, default=str),
+                    "lnksys",
+                )
+            if groups.get("statictg"):
+                dashboard_server.broadcast(
+                    "c" + json.dumps({"ctable": state.CTABLE, "emaster": conf.get("EMPTY_MASTERS", False)}, default=str),
+                    "statictg",
+                )
+
+        d.addCallback(on_rows)
+        d.addErrback(lambda f: None)  # ignore DB errors (e.g. no table)
+
+    task.LoopingCall(merge_peer_options_from_db).start(15, now=False).addErrback(error_hdl)
+    reactor.callLater(2, merge_peer_options_from_db)  # first load soon after startup
 
     reactor.callLater(3, update_local)
     reactor.callLater(5, count_db_entries)
