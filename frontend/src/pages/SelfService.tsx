@@ -195,7 +195,6 @@ export default function SelfService() {
           </Dialog>
           <TextField
             fullWidth
-            multiline
             label={t('ss_options')}
             value={optionsStr}
             onChange={(e) => setOptionsStr(e.target.value)}

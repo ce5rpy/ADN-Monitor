@@ -182,12 +182,12 @@ export default function Calc() {
       </Box>
       <Box sx={{ mt: 3 }}>
         <Typography variant="subtitle2">{t('calc_dmrgw')}</Typography>
-        <TextField fullWidth multiline value={withQuotes} inputProps={{ readOnly: true }} size="small" sx={{ mt: 0.5 }} />
+        <TextField fullWidth value={withQuotes} inputProps={{ readOnly: true }} size="small" sx={{ mt: 0.5 }} />
         <Button sx={{ mt: 1 }} onClick={() => copy(withQuotes)}>{t('calc_copy1')}</Button>
       </Box>
       <Box sx={{ mt: 2 }}>
         <Typography variant="subtitle2">{t('calc_dmropt')}</Typography>
-        <TextField fullWidth multiline value={optionsStr} inputProps={{ readOnly: true }} size="small" sx={{ mt: 0.5 }} />
+        <TextField fullWidth value={optionsStr} inputProps={{ readOnly: true }} size="small" sx={{ mt: 0.5 }} />
         <Button sx={{ mt: 1 }} onClick={() => copy(optionsStr)}>{t('calc_copy2')}</Button>
       </Box>
     </Paper>
