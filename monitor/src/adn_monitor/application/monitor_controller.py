@@ -163,7 +163,7 @@ def process_message(
         # Ensure aliases in cache (async in original: db2dict)
         alias_repo.ensure_subscriber_in_cache(int(parts[6]))
         alias_repo.ensure_talkgroup_in_cache(int(parts[8]))
-        if parts[0] == "GROUP VOICE":
+        if parts[0] in ("GROUP VOICE", "PRIVATE VOICE"):
             _event_ts = time.time()
             rts_update(
                 parts,
@@ -222,7 +222,7 @@ def process_message(
             elif parts[1] == "END WITHOUT MATCHING START":
                 log_message = _format_log_message_unknown_end(_now, parts, alias_svc)
             else:
-                log_message = f"{_now[10:19]} Unknown GROUP VOICE log message."
+                log_message = f"{_now[10:19]} Unknown voice bridge log message ({parts[0]})."
             state.LOGBUF.append(log_message)
             logger.info("(VOICE) %s", log_message)
             if broadcast:

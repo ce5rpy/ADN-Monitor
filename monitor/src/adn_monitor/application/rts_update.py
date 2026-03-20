@@ -20,7 +20,7 @@
 # HBmonitor (Cortney T. Buffington, N0MJS, Copyright (C) 2013-2018).
 # Original works and this derivative are under GPLv3.
 
-"""Real-time timeslot update from GROUP VOICE START/END."""
+"""Real-time timeslot update from GROUP VOICE / PRIVATE VOICE START/END (same CSV shape)."""
 
 from __future__ import annotations
 
