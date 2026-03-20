@@ -17,8 +17,8 @@ GLOBAL:
   # Display TG Count on tgcount page
   TGCOUNT_INC: true
   TGCOUNT_ROWS: 20
-  # IANA timezone for dashboard timestamps and last_heard DB wall clock (e.g. Europe/Madrid, America/Santiago).
-  # Leave empty or omit to use the server's local timezone.
+  # IANA timezone for dashboard / logs (e.g. Europe/Madrid). last_heard / lstheard_log store UTC in DB;
+  # Leave empty or omit: logs use server local; lastheard dates are read as UTC then shown in server local.
   # TIMEZONE: "Europe/Madrid"
 
 # ------------------------------------------------------------------------------

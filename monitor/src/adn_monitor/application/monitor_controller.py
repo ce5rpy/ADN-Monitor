@@ -37,7 +37,7 @@ from .ports import (
     ReportPayloadDecoder,
     TgCountRepository,
 )
-from .time_utils import format_display_datetime, time_str
+from .time_utils import format_display_datetime, format_utc_naive_datetime, time_str
 
 logger = logging.getLogger("adn-mon")
 
@@ -175,7 +175,7 @@ def process_message(
             if skip_persist:
                 logger.debug("(REPORT) BRDG_EVENT GROUP VOICE skip persist: dir=%s src=%s", parts[2], parts[5])
             _now = format_display_datetime(_event_ts, config_global, with_tz_abbr=True)
-            _wall_db = format_display_datetime(_event_ts, config_global)
+            _wall_db = format_utc_naive_datetime(_event_ts)
             duration_sec = int(float(parts[9])) if len(parts) > 9 else 0
             if parts[1] == "END" and parts[4] in state.sys_dict and state.sys_dict[parts[4]]["sys"] == parts[3]:
                 del state.sys_dict[parts[4]]
@@ -229,12 +229,12 @@ def process_message(
                 broadcast.broadcast("l" + log_message, "log")
         elif parts[0] == "UNIT DATA HEADER" and parts[2] != "TX" and parts[5] not in config_global.get("OPB_FILTER", []):
             _u_ts = time.time()
-            _u_wall = format_display_datetime(_u_ts, config_global)
+            _u_utc = format_utc_naive_datetime(_u_ts)
             lastheard_repo.insert_last_heard(
-                None, parts[0], parts[3], int(parts[8]), int(parts[6]), wall_date_time=_u_wall
+                None, parts[0], parts[3], int(parts[8]), int(parts[6]), wall_date_time=_u_utc
             )
             lastheard_repo.insert_lstheard_log(
-                None, parts[0], parts[3], int(parts[8]), int(parts[6]), wall_date_time=_u_wall
+                None, parts[0], parts[3], int(parts[8]), int(parts[6]), wall_date_time=_u_utc
             )
         return Success(None)
 

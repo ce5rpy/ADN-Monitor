@@ -50,7 +50,6 @@ if str(_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(_ROOT / "src"))
 
 # Std / Twisted / project
-from datetime import date
 from time import time
 
 from twisted.internet import reactor, task
@@ -78,6 +77,7 @@ from adn_monitor.application import (
     process_message,
     time_str,
 )
+from adn_monitor.application.time_utils import format_stored_utc_for_display, utc_calendar_date
 from adn_monitor.application.tgstats import parse_options_to_static
 from adn_monitor.application.hblink_table import clean_te
 from adn_monitor.infrastructure import (
@@ -116,15 +116,16 @@ TGC_DATE = None
 LASTHEARD_LOG_ROWS = 70
 
 
-def _lastheard_rows(result) -> list:
-    """Convert DB rows to JSON-serializable list of dicts."""
+def _lastheard_rows(result, conf_global: dict | None) -> list:
+    """Convert DB rows to JSON-serializable list of dicts (date from stored UTC → GLOBAL.TIMEZONE)."""
     out = []
     for row in result or []:
         sub = row[7] if len(row) > 7 else None
         if not isinstance(sub, list):
             sub = [str(sub)] if sub is not None else []
         out.append({
-            "date": row[0], "qso_time": row[1], "qso_type": row[2], "system": row[3],
+            "date": format_stored_utc_for_display(row[0], conf_global),
+            "qso_time": row[1], "qso_type": row[2], "system": row[3],
             "tg_num": row[4], "tg_callsign": row[5] or "", "dmr_id": row[6], "subscriber": sub,
         })
     return out
@@ -163,14 +164,14 @@ def render_fromdb(tbl: str, row_num: int, send_to=None):
         state = get_state()
         conf_global = get_config_global()
         if tbl == "last_heard":
-            payload = {"lastheard": _lastheard_rows(result), "ctable": state.CTABLE}
+            payload = {"lastheard": _lastheard_rows(result, conf_global), "ctable": state.CTABLE}
             msg = "i" + json.dumps(payload, default=str)
             if send_to:
                 send_to.sendMessage(msg.encode("utf-8"))
             else:
                 dashboard_server.broadcast(msg, "main")
         elif tbl == "lstheard_log":
-            payload = {"rows": _lastheard_rows(result)}
+            payload = {"rows": _lastheard_rows(result, conf_global)}
             msg = "h" + json.dumps(payload, default=str)
             if send_to:
                 send_to.sendMessage(msg.encode("utf-8"))
@@ -425,7 +426,7 @@ def count_db_entries():
 
 def clean_tgcount():
     global TGC_DATE
-    today = date.today()
+    today = utc_calendar_date()
     if TGC_DATE is None or today != TGC_DATE:
         TGC_DATE = today
         get_tgcount_repo().clean_tgcount()

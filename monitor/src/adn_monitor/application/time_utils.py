@@ -20,15 +20,21 @@
 # HBmonitor (Cortney T. Buffington, N0MJS, Copyright (C) 2013-2018).
 # Original works and this derivative are under GPLv3.
 
-"""Pure time formatting (no I/O)."""
+"""Pure time formatting (no I/O).
+
+Persistence policy: MariaDB DATETIME/DATE values written by the monitor are **naive UTC**
+(unless noted otherwise). ``GLOBAL.TIMEZONE`` only affects **display** (and in-memory labels
+like CONFIG_RX), not what is stored.
+"""
 
 from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from time import localtime, strftime
 from typing import Any
+
 from zoneinfo import ZoneInfo
 
 from ..domain.value_objects import ElapsedTime
@@ -54,6 +60,60 @@ def get_display_zone(config_global: dict[str, Any] | None) -> ZoneInfo | None:
     except Exception:
         logger.warning("Invalid GLOBAL.TIMEZONE %r; falling back to server local time", name)
         return None
+
+
+def utc_calendar_date(ts: float | None = None) -> date:
+    """Calendar date in UTC (for tg_count / user_count daily bucket, clean_tgcount rollover)."""
+    t = time.time() if ts is None else ts
+    return datetime.fromtimestamp(t, tz=timezone.utc).date()
+
+
+def format_utc_naive_date(ts: float | None = None) -> str:
+    """UTC date as YYYY-MM-DD for MariaDB DATE/DATETIME columns (tg_count.date, user_count.date)."""
+    return utc_calendar_date(ts).isoformat()
+
+
+def format_utc_naive_datetime(ts: float) -> str:
+    """UTC wall time as naive YYYY-MM-DD HH:MM:SS (for last_heard / lstheard_log date_time column)."""
+    return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def format_stored_utc_for_display(db_date: Any, config_global: dict[str, Any] | None) -> str:
+    """
+    Interpret stored last_heard/lstheard_log date_time as UTC (naive DATETIME in DB) and format
+    for the *current* GLOBAL.TIMEZONE (or server local if unset). Changing TIMEZONE therefore
+    re-renders older rows correctly.
+    """
+    if db_date is None:
+        return ""
+    if isinstance(db_date, datetime):
+        dt = db_date
+        if dt.tzinfo is not None:
+            dt_utc = dt.astimezone(timezone.utc)
+        else:
+            dt_utc = dt.replace(tzinfo=timezone.utc)
+    else:
+        raw = db_date.decode("utf-8", "replace") if isinstance(db_date, (bytes, bytearray)) else str(db_date)
+        raw = raw.strip()
+        if len(raw) == 10:
+            try:
+                dt_naive = datetime.strptime(raw, "%Y-%m-%d")
+            except ValueError:
+                return raw
+            dt_utc = dt_naive.replace(tzinfo=timezone.utc)
+        elif len(raw) < 19:
+            return raw
+        else:
+            head = raw[:19]
+            try:
+                dt_naive = datetime.strptime(head, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                return raw
+            dt_utc = dt_naive.replace(tzinfo=timezone.utc)
+    zi = get_display_zone(config_global)
+    if zi is not None:
+        return dt_utc.astimezone(zi).strftime("%Y-%m-%d %H:%M:%S")
+    return dt_utc.astimezone().strftime("%Y-%m-%d %H:%M:%S")
 
 
 def format_display_datetime(ts: float, config_global: dict[str, Any] | None, *, with_tz_abbr: bool = False) -> str:

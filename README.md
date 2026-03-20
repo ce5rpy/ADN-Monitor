@@ -34,7 +34,7 @@ All dashboard and monitor behaviour is defined in a **single YAML** file in the 
 
 - **Typical path:** `monitor/adn-mon.yaml`
 - Copy and adapt from `monitor/adn-mon.yaml` (or create one). It configures:
-  - **GLOBAL**: bridges, lastheard, TG count, optional **TIMEZONE** (IANA name, e.g. `Europe/Madrid`) for display and DB wall times independent of the server TZ, etc.
+  - **GLOBAL**: bridges, lastheard, TG count, optional **TIMEZONE** (IANA, e.g. `Europe/Madrid`) for logs/dashboard; **last_heard / lstheard_log** store **naive UTC** datetimes; **tg_count / user_count** use the **UTC calendar day** for the daily bucket (not `CURDATE()` in server TZ). The UI converts stored UTC to `TIMEZONE` when showing lastheard. If `TIMEZONE` is empty, lastheard uses the server’s local zone for display.
   - **SELF_SERVICE**: MySQL credentials (backend + monitor).
   - **ADN_CONNECTION**: IP and port of the ADN report server.
   - **ALIASES**: URLs and files for alias (peers, subscribers, talkgroups).

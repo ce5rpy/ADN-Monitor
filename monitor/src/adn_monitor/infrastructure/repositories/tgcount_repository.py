@@ -27,12 +27,14 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 from twisted.enterprise import adbapi
 from twisted.internet.defer import inlineCallbacks, returnValue
 
 from ...application.ports import TgCountRepository
+from ...application.time_utils import format_utc_naive_date
 from ..persistence.db_pool import sec_time
 
 logger = logging.getLogger("adn-mon")
@@ -46,16 +48,17 @@ class MoniDBTgCountRepository(TgCountRepository):
 
     def insert_tgcount(self, tg_num: str, dmr_id: str, qso_time: str) -> None:
         def run(txn: Any) -> None:
+            d_utc = format_utc_naive_date(time.time())
             txn.execute(
-                """INSERT INTO tg_count VALUES (CURDATE(), %s, 1, %s)
+                """INSERT INTO tg_count VALUES (%s, %s, 1, %s)
                 ON DUPLICATE KEY UPDATE qso_time = qso_time + %s,
                 qso_count = qso_count + 1""",
-                (tg_num, qso_time, qso_time),
+                (d_utc, tg_num, qso_time, qso_time),
             )
             txn.execute(
-                """INSERT INTO user_count VALUES(CURDATE(), %s, %s, %s)
+                """INSERT INTO user_count VALUES(%s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE qso_time = qso_time + %s""",
-                (tg_num, dmr_id, qso_time, qso_time),
+                (d_utc, tg_num, dmr_id, qso_time, qso_time),
             )
 
         self._pool.runInteraction(run).addErrback(
@@ -86,7 +89,8 @@ class MoniDBTgCountRepository(TgCountRepository):
         returnValue(res_lst)
 
     def clean_tgcount(self) -> None:
-        d = self._pool.runOperation("DELETE FROM tg_count WHERE date != CURDATE()")
-        d.addCallback(lambda _: self._pool.runOperation("DELETE FROM user_count WHERE date != CURDATE()"))
+        d_utc = format_utc_naive_date(time.time())
+        d = self._pool.runOperation("DELETE FROM tg_count WHERE date != %s", (d_utc,))
+        d.addCallback(lambda _: self._pool.runOperation("DELETE FROM user_count WHERE date != %s", (d_utc,)))
         d.addCallback(lambda _: logger.info("TG Count tables cleaned successfully"))
         d.addErrback(lambda f: logger.error("clean_tgcount: %s", f.getTraceback()))

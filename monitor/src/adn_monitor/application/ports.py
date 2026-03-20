@@ -101,8 +101,7 @@ class LastHeardRepository(ABC):
     ) -> None:
         """Insert or replace last_heard row.
 
-        wall_date_time: 'YYYY-MM-DD HH:MM:SS' in GLOBAL.TIMEZONE (or server local if unset);
-        if None, uses SQL now() (server DB session time).
+        wall_date_time: naive UTC 'YYYY-MM-DD HH:MM:SS' (instant in time); if None, uses current UTC from Python.
         """
         ...
 
