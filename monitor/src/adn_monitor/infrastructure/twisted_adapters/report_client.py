@@ -118,8 +118,15 @@ class ReportProtocol(NetstringReceiver):
         logger.debug("(REPORT) process_message done for opcode=%r", opcode)
 
 
+# Max delay between reconnection attempts (seconds). Twisted default is 3600 (1h).
+# Cap at 30s so we never wait longer than that before trying again.
+REPORT_RECONNECT_MAX_DELAY = 30
+
+
 class ReportClientFactory(ReconnectingClientFactory):
     """ReconnectingClientFactory that uses ReportProtocol with injected deps."""
+
+    maxDelay = REPORT_RECONNECT_MAX_DELAY
 
     def __init__(
         self,
@@ -162,6 +169,19 @@ class ReportClientFactory(ReconnectingClientFactory):
             on_ctable_updated=self._on_ctable_updated,
         )
 
+    def clientConnectionFailed(self, connector: Any, reason: Any) -> None:
+        err_msg = getattr(reason, "getErrorMessage", lambda: str(reason))()
+        err_type = getattr(getattr(reason, "type", None), "__name__", type(reason).__name__)
+        logger.warning(
+            "Report server connection failed (server down?). type=%s message=%s. Will retry.",
+            err_type,
+            err_msg,
+        )
+        ReconnectingClientFactory.clientConnectionFailed(self, connector, reason)
+        # Log next retry delay so operators see we keep trying
+        if self.continueTrying and getattr(self, "delay", None) is not None:
+            logger.info("Next connection attempt in %.0f seconds.", self.delay)
+
     def clientConnectionLost(self, connector: Any, reason: Any) -> None:
         self._state.CTABLE["MASTERS"].clear()
         self._state.CTABLE["PEERS"].clear()
@@ -173,6 +193,8 @@ class ReportClientFactory(ReconnectingClientFactory):
         if self._on_connection_lost:
             self._on_connection_lost()
         ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
+        if self.continueTrying and getattr(self, "delay", None) is not None:
+            logger.info("Next connection attempt in %.0f seconds.", self.delay)
 
     def startedConnecting(self, connector: Any) -> None:
         logger.info("Initiating connection to report server.")

@@ -27,8 +27,6 @@ from __future__ import annotations
 import logging
 import time
 from collections import deque
-from time import strftime, localtime
-
 from ..domain import Failure, ReportProtocolError, Success, unwrap_or
 from ..domain.value_objects import Opcode
 from .alias_service import AliasService
@@ -39,7 +37,7 @@ from .ports import (
     ReportPayloadDecoder,
     TgCountRepository,
 )
-from .time_utils import time_str
+from .time_utils import format_display_datetime, time_str
 
 logger = logging.getLogger("adn-mon")
 
@@ -51,7 +49,7 @@ def _apply_config_to_state(
 ) -> None:
     """Apply decoded CONFIG to state (build/update CTABLE). Single responsibility."""
     state.CONFIG = config_dict
-    state.CONFIG_RX = strftime("%Y-%m-%d %H:%M:%S", localtime(time.time()))
+    state.CONFIG_RX = format_display_datetime(time.time(), config_global)
     if state.CTABLE["MASTERS"]:
         update_hblink_table(state.CONFIG, state.CTABLE, time_str, config_global)
     else:
@@ -65,7 +63,7 @@ def _apply_bridges_to_state(
 ) -> None:
     """Apply decoded BRIDGES to state (BTABLE, tgstats). Single responsibility."""
     state.BRIDGES = bridges_dict
-    state.BRIDGES_RX = strftime("%Y-%m-%d %H:%M:%S", localtime(time.time()))
+    state.BRIDGES_RX = format_display_datetime(time.time(), config_global)
     if config_global.get("BRDG_INC"):
         state.BTABLE["BRIDGES"] = build_bridge_table(state.BRIDGES, time.time())
     build_tgstats(state)
@@ -166,6 +164,7 @@ def process_message(
         alias_repo.ensure_subscriber_in_cache(int(parts[6]))
         alias_repo.ensure_talkgroup_in_cache(int(parts[8]))
         if parts[0] == "GROUP VOICE":
+            _event_ts = time.time()
             rts_update(
                 parts,
                 state,
@@ -175,7 +174,8 @@ def process_message(
             skip_persist = parts[2] == "TX" or parts[5] in config_global.get("OPB_FILTER", [])
             if skip_persist:
                 logger.debug("(REPORT) BRDG_EVENT GROUP VOICE skip persist: dir=%s src=%s", parts[2], parts[5])
-            _now = strftime("%Y-%m-%d %H:%M:%S %Z", localtime(time.time()))
+            _now = format_display_datetime(_event_ts, config_global, with_tz_abbr=True)
+            _wall_db = format_display_datetime(_event_ts, config_global)
             duration_sec = int(float(parts[9])) if len(parts) > 9 else 0
             if parts[1] == "END" and parts[4] in state.sys_dict and state.sys_dict[parts[4]]["sys"] == parts[3]:
                 del state.sys_dict[parts[4]]
@@ -186,13 +186,23 @@ def process_message(
                     if config_global.get("LH_INC"):
                         # lstheard_log (Last Heard page): all calls
                         lastheard_repo.insert_lstheard_log(
-                            float(duration_sec), parts[0], parts[3], int(parts[8]), int(parts[6])
+                            float(duration_sec),
+                            parts[0],
+                            parts[3],
+                            int(parts[8]),
+                            int(parts[6]),
+                            wall_date_time=_wall_db,
                         )
                         # Dashboard table only: minimum duration (seconds); Last Heard page always shows all
                         min_duration = config_global.get("DASHBOARD_MIN_DURATION", 3)
                         if duration_sec >= min_duration:
                             lastheard_repo.insert_last_heard(
-                                float(duration_sec), parts[0], parts[3], int(parts[8]), int(parts[6])
+                                float(duration_sec),
+                                parts[0],
+                                parts[3],
+                                int(parts[8]),
+                                int(parts[6]),
+                                wall_date_time=_wall_db,
                             )
                         logger.debug("(REPORT) BRDG_EVENT saved lastheard sys=%s tg=%s dmr=%s", parts[3], parts[8], parts[6])
                 if not state.sys_dict["lst_clean"] or time.time() - state.sys_dict["lst_clean"] >= 3:
@@ -218,8 +228,14 @@ def process_message(
             if broadcast:
                 broadcast.broadcast("l" + log_message, "log")
         elif parts[0] == "UNIT DATA HEADER" and parts[2] != "TX" and parts[5] not in config_global.get("OPB_FILTER", []):
-            lastheard_repo.insert_last_heard(None, parts[0], parts[3], int(parts[8]), int(parts[6]))
-            lastheard_repo.insert_lstheard_log(None, parts[0], parts[3], int(parts[8]), int(parts[6]))
+            _u_ts = time.time()
+            _u_wall = format_display_datetime(_u_ts, config_global)
+            lastheard_repo.insert_last_heard(
+                None, parts[0], parts[3], int(parts[8]), int(parts[6]), wall_date_time=_u_wall
+            )
+            lastheard_repo.insert_lstheard_log(
+                None, parts[0], parts[3], int(parts[8]), int(parts[6]), wall_date_time=_u_wall
+            )
         return Success(None)
 
     if opcode.value == Opcode.SERVER_MSG:

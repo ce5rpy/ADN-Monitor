@@ -96,12 +96,11 @@ def build_tgstats_impl(state: MonitorState, time_str_fn) -> None:
                 ts2.split(",") if isinstance(ts2, str) else (ts2 if isinstance(ts2, list) else [])
             )
             # Override with per-peer options from self-service DB (Clients.options)
+            # Always apply when peer in PEER_OPTIONS, including empty lists (clears removed TGs)
             peer_opts = getattr(state, "PEER_OPTIONS", None) or {}
             if peer in peer_opts:
-                if peer_opts[peer].get("TS1_STATIC"):
-                    ctable["MASTERS"][system]["PEERS"][peer]["TS1_STATIC"] = peer_opts[peer]["TS1_STATIC"]
-                if peer_opts[peer].get("TS2_STATIC"):
-                    ctable["MASTERS"][system]["PEERS"][peer]["TS2_STATIC"] = peer_opts[peer]["TS2_STATIC"]
+                ctable["MASTERS"][system]["PEERS"][peer]["TS1_STATIC"] = peer_opts[peer].get("TS1_STATIC") or []
+                ctable["MASTERS"][system]["PEERS"][peer]["TS2_STATIC"] = peer_opts[peer].get("TS2_STATIC") or []
     for bridge_name in bridges or []:
         for system in bridges[bridge_name]:
             if not system.get("ACTIVE") or (system.get("SYSTEM") or "")[:3] == "OBP" or system.get("TO_TYPE") == "OFF":

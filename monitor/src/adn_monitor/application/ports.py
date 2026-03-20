@@ -96,8 +96,14 @@ class LastHeardRepository(ABC):
         system: str,
         tg_num: int,
         dmr_id: int,
+        *,
+        wall_date_time: str | None = None,
     ) -> None:
-        """Insert or replace last_heard row."""
+        """Insert or replace last_heard row.
+
+        wall_date_time: 'YYYY-MM-DD HH:MM:SS' in GLOBAL.TIMEZONE (or server local if unset);
+        if None, uses SQL now() (server DB session time).
+        """
         ...
 
     @abstractmethod
@@ -108,8 +114,10 @@ class LastHeardRepository(ABC):
         system: str,
         tg_num: int,
         dmr_id: int,
+        *,
+        wall_date_time: str | None = None,
     ) -> None:
-        """Insert lstheard_log row."""
+        """Insert lstheard_log row. See insert_last_heard for wall_date_time."""
         ...
 
     @abstractmethod

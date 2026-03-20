@@ -51,11 +51,19 @@ class MoniDBLastHeardRepository(LastHeardRepository):
         system: str,
         tg_num: int,
         dmr_id: int,
+        *,
+        wall_date_time: str | None = None,
     ) -> None:
-        self._pool.runOperation(
-            "REPLACE INTO last_heard VALUES (now(), %s, %s, %s, %s, %s)",
-            (qso_time, qso_type, system, tg_num, dmr_id),
-        ).addErrback(lambda f: logger.error("insert_last_heard: %s", f.getTraceback()))
+        if wall_date_time is None:
+            self._pool.runOperation(
+                "REPLACE INTO last_heard VALUES (now(), %s, %s, %s, %s, %s)",
+                (qso_time, qso_type, system, tg_num, dmr_id),
+            ).addErrback(lambda f: logger.error("insert_last_heard: %s", f.getTraceback()))
+        else:
+            self._pool.runOperation(
+                "REPLACE INTO last_heard VALUES (%s, %s, %s, %s, %s, %s)",
+                (wall_date_time, qso_time, qso_type, system, tg_num, dmr_id),
+            ).addErrback(lambda f: logger.error("insert_last_heard: %s", f.getTraceback()))
 
     def insert_lstheard_log(
         self,
@@ -64,12 +72,21 @@ class MoniDBLastHeardRepository(LastHeardRepository):
         system: str,
         tg_num: int,
         dmr_id: int,
+        *,
+        wall_date_time: str | None = None,
     ) -> None:
-        self._pool.runOperation(
-            """INSERT INTO lstheard_log (date_time, qso_time, qso_type, system, tg_num, dmr_id)
-            VALUES(now(), %s, %s, %s, %s, %s)""",
-            (qso_time, qso_type, system, tg_num, dmr_id),
-        ).addErrback(lambda f: logger.error("insert_lstheard_log: %s", f.getTraceback()))
+        if wall_date_time is None:
+            self._pool.runOperation(
+                """INSERT INTO lstheard_log (date_time, qso_time, qso_type, system, tg_num, dmr_id)
+                VALUES(now(), %s, %s, %s, %s, %s)""",
+                (qso_time, qso_type, system, tg_num, dmr_id),
+            ).addErrback(lambda f: logger.error("insert_lstheard_log: %s", f.getTraceback()))
+        else:
+            self._pool.runOperation(
+                """INSERT INTO lstheard_log (date_time, qso_time, qso_type, system, tg_num, dmr_id)
+                VALUES(%s, %s, %s, %s, %s, %s)""",
+                (wall_date_time, qso_time, qso_type, system, tg_num, dmr_id),
+            ).addErrback(lambda f: logger.error("insert_lstheard_log: %s", f.getTraceback()))
 
     @inlineCallbacks
     def select_for_render(self, table: str, row_num: int) -> list[tuple[Any, ...]]:

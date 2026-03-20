@@ -34,7 +34,7 @@ All dashboard and monitor behaviour is defined in a **single YAML** file in the 
 
 - **Typical path:** `monitor/adn-mon.yaml`
 - Copy and adapt from `monitor/adn-mon.yaml` (or create one). It configures:
-  - **GLOBAL**: bridges, lastheard, TG count, etc.
+  - **GLOBAL**: bridges, lastheard, TG count, optional **TIMEZONE** (IANA name, e.g. `Europe/Madrid`) for display and DB wall times independent of the server TZ, etc.
   - **SELF_SERVICE**: MySQL credentials (backend + monitor).
   - **ADN_CONNECTION**: IP and port of the ADN report server.
   - **ALIASES**: URLs and files for alias (peers, subscribers, talkgroups).
@@ -192,6 +192,20 @@ sudo nginx -t && sudo systemctl reload nginx
 | **examples/nginx-adn-monitor.conf** | Example Nginx site (default listen, example domains). |
 
 Copy and adapt paths, domains, and certificates to your server.
+
+---
+
+## IPv6 support
+
+To run the whole project over IPv6 (or dual-stack):
+
+| Component | What to do |
+|-----------|------------|
+| **Monitor – WebSocket** | In `adn-mon.yaml`, under `WEBSOCKET_SERVER`, set `LISTEN_INTERFACE: "::"` so the dashboard WebSocket accepts IPv4 and IPv6. Default `""` binds to IPv4 only. |
+| **Monitor – connection to ADN** | Set `ADN_CONNECTION.ADN_IP` to the report server’s IPv6 address (or hostname that resolves to IPv6). No code change. |
+| **Proxy** | Set env `ADN_PROXY_IPV6=1` and leave `PROXY.LISTEN_IP` empty so the proxy listens on `::`. Use an IPv6 address or hostname for `PROXY.MASTER` (hostnames are resolved at startup). See `proxy/README.md`. |
+| **Backend (PHP)** | No app change. Configure the web server (Nginx/Apache) to listen on `[::]:80` and/or `[::]:443` so the API is reachable over IPv6. |
+| **Frontend** | No change; it uses the same API/WebSocket URLs. If the server is reachable via IPv6, the browser will use it when available. |
 
 ---
 

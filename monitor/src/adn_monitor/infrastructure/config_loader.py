@@ -100,6 +100,8 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
         "EMPTY_MASTERS": _bool(g.get("EMPTY_MASTERS", False)),
         "TGC_INC": _bool(g.get("TGCOUNT_INC", True)),
         "TGC_ROWS": _int(g.get("TGCOUNT_ROWS"), 20),
+        # IANA name, e.g. Europe/Madrid — empty = server local (see time_utils.format_display_datetime)
+        "TIMEZONE": _str(g.get("TIMEZONE", "")),
     }
 
     # ADN_CONNECTION
@@ -167,8 +169,10 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
     # WEBSOCKET_SERVER
     ws = data.get("WEBSOCKET_SERVER") or {}
     ssl_path = _str(ws.get("SSL_PATH", "./ssl"))
+    listen_interface = _str(ws.get("LISTEN_INTERFACE", "")).strip()
     CONF["WS"] = {
         "WS_PORT": _int(ws.get("WEBSOCKET_PORT"), 9000),
+        "LISTEN_INTERFACE": listen_interface if listen_interface else "",
         "USE_SSL": _bool(ws.get("USE_SSL", False)),
         "SSL_PATH": ssl_path,
         "SSL_CERT": _str(ws.get("SSL_CERTIFICATE", "cert.pem")),

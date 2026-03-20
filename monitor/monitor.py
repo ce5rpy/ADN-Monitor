@@ -647,27 +647,37 @@ def main():
         conf = get_config_global()
         groups = get_groups()
         d = pool.runQuery(
-            "SELECT int_id, options FROM Clients WHERE logged_in=1 AND options IS NOT NULL AND options != ''"
+            "SELECT dmr_id, options FROM Clients WHERE logged_in=1 AND options IS NOT NULL AND options != ''"
         )
+
+        def _dmr_to_int(dmr_id) -> int | None:
+            if dmr_id is None:
+                return None
+            if isinstance(dmr_id, int):
+                return dmr_id
+            if isinstance(dmr_id, (bytes, bytearray)) and len(dmr_id) >= 4:
+                return int.from_bytes(dmr_id[:4], "big")
+            try:
+                return int(dmr_id)
+            except (TypeError, ValueError):
+                return None
 
         def on_rows(rows):
             state.PEER_OPTIONS.clear()
             for row in rows or []:
                 if len(row) >= 2:
-                    int_id_val = int(row[0]) if row[0] is not None else None
+                    dmr_int = _dmr_to_int(row[0])
                     opts = row[1]
-                    if int_id_val is not None:
-                        state.PEER_OPTIONS[int_id_val] = parse_options_to_static(opts)
-            # Merge into ctable so dashboard shows DB options
+                    if dmr_int is not None:
+                        state.PEER_OPTIONS[dmr_int] = parse_options_to_static(opts)
+            # Merge into ctable so dashboard shows DB options (always apply, including empty = clear removed TGs)
             for sys_name in state.CTABLE.get("MASTERS", {}):
                 peers = state.CTABLE["MASTERS"][sys_name].get("PEERS", {})
                 for peer_id in peers:
                     if peer_id in state.PEER_OPTIONS:
                         po = state.PEER_OPTIONS[peer_id]
-                        if po.get("TS1_STATIC"):
-                            state.CTABLE["MASTERS"][sys_name]["PEERS"][peer_id]["TS1_STATIC"] = po["TS1_STATIC"]
-                        if po.get("TS2_STATIC"):
-                            state.CTABLE["MASTERS"][sys_name]["PEERS"][peer_id]["TS2_STATIC"] = po["TS2_STATIC"]
+                        state.CTABLE["MASTERS"][sys_name]["PEERS"][peer_id]["TS1_STATIC"] = po.get("TS1_STATIC") or []
+                        state.CTABLE["MASTERS"][sys_name]["PEERS"][peer_id]["TS2_STATIC"] = po.get("TS2_STATIC") or []
             if groups.get("lnksys"):
                 dashboard_server.broadcast(
                     "c" + json.dumps({"ctable": state.CTABLE, "emaster": conf.get("EMPTY_MASTERS", False)}, default=str),
@@ -694,16 +704,17 @@ def main():
         report_factory,
     )
 
-    logger.info('Starting websocket on port %s SSL=%s', ws_port, use_ssl)
+    ws_interface = CONF["WS"].get("LISTEN_INTERFACE") or ""
+    logger.info('Starting websocket on port %s SSL=%s interface=%r', ws_port, use_ssl, ws_interface or "all IPv4")
     if use_ssl:
         from twisted.internet import ssl
         cert = ssl.DefaultOpenSSLContextFactory(
             str(CONF["WS"]["P2F_PKEY"]),
             str(CONF["WS"]["P2F_CERT"]),
         )
-        reactor.listenSSL(ws_port, dashboard_server, cert)
+        reactor.listenSSL(ws_port, dashboard_server, cert, interface=ws_interface)
     else:
-        reactor.listenTCP(ws_port, dashboard_server)
+        reactor.listenTCP(ws_port, dashboard_server, interface=ws_interface)
 
     reactor.run()
 

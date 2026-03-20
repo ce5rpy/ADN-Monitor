@@ -22,9 +22,54 @@
 
 """Pure time formatting (no I/O)."""
 
+from __future__ import annotations
+
+import logging
 import time
+from datetime import datetime, timezone
+from time import localtime, strftime
+from typing import Any
+from zoneinfo import ZoneInfo
 
 from ..domain.value_objects import ElapsedTime
+
+logger = logging.getLogger("adn-mon")
+
+
+def get_display_zone(config_global: dict[str, Any] | None) -> ZoneInfo | None:
+    """
+    IANA timezone from GLOBAL.TIMEZONE (e.g. Europe/Madrid).
+    None or empty => use server local time (legacy behaviour).
+    """
+    if not config_global:
+        return None
+    name = config_global.get("TIMEZONE", "")
+    if not isinstance(name, str):
+        name = str(name) if name is not None else ""
+    name = name.strip()
+    if not name:
+        return None
+    try:
+        return ZoneInfo(name)
+    except Exception:
+        logger.warning("Invalid GLOBAL.TIMEZONE %r; falling back to server local time", name)
+        return None
+
+
+def format_display_datetime(ts: float, config_global: dict[str, Any] | None, *, with_tz_abbr: bool = False) -> str:
+    """
+    Wall-clock string for dashboard/logs. Uses GLOBAL.TIMEZONE when set, else server local.
+    with_tz_abbr: append zone abbreviation (e.g. CET).
+    """
+    zi = get_display_zone(config_global)
+    if zi is None:
+        if with_tz_abbr:
+            return strftime("%Y-%m-%d %H:%M:%S %Z", localtime(ts))
+        return strftime("%Y-%m-%d %H:%M:%S", localtime(ts))
+    dt = datetime.fromtimestamp(ts, tz=timezone.utc).astimezone(zi)
+    if with_tz_abbr:
+        return dt.strftime("%Y-%m-%d %H:%M:%S %Z")
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def time_str(seconds_or_timestamp: int | float, direction: str = "since") -> str:
