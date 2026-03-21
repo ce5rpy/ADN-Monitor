@@ -22,7 +22,6 @@
  * Original works and this derivative are under GPLv3.
  */
 
-import { useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -36,7 +35,6 @@ import {
   Chip,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { useDeferStreamDisplay } from '../hooks/useDeferStreamDisplay';
 import { useWebSocketGroup } from '../hooks/useWebSocket';
 import QrzLink from '../components/QrzLink';
 import { TableCaptionTitle } from '../components/TableCaptionTitle';
@@ -81,27 +79,12 @@ function dedupeStreamRows(streams: Record<string, StreamEntry>) {
   });
 }
 
-/** Hide streams until visible for this long (avoids sub-second BCSQ / loop flashes). */
-const MIN_STREAM_VISIBLE_MS = 1000;
-
 export default function OpenBridge() {
   const { t } = useTranslation();
   const { data } = useWebSocketGroup('opb');
-  const { shouldShow, prune } = useDeferStreamDisplay(MIN_STREAM_VISIBLE_MS);
   const payload = data as OpbPayload | null;
   const ctable = payload?.ctable;
   const openbridges = ctable?.OPENBRIDGES ?? {};
-
-  useEffect(() => {
-    const ob = (data as OpbPayload | null)?.ctable?.OPENBRIDGES ?? {};
-    const active = new Set<string>();
-    for (const [name, obEntry] of Object.entries(ob)) {
-      for (const row of dedupeStreamRows(obEntry?.STREAMS ?? {})) {
-        active.add(`${name}|${row.id}|${row.dir}`);
-      }
-    }
-    prune(active);
-  }, [data, prune]);
 
   if (data == null) {
     return (
@@ -136,9 +119,7 @@ export default function OpenBridge() {
               <TableBody>
                 {Object.entries(openbridges).map(([name, ob]) => {
                   const streams = ob?.STREAMS ?? {};
-                  const streamList = dedupeStreamRows(streams).filter((row) =>
-                    shouldShow(`${name}|${row.id}|${row.dir}`),
-                  );
+                  const streamList = dedupeStreamRows(streams);
                   return (
                     <TableRow key={name}>
                       <TableCell sx={{ width: '18%', minWidth: 88, maxWidth: 140, whiteSpace: 'nowrap' }}>
