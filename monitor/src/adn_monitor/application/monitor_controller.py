@@ -41,6 +41,11 @@ from .time_utils import format_display_datetime, format_utc_naive_datetime, time
 
 logger = logging.getLogger("adn-mon")
 
+# Orphan START rows in sys_dict: must survive long PTTs (same cap as clean_sys_dict).
+# A prior 3s threshold deleted active calls' START before END arrived → no match, wrong LH.
+SYS_DICT_MAX_ENTRIES = 20_000
+SYS_DICT_MAX_AGE_SEC = 300
+
 
 def _apply_config_to_state(
     state: MonitorState,
@@ -151,6 +156,9 @@ def process_message(
         return Success(None)
 
     # BRDG_EVENT: START has 9 fields (no duration); END has 10. Require >= 9 so we decode, log and send START.
+    # Legacy reference: FDMR-Monitor2 v3 monitor_controller (same flow: sys_dict match + lstheard on END).
+    # Differences from legacy: legacy used len(parts) < 10 (START-only lines were dropped); orphan END
+    # was not persisted; no wall-clock merge with reported duration; lst_clean used 3s eviction (fixed below).
     if opcode.value == Opcode.BRDG_EVENT:
         parts = message[1:].split(",")
         if len(parts) < 9:
@@ -176,17 +184,23 @@ def process_message(
                 logger.debug("(REPORT) BRDG_EVENT GROUP VOICE skip persist: dir=%s src=%s", parts[2], parts[5])
             _now = format_display_datetime(_event_ts, config_global, with_tz_abbr=True)
             _wall_db = format_utc_naive_datetime(_event_ts)
-            duration_sec = int(float(parts[9])) if len(parts) > 9 else 0
+            reported_dur = float(parts[9]) if len(parts) > 9 else 0.0
+            duration_sec = int(reported_dur)
             if parts[1] == "END" and parts[4] in state.sys_dict and state.sys_dict[parts[4]]["sys"] == parts[3]:
+                _sd = state.sys_dict[parts[4]]
                 del state.sys_dict[parts[4]]
                 if not skip_persist:
-                    if config_global.get("TGC_INC") and duration_sec > 5:
-                        tgcount_repo.insert_tgcount(parts[8], parts[6], str(duration_sec))
+                    # Server may send 0.00 on quench/loop/BCSQ; use wall time since START on this monitor.
+                    wall_dur = max(0.0, _event_ts - _sd["timeST"])
+                    merged_dur = max(reported_dur, wall_dur)
+                    duration_sec = int(merged_dur)
+                    if config_global.get("TGC_INC") and merged_dur > 5:
+                        tgcount_repo.insert_tgcount(parts[8], parts[6], str(int(merged_dur)))
                         logger.debug("(REPORT) BRDG_EVENT saved tgcount tg=%s dmr=%s", parts[8], parts[6])
                     if config_global.get("LH_INC"):
                         # lstheard_log (Last Heard page): all calls
                         lastheard_repo.insert_lstheard_log(
-                            float(duration_sec),
+                            merged_dur,
                             parts[0],
                             parts[3],
                             int(parts[8]),
@@ -195,9 +209,9 @@ def process_message(
                         )
                         # Dashboard table only: minimum duration (seconds); Last Heard page always shows all
                         min_duration = config_global.get("DASHBOARD_MIN_DURATION", 3)
-                        if duration_sec >= min_duration:
+                        if merged_dur >= min_duration:
                             lastheard_repo.insert_last_heard(
-                                float(duration_sec),
+                                merged_dur,
                                 parts[0],
                                 parts[3],
                                 int(parts[8]),
@@ -210,15 +224,36 @@ def process_message(
                     for k, v in list(state.sys_dict.items()):
                         if k == "lst_clean":
                             continue
-                        if time.time() - v["timeST"] >= 3:
+                        if time.time() - v["timeST"] >= SYS_DICT_MAX_AGE_SEC:
                             del state.sys_dict[k]
                 log_message = _format_log_message(_now, parts, alias_svc, duration_sec)
             elif parts[1] == "START":
                 log_message = _format_log_message(_now, parts, alias_svc, None)
                 if not skip_persist:
-                    state.sys_dict[parts[4]] = {"sys": parts[3], "timeST": time.time()}
+                    # Same time base as _event_ts on END so duration merge is consistent.
+                    state.sys_dict[parts[4]] = {"sys": parts[3], "timeST": _event_ts}
             elif parts[1] == "END":
                 log_message = _format_log_message(_now, parts, alias_svc, duration_sec)
+                # Not the matched branch above (no START, or sys/stream mismatch): still persist RX from server.
+                if not skip_persist and config_global.get("LH_INC"):
+                    lastheard_repo.insert_lstheard_log(
+                        reported_dur,
+                        parts[0],
+                        parts[3],
+                        int(parts[8]),
+                        int(parts[6]),
+                        wall_date_time=_wall_db,
+                    )
+                    min_duration = config_global.get("DASHBOARD_MIN_DURATION", 3)
+                    if reported_dur >= min_duration:
+                        lastheard_repo.insert_last_heard(
+                            reported_dur,
+                            parts[0],
+                            parts[3],
+                            int(parts[8]),
+                            int(parts[6]),
+                            wall_date_time=_wall_db,
+                        )
             elif parts[1] == "END WITHOUT MATCHING START":
                 log_message = _format_log_message_unknown_end(_now, parts, alias_svc)
             else:
@@ -270,11 +305,6 @@ def _format_log_message_unknown_end(now: str, p: list[str], alias_svc: AliasServ
         f"TS: {p[7]} TGID: {p[8]:7.7s} {tg_name:17.17s} "
         f"SUB: {p[6]:9.9s}; {sub_short:18.18s}"
     )
-
-
-# Cap and timeout for sys_dict to avoid unbounded growth (memory leak)
-SYS_DICT_MAX_ENTRIES = 20_000
-SYS_DICT_MAX_AGE_SEC = 300
 
 
 def clean_sys_dict(state: MonitorState) -> None:
