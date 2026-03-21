@@ -22,8 +22,10 @@
  * Original works and this derivative are under GPLv3.
  */
 
+import { useEffect } from 'react';
 import { Box, Typography, Card, CardContent, Paper } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { useDeferStreamDisplay } from '../hooks/useDeferStreamDisplay';
 import QrzLink, { isCallsignLike } from './QrzLink';
 
 export type TimeslotEntry = {
@@ -76,8 +78,24 @@ type ActiveObQso = {
   system?: string;
 };
 
+/** Match OpenBridge page: hide OBP RX until stable ~1s (avoids flash). */
+const MIN_OBP_QSO_VISIBLE_MS = 1000;
+
 export default function ActiveQsoBox({ ctable }: { ctable: Ctable | null | undefined }) {
   const { t } = useTranslation();
+  const { shouldShow, prune } = useDeferStreamDisplay(MIN_OBP_QSO_VISIBLE_MS);
+
+  useEffect(() => {
+    const keys = new Set<string>();
+    if (ctable?.OPENBRIDGES) {
+      for (const [system, ob] of Object.entries(ctable.OPENBRIDGES)) {
+        for (const streamId of Object.keys(ob?.STREAMS ?? {})) {
+          keys.add(`${system}|${streamId}`);
+        }
+      }
+    }
+    prune(keys);
+  }, [ctable, prune]);
 
   const masterSlots: ActiveSlot[] = [];
   if (ctable?.MASTERS && Object.keys(ctable.MASTERS).length > 0) {
@@ -110,7 +128,8 @@ export default function ActiveQsoBox({ ctable }: { ctable: Ctable | null | undef
   if (ctable?.OPENBRIDGES) {
     for (const [system, ob] of Object.entries(ctable.OPENBRIDGES)) {
       const streams = ob?.STREAMS ?? {};
-      for (const [, entry] of Object.entries(streams)) {
+      for (const [streamId, entry] of Object.entries(streams)) {
+        if (!shouldShow(`${system}|${streamId}`)) continue;
         const arr = Array.isArray(entry) ? entry : [];
         const trx = String(arr[0] ?? '').toUpperCase();
         if (trx !== 'RX') continue;
