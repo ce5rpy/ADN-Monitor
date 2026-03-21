@@ -41,6 +41,7 @@ import { useTranslation } from 'react-i18next';
 import { useWebSocketGroup } from '../hooks/useWebSocket';
 import QrzLink, { isCallsignLike } from '../components/QrzLink';
 import ActiveQsoBox, { type Ctable, type PeerEntry } from '../components/ActiveQsoBox';
+import { TableCaptionTitle } from '../components/TableCaptionTitle';
 
 type LastHeardRow = {
   date: string;
@@ -225,21 +226,6 @@ export default function Dashboard() {
       {!data && (
         <Typography color="text.secondary" sx={{ py: 2 }}>{t('pre_wait')}</Typography>
       )}
-      {data != null && (
-        <Paper
-          variant="outlined"
-          sx={{
-            p: 2,
-            mb: 2,
-            bgcolor: 'background.paper',
-            boxShadow: (t) => t.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
-          }}
-        >
-          <Typography variant="h5" fontWeight={700} color="text.primary">
-            {t('nav_dash', { defaultValue: 'Dashboard' })}
-          </Typography>
-        </Paper>
-      )}
       {data != null ? <ActiveQsoBox ctable={ctable ?? undefined} /> : null}
       {rows.length > 0 && (
         <TableContainer
@@ -252,6 +238,7 @@ export default function Dashboard() {
           }}
         >
           <Table size="small" stickyHeader>
+            <TableCaptionTitle>{t('nav_dash', { defaultValue: 'Dashboard' })}</TableCaptionTitle>
             <TableHead>
               <TableRow sx={{ bgcolor: 'action.hover' }}>
                 <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{t('lh_date')}</TableCell>

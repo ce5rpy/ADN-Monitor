@@ -37,6 +37,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useWebSocketGroup } from '../hooks/useWebSocket';
 import QrzLink from '../components/QrzLink';
+import { TableCaptionTitle } from '../components/TableCaptionTitle';
 
 type StreamEntry = [string, string, string, number]; // TRX, sub_call, tg_str, timeout
 type OpenBridgeEntry = {
@@ -52,6 +53,31 @@ type Ctable = {
 };
 
 type OpbPayload = { ctable?: Ctable; dbridges?: boolean };
+
+/** One visible row per (direction, callsign, TG); report may still carry duplicate stream_ids. */
+function dedupeStreamRows(streams: Record<string, StreamEntry>) {
+  type Row = { id: string; dir: string; subCall: string; tg: string; timeout: number };
+  const rows: Row[] = Object.entries(streams).map(([id, entry]) => {
+    const [dir, subCall, tgStr, timeoutRaw] = Array.isArray(entry) ? entry : ['', '', '', 0];
+    const timeout = typeof timeoutRaw === 'number' ? timeoutRaw : Number(timeoutRaw) || 0;
+    return { id, dir: String(dir), subCall: String(subCall), tg: String(tgStr), timeout };
+  });
+  const best = new Map<string, Row>();
+  for (const r of rows) {
+    const k = `${r.dir}\0${r.subCall}\0${r.tg}`;
+    const prev = best.get(k);
+    if (prev == null || r.timeout >= prev.timeout) best.set(k, r);
+  }
+  return Array.from(best.values()).sort((a, b) => {
+    const c = a.subCall.localeCompare(b.subCall);
+    if (c !== 0) return c;
+    const na = Number(a.tg);
+    const nb = Number(b.tg);
+    if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return na - nb;
+    if (a.tg !== b.tg) return a.tg.localeCompare(b.tg);
+    return a.dir.localeCompare(b.dir);
+  });
+}
 
 export default function OpenBridge() {
   const { t } = useTranslation();
@@ -72,20 +98,6 @@ export default function OpenBridge() {
 
   return (
     <Box>
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 2,
-          mb: 2,
-          bgcolor: 'background.paper',
-          boxShadow: (theme) => theme.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
-        }}
-      >
-        <Typography variant="h6" fontWeight={600}>
-          {t('opb_title', { defaultValue: 'OpenBridge' })}
-        </Typography>
-      </Paper>
-
       {!hasAny && (
         <Typography color="text.secondary">
           {t('opb_no_data', { defaultValue: 'No OpenBridge entries from server.' })}
@@ -96,6 +108,7 @@ export default function OpenBridge() {
         <Paper sx={{ overflow: 'auto' }}>
           <TableContainer sx={{ minWidth: 0 }}>
             <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', width: '100%', minWidth: 480 }}>
+              <TableCaptionTitle>{t('opb_title', { defaultValue: 'OpenBridge' })}</TableCaptionTitle>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ width: '18%', minWidth: 88, maxWidth: 140, whiteSpace: 'nowrap' }}>{t('lnksys_system', { defaultValue: 'OpenBridge' })}</TableCell>
@@ -106,10 +119,7 @@ export default function OpenBridge() {
               <TableBody>
                 {Object.entries(openbridges).map(([name, ob]) => {
                   const streams = ob?.STREAMS ?? {};
-                  const streamList = Object.entries(streams).map(([id, entry]) => {
-                    const [dir, subCall, tgStr] = Array.isArray(entry) ? entry : [ '', '', '' ];
-                    return { id, dir: String(dir), subCall: String(subCall), tg: String(tgStr) };
-                  });
+                  const streamList = dedupeStreamRows(streams);
                   return (
                     <TableRow key={name}>
                       <TableCell sx={{ width: '18%', minWidth: 88, maxWidth: 140, whiteSpace: 'nowrap' }}>

@@ -39,6 +39,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import { useTranslation } from 'react-i18next';
 import { useDashboardConfig } from '../context/DashboardConfigContext';
+import { TableCaptionTitle } from '../components/TableCaptionTitle';
 
 type TgEntry = { id: string; name: string; countryCode: string };
 
@@ -178,20 +179,6 @@ export default function TgList() {
           boxShadow: (t: { palette: { mode: string } }) => (t.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)'),
         }}
       >
-        <Typography variant="h5" fontWeight={700} color="text.primary">
-          {t('tbl_tgs', { defaultValue: 'World Wide Talk Groups' })}
-        </Typography>
-      </Paper>
-
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 2,
-          mb: 2,
-          bgcolor: 'background.paper',
-          boxShadow: (t: { palette: { mode: string } }) => (t.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)'),
-        }}
-      >
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
           <TextField
             size="small"
@@ -231,6 +218,7 @@ export default function TgList() {
       <Paper sx={tablePaperSx}>
         <TableContainer>
           <Table size="small" stickyHeader>
+            <TableCaptionTitle>{t('tbl_tgs', { defaultValue: 'World Wide Talk Groups' })}</TableCaptionTitle>
             <TableHead>
               <TableRow sx={{ bgcolor: 'action.hover' }}>
                 <TableCell sx={{ minWidth: 140, fontWeight: 600 }}>{t('tbl_country', { defaultValue: 'Country' })}</TableCell>

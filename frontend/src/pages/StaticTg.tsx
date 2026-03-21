@@ -36,6 +36,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useWebSocketGroup } from '../hooks/useWebSocket';
+import { TableCaptionTitle } from '../components/TableCaptionTitle';
 import QrzLink from '../components/QrzLink';
 
 type TsEntry = { TS?: boolean | string; TRX?: string; SUB?: string; DEST?: string };
@@ -166,20 +167,6 @@ export default function StaticTg() {
 
   return (
     <Box>
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 2,
-          mb: 2,
-          bgcolor: 'background.paper',
-          boxShadow: (t: { palette: { mode: string } }) => (t.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)'),
-        }}
-      >
-        <Typography variant="h5" fontWeight={700} color="text.primary">
-          {t('statictg_title', { defaultValue: 'Static TG' })}
-        </Typography>
-      </Paper>
-
       {!hasMasters && (
         <Typography color="text.secondary" sx={{ py: 2 }}>
           {t('statictg_no_data', { defaultValue: 'Waiting for server info...' })}
@@ -190,6 +177,7 @@ export default function StaticTg() {
         <Paper sx={tablePaperSx}>
           <TableContainer>
             <Table size="small" stickyHeader>
+              <TableCaptionTitle>{t('statictg_title', { defaultValue: 'Static TG' })}</TableCaptionTitle>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'action.hover' }}>
                   <TableCell sx={{ fontWeight: 600, width: 200 }}>{t('lnksys_callsign', { defaultValue: 'Callsign' })} ({t('statictg_dmrid', { defaultValue: 'DMR Id' })})<br />{t('lnksys_loc', { defaultValue: 'Location' })}</TableCell>

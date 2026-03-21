@@ -77,7 +77,18 @@ def rts_update_impl(
     if system in ctable.get("OPENBRIDGES", {}):
         streams = ctable["OPENBRIDGES"][system]["STREAMS"]
         if action == "START":
-            streams[stream_id] = (trx, sub_call, f"{destination}", timeout)
+            tg_str = f"{destination}"
+            # Report server may emit multiple START lines with different stream_id for the same
+            # logical stream; keep one entry per (TRX, callsign, TG) so OPENBRIDGES.STREAMS does not grow duplicates.
+            for sid in list(streams):
+                if sid == stream_id:
+                    continue
+                ent = streams[sid]
+                if not isinstance(ent, (list, tuple)) or len(ent) < 3:
+                    continue
+                if ent[0] == trx and ent[1] == sub_call and ent[2] == tg_str:
+                    del streams[sid]
+            streams[stream_id] = (trx, sub_call, tg_str, timeout)
         elif action == "END" and stream_id in streams:
             del streams[stream_id]
 

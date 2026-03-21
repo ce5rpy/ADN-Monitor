@@ -136,6 +136,10 @@ DASHBOARD:
   # Console: show Console page in Info menu (call start/end messages). Set to true to enable.
   SHOW_CONSOLE: false
 
+  # JSON feed for /serverstatus (network server list). Proxied by PHP GET /api/servers/status (same-origin).
+  # Default if omitted: https://adn.systems/servers/status.json
+  # SERVER_STATUS_URL: "https://adn.systems/servers/status.json"
+
   # Minimum call duration (seconds) for dashboard table only (Last Heard page always shows all)
   MIN_DURATION: 3
 

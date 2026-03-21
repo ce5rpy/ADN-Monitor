@@ -58,7 +58,7 @@ const LastHeardLog = lazy(() => import('./pages/LastHeardLog'));
 const Console = lazy(() => import('./pages/Console'));
 const Calc = lazy(() => import('./pages/Calc'));
 const TgList = lazy(() => import('./pages/TgList'));
-const BridgeList = lazy(() => import('./pages/BridgeList'));
+const WorldServersStatus = lazy(() => import('./pages/WorldServersStatus'));
 const Login = lazy(() => import('./pages/Login'));
 const SelfService = lazy(() => import('./pages/SelfService'));
 const Help = lazy(() => import('./pages/Help'));
@@ -392,8 +392,8 @@ function App() {
           <MenuItem component={Link} to="/wwtg" onClick={() => setAnchorEl(null)}>
             {t('nav_tglst')}
           </MenuItem>
-          <MenuItem component={Link} to="/wwbridges" onClick={() => setAnchorEl(null)}>
-            {t('nav_brdglst')}
+          <MenuItem component={Link} to="/serverstatus" onClick={() => setAnchorEl(null)}>
+            {t('nav_serverstatus')}
           </MenuItem>
           {(dashboard.navLinks?.items?.length ?? 0) === 1 && (
             <MenuItem
@@ -457,8 +457,8 @@ function App() {
           <MenuItem component={Link} to="/wwtg" onClick={() => setInfoAnchor(null)}>
             {t('nav_tglst')}
           </MenuItem>
-          <MenuItem component={Link} to="/wwbridges" onClick={() => setInfoAnchor(null)}>
-            {t('nav_brdglst')}
+          <MenuItem component={Link} to="/serverstatus" onClick={() => setInfoAnchor(null)}>
+            {t('nav_serverstatus')}
           </MenuItem>
           <MenuItem component={Link} to="/lastheard" onClick={() => setInfoAnchor(null)}>
             {t('nav_lsthrd')}
@@ -550,7 +550,8 @@ function App() {
                 <Route path="/console" element={<Console />} />
                 <Route path="/calc" element={<Calc />} />
                 <Route path="/wwtg" element={<TgList />} />
-                <Route path="/wwbridges" element={<BridgeList />} />
+                <Route path="/serverstatus" element={<WorldServersStatus />} />
+                <Route path="/wwbridges" element={<Navigate to="/serverstatus" replace />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/self-service" element={<SelfService />} />
                 <Route path="/help" element={<Help />} />

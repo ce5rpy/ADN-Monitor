@@ -224,19 +224,9 @@ export default function Systems() {
 
   return (
     <Box>
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 2,
-          mb: 2,
-          bgcolor: 'background.paper',
-          boxShadow: (theme) => theme.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
-        }}
-      >
-        <Typography variant="h5" fontWeight={700} color="text.primary">
-          {t('lnksys_title', { defaultValue: 'Linked systems' })}
-        </Typography>
-      </Paper>
+      <Typography variant="subtitle1" fontWeight={700} color="text.primary" sx={{ mb: 1.5 }}>
+        {t('lnksys_title', { defaultValue: 'Linked systems' })}
+      </Typography>
 
       {!hasMasters && Object.keys(peers).length === 0 && (
         <Typography color="text.secondary">

@@ -35,6 +35,7 @@ use AdnSystemsMonitor\Backend\Infrastructure\Config\ConfigLoader;
 use AdnSystemsMonitor\Backend\Infrastructure\Http\AliasesProxyController;
 use AdnSystemsMonitor\Backend\Infrastructure\Http\AuthController;
 use AdnSystemsMonitor\Backend\Infrastructure\Http\ConfigController;
+use AdnSystemsMonitor\Backend\Infrastructure\Http\ServersStatusController;
 use AdnSystemsMonitor\Backend\Infrastructure\Http\SelfServiceController;
 use AdnSystemsMonitor\Backend\Infrastructure\Persistence\MySqlAuthRepository;
 use AdnSystemsMonitor\Backend\Infrastructure\Persistence\MySqlDeviceRepository;
@@ -123,6 +124,7 @@ if ($db) {
 
 $configController = new ConfigController($configLoader, $configPath);
 $aliasesProxyController = new AliasesProxyController($configLoader);
+$serversStatusController = new ServersStatusController($configLoader);
 
 $app = AppFactory::create();
 $app->addBodyParsingMiddleware();
@@ -130,6 +132,7 @@ $app->addRoutingMiddleware();
 $app->setBasePath($_ENV['API_BASE_PATH'] ?? '');
 
 $app->get('/api/config/dashboard', [$configController, 'dashboard']);
+$app->get('/api/servers/status', [$serversStatusController, 'get']);
 $app->get('/api/aliases/tg-list', [$aliasesProxyController, 'tgList']);
 $app->get('/api/aliases/bridge-list', [$aliasesProxyController, 'bridgeList']);
 

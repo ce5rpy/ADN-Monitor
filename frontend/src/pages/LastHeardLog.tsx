@@ -38,6 +38,7 @@ import { useTranslation } from 'react-i18next';
 import { useWebSocketGroup } from '../hooks/useWebSocket';
 import QrzLink from '../components/QrzLink';
 import ActiveQsoBox, { type Ctable } from '../components/ActiveQsoBox';
+import { TableCaptionTitle } from '../components/TableCaptionTitle';
 
 type LastHeardRow = {
   date: string;
@@ -113,19 +114,6 @@ export default function LastHeardLog() {
 
   return (
     <Box>
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 2,
-          mb: 2,
-          bgcolor: 'background.paper',
-          boxShadow: (theme) => theme.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
-        }}
-      >
-        <Typography variant="h5" fontWeight={700} color="text.primary">
-          {t('nav_lsthrd', { defaultValue: 'Last Heard Log' })}
-        </Typography>
-      </Paper>
       {!hasAnyData && (
         <Typography color="text.secondary" sx={{ py: 2 }}>{t('pre_wait')}</Typography>
       )}
@@ -133,6 +121,7 @@ export default function LastHeardLog() {
       {logRows.length > 0 && (
         <TableContainer component={Paper} sx={tablePaperSx}>
           <Table size="small" stickyHeader>
+            <TableCaptionTitle>{t('nav_lsthrd', { defaultValue: 'Last Heard Log' })}</TableCaptionTitle>
             <TableHead>
               <TableRow sx={{ bgcolor: 'action.hover' }}>
                 <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{t('lh_date')}</TableCell>

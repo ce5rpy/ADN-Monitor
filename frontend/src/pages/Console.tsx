@@ -64,11 +64,11 @@ export default function Console() {
         variant="outlined"
         sx={{
           ...paperSx,
-          p: 2,
-          mb: 2,
+          p: 1.5,
+          mb: 1.5,
         }}
       >
-        <Typography variant="h5" fontWeight={700} color="text.primary" sx={{ mb: 1 }}>
+        <Typography variant="subtitle1" fontWeight={700} color="text.primary" sx={{ mb: 0.5 }}>
           {t('nav_console')}
         </Typography>
         <Typography variant="body2" color="text.secondary">
