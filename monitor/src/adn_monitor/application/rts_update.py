@@ -74,6 +74,13 @@ def rts_update_impl(
                 peer_ts["TYPE"] = peer_ts["SUB"] = peer_ts["CALL"] = ""
                 peer_ts["SRC"] = peer_ts["DEST"] = peer_ts["TG"] = peer_ts["TRX"] = ""
 
+    # One logical call uses the same stream_id on every OBP row (RX on ingress, TX on each dest).
+    # END,RX only names the ingress system; per-row END,TX can be missing. Clear this stream_id
+    # everywhere so TX chips do not outlive RX.
+    if call_type == "GROUP VOICE" and action == "END" and trx == "RX":
+        for _obn in list((ctable.get("OPENBRIDGES") or {}).keys()):
+            (ctable["OPENBRIDGES"][_obn].get("STREAMS") or {}).pop(stream_id, None)
+
     if system in ctable.get("OPENBRIDGES", {}):
         streams = ctable["OPENBRIDGES"][system]["STREAMS"]
         if action == "START":
