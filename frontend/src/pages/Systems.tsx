@@ -212,6 +212,8 @@ export default function Systems() {
     boxShadow: (t: { palette: { mode: string } }) => (t.palette.mode === 'dark' ? 'none' : '0 1px 3px rgba(0,0,0,0.08)'),
   };
 
+  const summaryCardContentSx = { textAlign: 'center' as const };
+
   /** Column widths: fixed so table scrolls horizontally on narrow viewports instead of overlapping. */
   const tableMinWidth = 720;
   const colCallsign = { width: 200, minWidth: 200, maxWidth: 200, boxSizing: 'border-box' as const };
@@ -238,7 +240,7 @@ export default function Systems() {
         <Grid container spacing={2} sx={{ mb: 2 }}>
           <Grid item xs={12} sm={4}>
             <Card sx={{ bgcolor: 'success.main', color: 'success.contrastText' }}>
-              <CardContent>
+              <CardContent sx={summaryCardContentSx}>
                 <Typography variant="h4">{countRepeaters}</Typography>
                 <Typography variant="body2">{t('lnksys_repeaters', { defaultValue: 'Repeaters' })}</Typography>
               </CardContent>
@@ -246,7 +248,7 @@ export default function Systems() {
           </Grid>
           <Grid item xs={12} sm={4}>
             <Card sx={{ bgcolor: 'warning.main', color: 'warning.contrastText' }}>
-              <CardContent>
+              <CardContent sx={summaryCardContentSx}>
                 <Typography variant="h4">{countHotspots}</Typography>
                 <Typography variant="body2">{t('lnksys_hotspots', { defaultValue: 'Hotspots' })}</Typography>
               </CardContent>
@@ -254,7 +256,7 @@ export default function Systems() {
           </Grid>
           <Grid item xs={12} sm={4}>
             <Card sx={{ bgcolor: 'error.main', color: 'error.contrastText' }}>
-              <CardContent>
+              <CardContent sx={summaryCardContentSx}>
                 <Typography variant="h4">{countBridges}</Typography>
                 <Typography variant="body2">{t('lnksys_bridges', { defaultValue: 'Bridges' })}</Typography>
               </CardContent>
