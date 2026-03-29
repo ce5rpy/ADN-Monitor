@@ -121,7 +121,14 @@ export default function OpenBridge() {
                   const streams = ob?.STREAMS ?? {};
                   const streamList = dedupeStreamRows(streams);
                   return (
-                    <TableRow key={name}>
+                    <TableRow
+                      key={name}
+                      sx={{
+                        '& > .MuiTableCell-root': {
+                          verticalAlign: 'middle',
+                        },
+                      }}
+                    >
                       <TableCell sx={{ width: '18%', minWidth: 88, maxWidth: 140, whiteSpace: 'nowrap' }}>
                         <Typography fontWeight="bold" component="span" noWrap>{name}</Typography>
                       </TableCell>
@@ -129,12 +136,36 @@ export default function OpenBridge() {
                         <Typography fontWeight="bold" component="span" noWrap>{String(ob?.NETWORK_ID ?? '')}</Typography>
                       </TableCell>
                       <TableCell sx={{ width: '70%', overflow: 'auto', minWidth: 120 }}>
-                        <Box component="span" sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {/*
+                          Min height matches MUI small Chip (~24px) + cell breathing room so rows do not
+                          resize when streams go from empty (dash) to showing chips.
+                        */}
+                        <Box
+                          component="span"
+                          sx={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: 0.5,
+                            rowGap: 1,
+                            alignItems: 'center',
+                            minHeight: (theme) => theme.spacing(5),
+                          }}
+                        >
                           {streamList.length === 0 ? (
                             <Typography variant="body2" color="text.secondary">—</Typography>
                           ) : (
                             streamList.map(({ id, dir, subCall, tg }) => (
-                              <Box key={id} component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap', mb: 0.5 }}>
+                              <Box
+                                key={id}
+                                component="span"
+                                sx={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 0.5,
+                                  flexWrap: 'wrap',
+                                  minHeight: (theme) => theme.spacing(3),
+                                }}
+                              >
                                 <Chip size="small" label={dir} color={dir === 'RX' ? 'success' : dir === 'TX' ? 'error' : 'default'} />
                                 <QrzLink callsign={subCall}>{subCall}</QrzLink>
                                 <Typography component="span" variant="body2" color="text.secondary"> &gt;&gt; TG {tg}</Typography>

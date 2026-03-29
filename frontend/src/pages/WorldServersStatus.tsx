@@ -174,7 +174,6 @@ export default function WorldServersStatus() {
                   <TableCell sx={{ fontWeight: 600, width: 72, maxWidth: 88 }}>{t('srvrs_password')}</TableCell>
                   <TableCell sx={{ fontWeight: 600, width: 52, maxWidth: 56 }}>{t('srvrs_port')}</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 600, width: 76, px: 0.5 }}>{t('srvrs_reachable')}</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 600, width: 72, px: 0.5 }}>{t('srvrs_login')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -185,7 +184,6 @@ export default function WorldServersStatus() {
                   const port = row.port ?? '';
                   const password = String(row.password ?? '');
                   const online = String(row.status ?? '').toLowerCase() === 'online';
-                  const loginOk = Boolean(row.login_ok);
                   const code = typeof row.status_code === 'number' ? row.status_code : undefined;
                   const hint = statusCodeHint(t, code);
                   return (
@@ -239,15 +237,6 @@ export default function WorldServersStatus() {
                           sx={{ height: 22, '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' } }}
                         />
                       </TableCell>
-                      <TableCell align="center" sx={{ px: 0.25 }}>
-                        <Chip
-                          size="small"
-                          label={loginOk ? t('srvrs_online') : t('srvrs_offline')}
-                          color={loginOk ? 'success' : 'error'}
-                          title={loginOk ? undefined : hint}
-                          sx={{ height: 22, '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' } }}
-                        />
-                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -255,7 +244,7 @@ export default function WorldServersStatus() {
               {meta && (
                 <TableFooter>
                   <TableRow>
-                    <TableCell colSpan={8}>
+                    <TableCell colSpan={7}>
                       <Typography variant="body2" color="text.secondary">
                         {t('srvrs_count', {
                           count: data?.total_checked ?? rows.length,
