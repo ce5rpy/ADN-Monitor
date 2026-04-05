@@ -186,7 +186,9 @@ def process_message(
             _wall_db = format_utc_naive_datetime(_event_ts)
             reported_dur = float(parts[9]) if len(parts) > 9 else 0.0
             duration_sec = int(reported_dur)
-            if parts[1] == "END" and parts[4] in state.sys_dict and state.sys_dict[parts[4]]["sys"] == parts[3]:
+            if parts[1] == "INGRESS":
+                log_message = _format_log_message(_now, parts, alias_svc, None)
+            elif parts[1] == "END" and parts[4] in state.sys_dict and state.sys_dict[parts[4]]["sys"] == parts[3]:
                 _sd = state.sys_dict[parts[4]]
                 del state.sys_dict[parts[4]]
                 if not skip_persist:
@@ -288,7 +290,7 @@ def _format_log_message(
     sub_short = alias_svc.alias_short(int(p[6]))
     tg_name = alias_svc.alias_tgid(int(p[8]))
     base = (
-        f"{now[10:19]} {p[0][6:]:5.5s} {p[1]:5.5s} SYS: {p[3]:10.10s} SRC_ID: {p[5]:5.5s} "
+        f"{now[10:19]} {p[0][6:]:5.5s} {p[1]:7.7s} SYS: {p[3]:10.10s} SRC_ID: {p[5]:5.5s} "
         f"TS: {p[7]} TGID: {p[8]:7.7s} {tg_name:17.17s} "
         f"SUB: {p[6]:9.9s}; {sub_short:18.18s}"
     )

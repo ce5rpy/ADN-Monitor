@@ -55,6 +55,10 @@ def rts_update_impl(
     tg_dest = f"TG {destination}&nbsp;&nbsp;&nbsp;&nbsp;{alias_svc.alias_tgid(destination)}"
     tg_short = f"TG&nbsp;{destination}"
 
+    # INGRESS = pre-loop debug only (adn-server); do not update CTABLE chips / Linked systems / Active QSO.
+    if call_type == "GROUP VOICE" and action == "INGRESS":
+        return
+
     if system in ctable.get("MASTERS", {}):
         for peer in ctable["MASTERS"][system]["PEERS"]:
             crxstatus = "RX" if source_peer == peer else "TX"
