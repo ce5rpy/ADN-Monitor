@@ -78,12 +78,9 @@ def rts_update_impl(
                 peer_ts["TYPE"] = peer_ts["SUB"] = peer_ts["CALL"] = ""
                 peer_ts["SRC"] = peer_ts["DEST"] = peer_ts["TG"] = peer_ts["TRX"] = ""
 
-    # One logical call uses the same stream_id on every OBP row (RX on ingress, TX on each dest).
-    # END,RX only names the ingress system; per-row END,TX can be missing. Clear this stream_id
-    # everywhere so TX chips do not outlive RX.
-    if call_type == "GROUP VOICE" and action == "END" and trx == "RX":
-        for _obn in list((ctable.get("OPENBRIDGES") or {}).keys()):
-            (ctable["OPENBRIDGES"][_obn].get("STREAMS") or {}).pop(stream_id, None)
+    # OPENBRIDGES: one stream_id per OBP row is either RX or TX. END must only touch the OBP named in
+    # the event (system): e.g. END,TX on one leg (BCSQ / lost forward) clears that leg only; other OBP
+    # TX chips for the same call stay. END,RX clears RX on that OBP only — never all rows at once.
 
     if system in ctable.get("OPENBRIDGES", {}):
         streams = ctable["OPENBRIDGES"][system]["STREAMS"]
@@ -101,7 +98,9 @@ def rts_update_impl(
                     del streams[sid]
             streams[stream_id] = (trx, sub_call, tg_str, timeout)
         elif action == "END" and stream_id in streams:
-            del streams[stream_id]
+            ent = streams.get(stream_id)
+            if isinstance(ent, (list, tuple)) and len(ent) >= 1 and ent[0] == trx:
+                del streams[stream_id]
 
     if system in ctable.get("PEERS", {}):
         prxstatus = "RX" if trx == "RX" else "TX"

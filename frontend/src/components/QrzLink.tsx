@@ -38,6 +38,9 @@ export function isCallsignLike(s: string): boolean {
   return /[A-Za-z]/.test(s);
 }
 
+/** Placeholder / non-amateur ids that must not link to QRZ. */
+const NO_QRZ_CALLSIGNS = new Set(['BRIDGE']);
+
 type QrzLinkProps = {
   callsign: string;
   children?: React.ReactNode;
@@ -47,7 +50,7 @@ type QrzLinkProps = {
 /** Link to QRZ.com callsign lookup (opens in new tab). */
 export default function QrzLink({ callsign, children, sx }: QrzLinkProps) {
   const call = callsignForQrz(callsign);
-  if (!call || !isCallsignLike(call)) return <>{children ?? callsign}</>;
+  if (!call || !isCallsignLike(call) || NO_QRZ_CALLSIGNS.has(call)) return <>{children ?? callsign}</>;
   return (
     <Link
       href={`${QRZ_BASE}${encodeURIComponent(call)}`}

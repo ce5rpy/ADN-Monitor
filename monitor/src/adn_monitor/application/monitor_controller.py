@@ -290,7 +290,7 @@ def _format_log_message(
     sub_short = alias_svc.alias_short(int(p[6]))
     tg_name = alias_svc.alias_tgid(int(p[8]))
     base = (
-        f"{now[10:19]} {p[0][6:]:5.5s} {p[1]:7.7s} SYS: {p[3]:10.10s} SRC_ID: {p[5]:5.5s} "
+        f"{now[10:19]} {p[0][6:]:5.5s} {p[1]:7.7s} {p[2]:2.2s} SYS: {p[3]:10.10s} STREAM: {p[4]} SRC_ID: {p[5]:5.5s} "
         f"TS: {p[7]} TGID: {p[8]:7.7s} {tg_name:17.17s} "
         f"SUB: {p[6]:9.9s}; {sub_short:18.18s}"
     )
@@ -303,7 +303,7 @@ def _format_log_message_unknown_end(now: str, p: list[str], alias_svc: AliasServ
     sub_short = alias_svc.alias_short(int(p[6]))
     tg_name = alias_svc.alias_tgid(int(p[8]))
     return (
-        f"{now[10:19]} {p[0][6:]:5.5s} {p[1]:5.5s} on SYSTEM: {p[3]:10.10s} SRC_ID: {p[5]:5.5s} "
+        f"{now[10:19]} {p[0][6:]:5.5s} {p[1]:5.5s} {p[2]:2.2s} on SYSTEM: {p[3]:10.10s} STREAM: {p[4]} SRC_ID: {p[5]:5.5s} "
         f"TS: {p[7]} TGID: {p[8]:7.7s} {tg_name:17.17s} "
         f"SUB: {p[6]:9.9s}; {sub_short:18.18s}"
     )
