@@ -63,7 +63,9 @@ class ReportProtocol(NetstringReceiver):
         config_global: dict,
         report_decoder: ReportPayloadDecoder,
         on_connection_established: Callable[[], None] | None = None,
-        on_ctable_updated: Callable[[], None] | None = None,
+        on_ctable_updated: Callable[..., None] | None = None,
+        on_config_applied: Callable[[], None] | None = None,
+        on_bridges_applied: Callable[[], None] | None = None,
     ) -> None:
         # Use _monitor_state to avoid NetstringReceiver overwriting self._state (its FSM uses _state)
         self._monitor_state = state
@@ -76,6 +78,8 @@ class ReportProtocol(NetstringReceiver):
         self._report_decoder = report_decoder
         self._on_connection_established = on_connection_established
         self._on_ctable_updated = on_ctable_updated
+        self._on_config_applied = on_config_applied
+        self._on_bridges_applied = on_bridges_applied
 
     def connectionMade(self) -> None:
         logger.info("(REPORT) Connection to report server established")
@@ -113,8 +117,21 @@ class ReportProtocol(NetstringReceiver):
         )
         if is_fail(result):
             logger.warning("process_message error: %s", result.error)
+        elif opcode == b"\x01" and self._on_config_applied:
+            self._on_config_applied()
+        elif opcode == b"\x03" and self._on_bridges_applied:
+            self._on_bridges_applied()
         elif opcode == b"\x07" and self._on_ctable_updated:
-            self._on_ctable_updated()
+            # GROUP VOICE + INGRESS does not change CTABLE (rts_update returns early); skip WS refresh.
+            msg = data.decode("utf-8", "ignore")
+            parts = msg[1:].split(",") if len(msg) > 1 else []
+            if len(parts) >= 2 and parts[0] == "GROUP VOICE" and parts[1] == "INGRESS":
+                pass
+            else:
+                brdg_meta = None
+                if len(parts) >= 4:
+                    brdg_meta = {"call_type": parts[0], "action": parts[1], "system": parts[3]}
+                self._on_ctable_updated(brdg_meta)
         logger.debug("(REPORT) process_message done for opcode=%r", opcode)
 
 
@@ -140,7 +157,9 @@ class ReportClientFactory(ReconnectingClientFactory):
         report_decoder: ReportPayloadDecoder,
         on_connection_lost: Callable[[], None] | None = None,
         on_connection_established: Callable[[], None] | None = None,
-        on_ctable_updated: Callable[[], None] | None = None,
+        on_ctable_updated: Callable[..., None] | None = None,
+        on_config_applied: Callable[[], None] | None = None,
+        on_bridges_applied: Callable[[], None] | None = None,
     ) -> None:
         self._state = state
         self._alias_svc = alias_svc
@@ -153,6 +172,8 @@ class ReportClientFactory(ReconnectingClientFactory):
         self._on_connection_lost = on_connection_lost
         self._on_connection_established = on_connection_established
         self._on_ctable_updated = on_ctable_updated
+        self._on_config_applied = on_config_applied
+        self._on_bridges_applied = on_bridges_applied
 
     def buildProtocol(self, addr: Any) -> ReportProtocol:
         self.resetDelay()
@@ -167,6 +188,8 @@ class ReportClientFactory(ReconnectingClientFactory):
             report_decoder=self._report_decoder,
             on_connection_established=self._on_connection_established,
             on_ctable_updated=self._on_ctable_updated,
+            on_config_applied=self._on_config_applied,
+            on_bridges_applied=self._on_bridges_applied,
         )
 
     def clientConnectionFailed(self, connector: Any, reason: Any) -> None:

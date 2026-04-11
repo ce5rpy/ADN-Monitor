@@ -109,7 +109,7 @@ WEBSOCKET_SERVER:
   WEBSOCKET_PORT: 9000
   # Bind address: "" = all IPv4 (default). Use "::" for IPv6 dual-stack (accept IPv4 + IPv6).
   # LISTEN_INTERFACE: ""
-  # Frequency to push updates to web clients
+  # Seconds between periodic full resync (last_heard, lstheard_log, slim ctable); live updates are event-driven.
   FREQUENCY: 1
   # Clients are timed out after this many seconds, 0 to disable
   CLIENT_TIMEOUT: 0

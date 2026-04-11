@@ -179,7 +179,8 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
         "P2F_CERT": Path(ssl_path, _str(ws.get("SSL_CERTIFICATE", "cert.pem"))),
         "SSL_PKEY": _str(ws.get("SSL_PRIVATEKEY", "key.pem")),
         "P2F_PKEY": Path(ssl_path, _str(ws.get("SSL_PRIVATEKEY", "key.pem"))),
-        "FREQ": _int(ws.get("FREQUENCY"), 1),
+        # Seconds between periodic full resync (last_heard, lstheard_log, slim ctable); primary updates are event-driven.
+        "FREQUENCY": _int(ws.get("FREQUENCY"), 1),
         "CLT_TO": _int(ws.get("CLIENT_TIMEOUT"), 0),
     }
 

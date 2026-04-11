@@ -33,6 +33,7 @@ from typing import Any, Callable
 
 from autobahn.twisted.websocket import WebSocketServerFactory, WebSocketServerProtocol
 
+from ...application import ws_ctable_views
 from ...application.monitor_controller import MonitorState
 from ...application.ports import BroadcastPort
 
@@ -50,7 +51,7 @@ GROUP_NAMES = (
     "lsthrd_log",
     "tgcount",
 )
-# When client sends "conf,all", send current data for these groups immediately (no wait for build_stats)
+# When client sends "conf,all", send current data for these groups immediately (no wait for safety_sync)
 SEND_ALL_GROUPS = ("main", "lnksys", "opb", "statictg", "lsthrd_log", "tgcount", "bridge", "log")
 
 
@@ -113,7 +114,7 @@ def make_dashboard_factory(
             logger.info("Text message received: %s", payload)
             if msg[0] != "conf":
                 return
-            # "conf,all" => send full config for all groups so client doesn't wait for next build_stats tick
+            # "conf,all" => send full config for all groups so client doesn't wait for safety_sync
             requested = list(SEND_ALL_GROUPS) if "all" in msg[1:] else msg[1:]
             for group in requested:
                 if group not in groups:
@@ -123,7 +124,7 @@ def make_dashboard_factory(
                     if state.BRIDGES and conf_global.get("BRDG_INC"):
                         _send_json(self, "b", {"btable": state.BTABLE, "dbridges": True})
                 elif group == "lnksys":
-                    ctable = state.CTABLE
+                    ctable = ws_ctable_views.ctable_for_lnksys(state.CTABLE)
                     _log_ctable_sent(self.peer, ctable)
                     _send_json(self, "c", {
                         "ctable": ctable,
@@ -131,14 +132,14 @@ def make_dashboard_factory(
                     })
                 elif group == "opb":
                     _send_json(self, "o", {
-                        "ctable": state.CTABLE,
+                        "ctable": ws_ctable_views.ctable_for_opb(state.CTABLE),
                         "dbridges": conf_global.get("BRDG_INC", False),
                     })
                 elif group == "main":
                     render_last_heard("last_heard", conf_global.get("LH_ROWS", 20), self)
                 elif group == "statictg":
                     _send_json(self, "s", {
-                        "ctable": state.CTABLE,
+                        "ctable": ws_ctable_views.ctable_for_lnksys(state.CTABLE),
                         "emaster": conf_global.get("EMPTY_MASTERS", False),
                     })
                 elif group == "lsthrd_log":

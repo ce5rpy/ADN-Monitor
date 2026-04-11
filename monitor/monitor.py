@@ -80,6 +80,7 @@ from adn_monitor.application import (
 from adn_monitor.application.time_utils import format_stored_utc_for_display, utc_calendar_date
 from adn_monitor.application.tgstats import parse_options_to_static
 from adn_monitor.application.hblink_table import clean_te
+import adn_monitor.application.ws_ctable_views as ws_ctable_views
 from adn_monitor.infrastructure import (
     MoniDBAliasRepository,
     MoniDBAliasTableRepository,
@@ -108,9 +109,15 @@ CONF = _config_result.value
 logger = None
 db_conn = None
 dashboard_server = None
-build_time = 0
-build_deferred = None
 TGC_DATE = None
+
+# Last sent WebSocket payload hashes per group (deduplication)
+_ws_last_hash: dict[str, str] = {}
+
+# OBP (`o`) throttle: coalesce bursts to at most one wire send per interval.
+OPB_WIRE_MIN_INTERVAL_SEC = 0.05
+_opb_last_wire_ts: float = 0.0
+_opb_throttle_call = None  # IDelayedCall | None
 
 # Lastheard log rows
 LASTHEARD_LOG_ROWS = 70
@@ -149,6 +156,146 @@ def error_hdl(failure):
         sys.exit(failure)
 
 
+def _ws_payload_hash(message: str) -> str:
+    return hashlib.sha256(message.encode("utf-8")).hexdigest()
+
+
+def _should_send_opb_ws_for_brdg_event(state, brdg_meta: dict | None) -> bool:
+    """Whether to push WebSocket ``o`` for this refresh (BRDG_EVENT-driven gating).
+
+    When ``brdg_meta`` is set, only START/END on a system listed in OPENBRIDGES need an OBP push.
+    When ``brdg_meta`` is None (CONFIG, safety_sync, clean_te, merge, disconnect), always allow.
+    """
+    if brdg_meta is None:
+        return True
+    act = brdg_meta.get("action")
+    sysn = brdg_meta.get("system")
+    if act not in ("START", "END"):
+        return False
+    if sysn not in (state.CTABLE.get("OPENBRIDGES") or {}):
+        return False
+    return True
+
+
+def _opb_emit_wire(*, dedup: bool) -> None:
+    """Single OpenBridge WebSocket send using slim ctable (semantic dedup when dedup=True)."""
+    global _ws_last_hash, _opb_last_wire_ts
+    state = get_state()
+    groups = get_groups()
+    if not state.CONFIG or not groups.get("opb"):
+        return
+    conf = get_config_global()
+    dbridges = conf.get("BRDG_INC", False)
+    payload = {"ctable": ws_ctable_views.ctable_for_opb(state.CTABLE), "dbridges": dbridges}
+    msg = "o" + json.dumps(payload, default=str)
+    sem_h = _ws_payload_hash(ws_ctable_views.opb_semantic_fingerprint(state.CTABLE, dbridges))
+    if dedup and _ws_last_hash.get("opb_sem") == sem_h:
+        return
+    dashboard_server.broadcast(msg, "opb")
+    _ws_last_hash["opb_sem"] = sem_h
+    _opb_last_wire_ts = time()
+    logger.debug("broadcast_ws_ctable: opb (dedup=%s)", dedup)
+
+
+def _schedule_opb_wire(*, dedup: bool, immediate: bool) -> None:
+    """Throttle multiple OBP events in the same millisecond to one wire send."""
+    global _opb_throttle_call
+    state = get_state()
+    groups = get_groups()
+    if not state.CONFIG or not groups.get("opb"):
+        return
+
+    def _fire() -> None:
+        global _opb_throttle_call
+        _opb_throttle_call = None
+        _opb_emit_wire(dedup=dedup)
+
+    if immediate:
+        if _opb_throttle_call and _opb_throttle_call.active():
+            _opb_throttle_call.cancel()
+        _fire()
+        return
+    now = time()
+    delay = max(0.0, OPB_WIRE_MIN_INTERVAL_SEC - (now - _opb_last_wire_ts))
+    if _opb_throttle_call and _opb_throttle_call.active():
+        _opb_throttle_call.cancel()
+    _opb_throttle_call = reactor.callLater(delay, _fire)
+
+
+def broadcast_ws_ctable(*, dedup: bool = True, brdg_meta: dict | None = None) -> None:
+    """Push slim ctable slices to lnksys / opb / statictg / bridge with optional dedup."""
+    global _ws_last_hash
+    state = get_state()
+    groups = get_groups()
+    conf_global = get_config_global()
+    emaster = conf_global.get("EMPTY_MASTERS", False)
+    brdg_inc = conf_global.get("BRDG_INC", False)
+    if not state.CONFIG:
+        if groups.get("lnksys") or groups.get("opb") or groups.get("statictg"):
+            logger.debug(
+                "broadcast_ws_ctable: CONFIG empty, skip (lnksys=%d opb=%d statictg=%d)",
+                len(groups.get("lnksys", {})),
+                len(groups.get("opb", {})),
+                len(groups.get("statictg", {})),
+            )
+        return
+
+    if groups.get("lnksys"):
+        msg = "c" + json.dumps(
+            {"ctable": ws_ctable_views.ctable_for_lnksys(state.CTABLE), "emaster": emaster},
+            default=str,
+        )
+        key = "lnksys"
+        if not dedup or _ws_last_hash.get(key) != _ws_payload_hash(msg):
+            dashboard_server.broadcast(msg, "lnksys")
+            _ws_last_hash[key] = _ws_payload_hash(msg)
+            logger.debug("broadcast_ws_ctable: lnksys (dedup=%s)", dedup)
+
+    if groups.get("opb"):
+        if _should_send_opb_ws_for_brdg_event(state, brdg_meta):
+            _schedule_opb_wire(dedup=dedup, immediate=not dedup)
+
+    if groups.get("statictg"):
+        msg = "s" + json.dumps(
+            {"ctable": ws_ctable_views.ctable_for_lnksys(state.CTABLE), "emaster": emaster},
+            default=str,
+        )
+        key = "statictg"
+        if not dedup or _ws_last_hash.get(key) != _ws_payload_hash(msg):
+            dashboard_server.broadcast(msg, "statictg")
+            _ws_last_hash[key] = _ws_payload_hash(msg)
+            logger.debug("broadcast_ws_ctable: statictg (dedup=%s)", dedup)
+
+    if state.BRIDGES and brdg_inc and groups.get("bridge"):
+        msg = "b" + json.dumps({"btable": state.BTABLE, "dbridges": True}, default=str)
+        key = "bridge"
+        if not dedup or _ws_last_hash.get(key) != _ws_payload_hash(msg):
+            dashboard_server.broadcast(msg, "bridge")
+            _ws_last_hash[key] = _ws_payload_hash(msg)
+            logger.debug("broadcast_ws_ctable: bridge (dedup=%s)", dedup)
+
+
+def safety_sync() -> None:
+    """Periodic full resync: last_heard, lstheard_log (if groups active), slim ctable with dedup."""
+    state = get_state()
+    conf_global = get_config_global()
+    groups = get_groups()
+    if not state.CONFIG:
+        if groups.get("lnksys") or groups.get("opb") or groups.get("statictg"):
+            logger.debug(
+                "safety_sync: CONFIG empty, skip ctable (lnksys=%d opb=%d statictg=%d clients)",
+                len(groups.get("lnksys", {})),
+                len(groups.get("opb", {})),
+                len(groups.get("statictg", {})),
+            )
+        return
+    if groups.get("main"):
+        render_fromdb("last_heard", conf_global.get("LH_ROWS", 20))
+    if groups.get("lsthrd_log"):
+        render_fromdb("lstheard_log", LASTHEARD_LOG_ROWS)
+    broadcast_ws_ctable()
+
+
 @inlineCallbacks
 def render_fromdb(tbl: str, row_num: int, send_to=None):
     """Load last_heard / lstheard_log / tgcount from DB and send JSON (broadcast or to one client)."""
@@ -164,12 +311,25 @@ def render_fromdb(tbl: str, row_num: int, send_to=None):
         state = get_state()
         conf_global = get_config_global()
         if tbl == "last_heard":
-            payload = {"lastheard": _lastheard_rows(result, conf_global), "ctable": state.CTABLE}
+            lh_rows = _lastheard_rows(result, conf_global)
+            payload = {
+                "lastheard": lh_rows,
+                "ctable": ws_ctable_views.ctable_for_main(state.CTABLE),
+            }
+            sem_h = None
+            if send_to is None and get_groups().get("main"):
+                sem_h = _ws_payload_hash(
+                    ws_ctable_views.main_dashboard_semantic_fingerprint(lh_rows, state.CTABLE)
+                )
+                if _ws_last_hash.get("main_sem") == sem_h:
+                    return
             msg = "i" + json.dumps(payload, default=str)
             if send_to:
                 send_to.sendMessage(msg.encode("utf-8"))
             else:
                 dashboard_server.broadcast(msg, "main")
+                if sem_h is not None:
+                    _ws_last_hash["main_sem"] = sem_h
         elif tbl == "lstheard_log":
             payload = {"rows": _lastheard_rows(result, conf_global)}
             msg = "h" + json.dumps(payload, default=str)
@@ -186,50 +346,6 @@ def render_fromdb(tbl: str, row_num: int, send_to=None):
                 dashboard_server.broadcast(msg, "tgcount")
     except Exception as err:
         logger.error("render_fromdb: %s %s", err, type(err))
-
-
-def build_stats():
-    global build_time, build_deferred
-    now = time()
-    if now - build_time < 1:
-        if not build_deferred or build_deferred.called or build_deferred.cancelled:
-            build_deferred = reactor.callLater(1, build_stats)
-        else:
-            build_deferred.reset(1)
-        return
-    if build_deferred and not build_deferred.called and not build_deferred.cancelled:
-        build_deferred.cancel()
-    state = get_state()
-    conf_global = get_config_global()
-    n_masters = len(state.CTABLE.get("MASTERS", {}))
-    n_lnksys = len(get_groups().get("lnksys", {}))
-    n_opb = len(get_groups().get("opb", {}))
-    n_statictg = len(get_groups().get("statictg", {}))
-    if state.CONFIG:
-        if get_groups().get("main"):
-            render_fromdb("last_heard", conf_global.get("LH_ROWS", 20))
-        if get_groups().get("lnksys"):
-            payload = {"ctable": state.CTABLE, "emaster": conf_global.get("EMPTY_MASTERS", False)}
-            dashboard_server.broadcast("c" + json.dumps(payload, default=str), "lnksys")
-            logger.debug("build_stats: broadcast lnksys to %d clients (MASTERS=%d)", n_lnksys, n_masters)
-        if get_groups().get("opb"):
-            payload = {"ctable": state.CTABLE, "dbridges": conf_global.get("BRDG_INC", False)}
-            dashboard_server.broadcast("o" + json.dumps(payload, default=str), "opb")
-            logger.debug("build_stats: broadcast opb to %d clients", n_opb)
-        if get_groups().get("statictg"):
-            payload = {"ctable": state.CTABLE, "emaster": conf_global.get("EMPTY_MASTERS", False)}
-            dashboard_server.broadcast("s" + json.dumps(payload, default=str), "statictg")
-            logger.debug("build_stats: broadcast statictg to %d clients", n_statictg)
-        if get_groups().get("lsthrd_log"):
-            render_fromdb("lstheard_log", LASTHEARD_LOG_ROWS)
-    else:
-        if n_lnksys or n_opb or n_statictg:
-            logger.debug("build_stats: CONFIG empty, not broadcasting lnksys/opb/statictg (clients lnksys=%d opb=%d statictg=%d)", n_lnksys, n_opb, n_statictg)
-    if state.BRIDGES and conf_global.get("BRDG_INC"):
-        if get_groups().get("bridge"):
-            payload = {"btable": state.BTABLE, "dbridges": True}
-            dashboard_server.broadcast("b" + json.dumps(payload, default=str), "bridge")
-    build_time = time()
 
 
 def timeout_clients():
@@ -508,11 +624,16 @@ def clean_ctable_streams():
         if ob:
             total = sum(len(ob[s].get("STREAMS", {})) for s in ob)
             logger.info("(monitor) STREAMS sizes: total=%d per_system=%s", total, {s: len(ob[s].get("STREAMS", {})) for s in ob})
+        conf = get_config_global()
+        groups = get_groups()
+        if groups.get("main"):
+            render_fromdb("last_heard", conf.get("LH_ROWS", 20))
+        broadcast_ws_ctable()
 
 
 def main():
     global logger, dashboard_server, _state, _alias_repo, _alias_table_repo
-    global _lastheard_repo, _tgcount_repo, _groups, _config_global, _local_lstmod, build_deferred
+    global _lastheard_repo, _tgcount_repo, _groups, _config_global, _local_lstmod
 
     log_conf = {
         "PATH": CONF["LOG"]["PATH"],
@@ -589,27 +710,31 @@ def main():
 
     def on_report_connection_lost():
         dashboard_server.broadcast("q" + f"Connection to {_connection_label} lost", "all_clients")
+        broadcast_ws_ctable(dedup=False)
 
     def on_report_connection_established():
         dashboard_server.broadcast("q" + f"Connection to {_connection_label} established", "all_clients")
 
-    def on_ctable_updated():
-        """Push updated ctable to dashboard clients after each BRDG_EVENT (VOICE START/END)."""
-        state = get_state()
+    def on_ctable_updated(brdg_meta=None):
+        """Push updated ctable after BRDG_EVENT; INGRESS (GROUP VOICE) is not passed here."""
         conf = get_config_global()
-        groups = get_groups()
-        if groups.get("main"):
+        if get_groups().get("main"):
             render_fromdb("last_heard", conf.get("LH_ROWS", 20))
-        if groups.get("lnksys"):
-            dashboard_server.broadcast(
-                "c" + json.dumps({"ctable": state.CTABLE, "emaster": conf.get("EMPTY_MASTERS", False)}, default=str),
-                "lnksys",
-            )
-        if groups.get("opb"):
-            dashboard_server.broadcast(
-                "o" + json.dumps({"ctable": state.CTABLE, "dbridges": conf.get("BRDG_INC", False)}, default=str),
-                "opb",
-            )
+        broadcast_ws_ctable(brdg_meta=brdg_meta)
+
+    def on_config_applied():
+        """After CONFIG_SND: CTABLE rebuilt; refresh WebSocket clients."""
+        conf = get_config_global()
+        if get_groups().get("main"):
+            render_fromdb("last_heard", conf.get("LH_ROWS", 20))
+        broadcast_ws_ctable()
+
+    def on_bridges_applied():
+        """After BRIDGE_SND: BTABLE and tgstats CTABLE fields updated."""
+        conf = get_config_global()
+        if get_groups().get("main"):
+            render_fromdb("last_heard", conf.get("LH_ROWS", 20))
+        broadcast_ws_ctable()
 
     report_decoder = PickleJsonReportPayloadDecoder()
     report_factory = ReportClientFactory(
@@ -624,11 +749,13 @@ def main():
         on_connection_lost=on_report_connection_lost,
         on_connection_established=on_report_connection_established,
         on_ctable_updated=on_ctable_updated,
+        on_config_applied=on_config_applied,
+        on_bridges_applied=on_bridges_applied,
     )
 
-    # Loops
-    freq = CONF["WS"].get("FREQ", 1)
-    task.LoopingCall(build_stats).start(freq).addErrback(error_hdl)
+    # Loops — safety resync (default 60s); primary updates are event-driven
+    safety_interval = CONF["WS"].get("FREQUENCY", 1)
+    task.LoopingCall(safety_sync).start(safety_interval, now=False).addErrback(error_hdl)
     if CONF["WS"].get("CLT_TO"):
         task.LoopingCall(timeout_clients).start(10).addErrback(error_hdl)
     if conf_global.get("TGC_INC"):
@@ -679,16 +806,8 @@ def main():
                         po = state.PEER_OPTIONS[peer_id]
                         state.CTABLE["MASTERS"][sys_name]["PEERS"][peer_id]["TS1_STATIC"] = po.get("TS1_STATIC") or []
                         state.CTABLE["MASTERS"][sys_name]["PEERS"][peer_id]["TS2_STATIC"] = po.get("TS2_STATIC") or []
-            if groups.get("lnksys"):
-                dashboard_server.broadcast(
-                    "c" + json.dumps({"ctable": state.CTABLE, "emaster": conf.get("EMPTY_MASTERS", False)}, default=str),
-                    "lnksys",
-                )
-            if groups.get("statictg"):
-                dashboard_server.broadcast(
-                    "c" + json.dumps({"ctable": state.CTABLE, "emaster": conf.get("EMPTY_MASTERS", False)}, default=str),
-                    "statictg",
-                )
+            if groups.get("lnksys") or groups.get("statictg"):
+                broadcast_ws_ctable(dedup=False)
 
         d.addCallback(on_rows)
         d.addErrback(lambda f: None)  # ignore DB errors (e.g. no table)
