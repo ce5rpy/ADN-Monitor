@@ -50,9 +50,10 @@ GROUP_NAMES = (
     "log",
     "lsthrd_log",
     "tgcount",
+    "server_info",
 )
 # When client sends "conf,all", send current data for these groups immediately (no wait for safety_sync)
-SEND_ALL_GROUPS = ("main", "lnksys", "opb", "statictg", "lsthrd_log", "tgcount", "bridge", "log")
+SEND_ALL_GROUPS = ("main", "lnksys", "opb", "statictg", "lsthrd_log", "tgcount", "bridge", "log", "server_info")
 
 
 class DashboardBroadcast(BroadcastPort):
@@ -150,6 +151,13 @@ def make_dashboard_factory(
                     for log_message in state.LOGBUF:
                         if log_message:
                             self.sendMessage(("l" + log_message).encode("utf-8"))
+                elif group == "server_info":
+                    mode = getattr(state, "server_mode", None)
+                    info = getattr(state, "server_info", {}) or {}
+                    _send_json(self, "v", {
+                        "mode": getattr(mode, "value", str(mode) if mode is not None else "legacy"),
+                        "info": info,
+                    })
 
         def onClose(self, wasClean: bool, code: int | None, reason: str | None) -> None:
             self.factory.unregister(self)

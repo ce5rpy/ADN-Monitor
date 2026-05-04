@@ -688,7 +688,8 @@ def main():
     alias_svc = AliasService(_alias_repo)
 
     _groups = {g: {} for g in (
-        "all_clients", "main", "bridge", "lnksys", "opb", "statictg", "log", "lsthrd_log", "tgcount"
+        "all_clients", "main", "bridge", "lnksys", "opb", "statictg", "log", "lsthrd_log", "tgcount",
+        "server_info",
     )}
 
     DashboardFactory, DashboardProtocol = make_dashboard_factory(
@@ -736,7 +737,20 @@ def main():
             render_fromdb("last_heard", conf.get("LH_ROWS", 20))
         broadcast_ws_ctable()
 
+    def on_server_mode_detected(mode, info):
+        """Broadcast JSON `v{mode,info}` to WebSocket clients (mode legacy or v2)."""
+        try:
+            payload = {
+                "mode": getattr(mode, "value", str(mode)),
+                "info": info or {},
+            }
+            dashboard_server.broadcast("v" + json.dumps(payload, separators=(",", ":")), "all_clients")
+            logger.info("Server mode detected: mode=%s info=%s", payload["mode"], payload["info"])
+        except Exception as e:
+            logger.warning("Failed to broadcast server_info: %s", e)
+
     report_decoder = PickleJsonReportPayloadDecoder()
+    hello_timeout_sec = max(0.0, float(CONF["ADN_CXN"].get("HELLO_TIMEOUT_MS", 1500)) / 1000.0)
     report_factory = ReportClientFactory(
         state=_state,
         alias_svc=alias_svc,
@@ -751,6 +765,8 @@ def main():
         on_ctable_updated=on_ctable_updated,
         on_config_applied=on_config_applied,
         on_bridges_applied=on_bridges_applied,
+        on_server_mode_detected=on_server_mode_detected,
+        hello_timeout_sec=hello_timeout_sec,
     )
 
     # Loops — safety resync (default 60s); primary updates are event-driven

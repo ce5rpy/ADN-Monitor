@@ -109,6 +109,7 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
     CONF["ADN_CXN"] = {
         "ADN_IP": _str(adn.get("ADN_IP", "127.0.0.1")),
         "ADN_PORT": _int(adn.get("ADN_PORT"), 4321),
+        "HELLO_TIMEOUT_MS": _int(adn.get("HELLO_TIMEOUT_MS"), 1500),
     }
 
     # OPB_FILTER

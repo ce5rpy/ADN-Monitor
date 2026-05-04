@@ -26,7 +26,13 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any
+
+
+class ServerMode(str, Enum):
+    LEGACY = "legacy"
+    V2 = "v2"
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,6 +94,7 @@ class Opcode:
     BRIDGE_UPD = b"\x05"
     LINK_EVENT = b"\x06"
     BRDG_EVENT = b"\x07"
+    HELLO = b"\xff"
     SERVER_MSG = b"b"
 
     @classmethod

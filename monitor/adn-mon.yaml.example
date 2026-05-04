@@ -43,6 +43,8 @@ ADN_CONNECTION:
   ADN_IP: "127.0.0.1"
   # ADN server's TCP reporting socket
   ADN_PORT: 4321
+  # ms to wait for HELLO (opcode 0xFF) before assuming legacy (no extra TCP opcodes; same as classic FDMR)
+  HELLO_TIMEOUT_MS: 1500
 
 # ------------------------------------------------------------------------------
 # PROXY – Hotspot Proxy for ADN DMR Peer Server (repeaters <-> peer server)
@@ -52,6 +54,8 @@ PROXY:
   # ADN DMR Peer Server (master): IP or DNS hostname
   MASTER: "127.0.0.1"
   LISTEN_PORT: 62031
+  # Address the proxy binds to (Twisted interface=). UFW rebuild uses this as packet destination;
+  # leave empty only if binding all interfaces (then firewall uses one 'to any' rule for LISTEN_PORT).
   LISTEN_IP: ""
   DESTPORT_START: 54000
   DEST_PORT_END: 54100

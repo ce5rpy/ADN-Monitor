@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import time
 
+from ..domain.value_objects import ServerMode
 from .alias_service import AliasService
 from .monitor_controller import MonitorState
 
@@ -78,28 +79,29 @@ def rts_update_impl(
                 peer_ts["TYPE"] = peer_ts["SUB"] = peer_ts["CALL"] = ""
                 peer_ts["SRC"] = peer_ts["DEST"] = peer_ts["TG"] = peer_ts["TRX"] = ""
 
-    # OPENBRIDGES: one stream_id per OBP row is either RX or TX. END must only touch the OBP named in
-    # the event (system): e.g. END,TX on one leg (BCSQ / lost forward) clears that leg only; other OBP
-    # TX chips for the same call stay. END,RX clears RX on that OBP only — never all rows at once.
-
+    server_mode = getattr(state, "server_mode", ServerMode.LEGACY)
     if system in ctable.get("OPENBRIDGES", {}):
         streams = ctable["OPENBRIDGES"][system]["STREAMS"]
-        if action == "START":
-            tg_str = f"{destination}"
-            # Report server may emit multiple START lines with different stream_id for the same
-            # logical stream; keep one entry per (TRX, callsign, TG) so OPENBRIDGES.STREAMS does not grow duplicates.
-            for sid in list(streams):
-                if sid == stream_id:
-                    continue
-                ent = streams[sid]
-                if not isinstance(ent, (list, tuple)) or len(ent) < 3:
-                    continue
-                if ent[0] == trx and ent[1] == sub_call and ent[2] == tg_str:
-                    del streams[sid]
-            streams[stream_id] = (trx, sub_call, tg_str, timeout)
-        elif action == "END" and stream_id in streams:
-            ent = streams.get(stream_id)
-            if isinstance(ent, (list, tuple)) and len(ent) >= 1 and ent[0] == trx:
+        if server_mode == ServerMode.V2:
+            if action == "START":
+                tg_str = f"{destination}"
+                for sid in list(streams):
+                    if sid == stream_id:
+                        continue
+                    ent = streams[sid]
+                    if not isinstance(ent, (list, tuple)) or len(ent) < 3:
+                        continue
+                    if ent[0] == trx and ent[1] == sub_call and ent[2] == tg_str:
+                        del streams[sid]
+                streams[stream_id] = (trx, sub_call, tg_str, timeout)
+            elif action == "END" and stream_id in streams:
+                ent = streams.get(stream_id)
+                if isinstance(ent, (list, tuple)) and len(ent) >= 1 and ent[0] == trx:
+                    del streams[stream_id]
+        else:
+            if action == "START":
+                streams[stream_id] = (trx, sub_call, f"{destination}", timeout)
+            elif action == "END" and stream_id in streams:
                 del streams[stream_id]
 
     if system in ctable.get("PEERS", {}):

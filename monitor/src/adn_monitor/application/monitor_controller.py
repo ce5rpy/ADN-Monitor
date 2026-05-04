@@ -24,10 +24,11 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from collections import deque
-from ..domain import Failure, ReportProtocolError, Success, unwrap_or
+from ..domain import Failure, ReportProtocolError, ServerMode, Success, unwrap_or
 from ..domain.value_objects import Opcode
 from .alias_service import AliasService
 from .ports import (
@@ -110,6 +111,8 @@ class MonitorState:
         self.sys_dict: dict = {"lst_clean": 0}
         # Per-peer static TG from Clients.options (self-service DB); int_id -> {TS1_STATIC, TS2_STATIC}
         self.PEER_OPTIONS: dict = {}
+        self.server_mode: ServerMode = ServerMode.LEGACY
+        self.server_info: dict = {}
 
 
 def process_message(
@@ -155,10 +158,23 @@ def process_message(
     if opcode.value == Opcode.LINK_EVENT:
         return Success(None)
 
-    # BRDG_EVENT: START has 9 fields (no duration); END has 10. Require >= 9 so we decode, log and send START.
-    # Legacy reference: FDMR-Monitor2 v3 monitor_controller (same flow: sys_dict match + lstheard on END).
-    # Differences from legacy: legacy used len(parts) < 10 (START-only lines were dropped); orphan END
-    # was not persisted; no wall-clock merge with reported duration; lst_clean used 3s eviction (fixed below).
+    if opcode.value == Opcode.HELLO:
+        if not hasattr(state, "server_mode"):
+            logger.warning("HELLO: state has no server_mode attribute; skipping")
+            return Success(None)
+        try:
+            info = json.loads(raw_message[1:].decode("utf-8", errors="replace") or "{}")
+            if not isinstance(info, dict):
+                info = {}
+        except Exception as e:
+            logger.warning("(REPORT) HELLO payload not valid JSON (%s); mode=v2 empty info", e)
+            info = {}
+        state.server_mode = ServerMode.V2
+        state.server_info = info
+        logger.info("(REPORT) HELLO received: mode=v2 server=%s version=%s features=%s",
+                    info.get("server"), info.get("version"), info.get("features"))
+        return Success(None)
+
     if opcode.value == Opcode.BRDG_EVENT:
         parts = message[1:].split(",")
         if len(parts) < 9:

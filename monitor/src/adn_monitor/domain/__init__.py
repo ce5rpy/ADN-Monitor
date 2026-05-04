@@ -42,7 +42,7 @@ from .errors import (
     RepositoryError,
 )
 from .result import Failure, Result, Success, is_fail, is_ok, unwrap_or
-from .value_objects import DmrId, Callsign, ElapsedTime, Opcode, decode_utf8_field
+from .value_objects import DmrId, Callsign, ElapsedTime, Opcode, ServerMode, decode_utf8_field
 
 __all__ = [
     "BridgeSystemState",
@@ -64,6 +64,7 @@ __all__ = [
     "Opcode",
     "PeerAlias",
     "Result",
+    "ServerMode",
     "SubscriberAlias",
     "Success",
     "TalkgroupAlias",
