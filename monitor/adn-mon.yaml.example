@@ -46,25 +46,8 @@ ADN_CONNECTION:
   # ms to wait for HELLO (opcode 0xFF) before assuming legacy (no extra TCP opcodes; same as classic FDMR)
   HELLO_TIMEOUT_MS: 1500
 
-# ------------------------------------------------------------------------------
-# PROXY – Hotspot Proxy for ADN DMR Peer Server (repeaters <-> peer server)
-# Same file as monitor; set ADN_CONFIG_PATH in .env so the proxy uses this YAML.
-# ------------------------------------------------------------------------------
-PROXY:
-  # ADN DMR Peer Server (master): IP or DNS hostname
-  MASTER: "127.0.0.1"
-  LISTEN_PORT: 62031
-  # Address the proxy binds to (Twisted interface=). UFW rebuild uses this as packet destination;
-  # leave empty only if binding all interfaces (then firewall uses one 'to any' rule for LISTEN_PORT).
-  LISTEN_IP: ""
-  DESTPORT_START: 54000
-  DEST_PORT_END: 54100
-  TIMEOUT: 30
-  STATS: false
-  DEBUG: false
-  CLIENT_INFO: true
-  BLACK_LIST: []
-  IP_BLACK_LIST: {}
+# Hotspot Proxy has its own YAML: proxy/adn-proxy.yaml (see proxy/adn-proxy.example.yaml).
+# Legacy: you can still put a PROXY section in this file and point the proxy at it via ADN_CONFIG_PATH.
 
 # ------------------------------------------------------------------------------
 # OPB_FILTER
@@ -98,12 +81,11 @@ ALIASES:
   BRIDGE_LIST_URL: "https://adn.systems/files/server_ids.tsv"
 
 # ------------------------------------------------------------------------------
-# LOGGER – Settings for log files (LOG_FILE = monitor; PROXY_LOG_FILE = Hotspot Proxy)
+# LOGGER – monitor log file (Hotspot Proxy logs: proxy/adn-proxy.yaml)
 # ------------------------------------------------------------------------------
 LOGGER:
   LOG_PATH: "./log"
-  LOG_FILE: adn-mon.log
-  PROXY_LOG_FILE: hotspot-proxy.log
+  LOG_FILE: adn-monitor.log
   LOG_LEVEL: INFO
 
 # ------------------------------------------------------------------------------

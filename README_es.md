@@ -28,12 +28,12 @@ Dashboard para redes ADN: API en PHP, interfaz en React y proceso Python que con
 
 ## Configuración
 
-### 1. Config principal: `adn-mon.yaml`
+### 1. Config del monitor: `adn-monitor.yaml`
 
-Todo el comportamiento del dashboard y del monitor se define en **un solo YAML** en la carpeta del monitor:
+El dashboard y el monitor se configuran con YAML en la carpeta del monitor:
 
-- **Ruta típica:** `monitor/adn-mon.yaml`
-- Copia y adapta desde `monitor/adn-mon.yaml` (o crea uno desde cero). Ahí se configuran:
+- **Ruta típica:** `monitor/adn-monitor.yaml`
+- Copia y adapta desde `monitor/adn-monitor.yaml.example`. Ahí se configuran:
   - **GLOBAL**: bridges, lastheard, TG count, etc.
   - **SELF_SERVICE**: credenciales MySQL (backend + monitor).
   - **ADN_CONNECTION**: IP y puerto del servidor de reportes ADN.
@@ -42,7 +42,13 @@ Todo el comportamiento del dashboard y del monitor se define en **un solo YAML**
 
 Las rutas dentro del YAML (p. ej. `LOG_PATH`, `PATH` para archivos de alias) son relativas al directorio **monitor/** cuando ejecutas el monitor desde ahí.
 
-### 2. Variables de entorno: `.env`
+### 2. Config del Hotspot Proxy: `adn-proxy.yaml`
+
+El proxy UDP usa un YAML **aparte** (por defecto `proxy/adn-proxy.yaml`). Copia desde `proxy/adn-proxy.example.yaml`. Incluye **PROXY**, **SELF_SERVICE** (debe coincidir con el monitor en DB/PBKDF2) y **LOGGER** del proxy.
+
+- Si no defines **`ADN_PROXY_CONFIG_PATH`**, el proxy usa **`ADN_CONFIG_PATH`** (instalaciones antiguas con **PROXY** dentro de `adn-monitor.yaml`) o, por defecto, `proxy/adn-proxy.yaml`.
+
+### 3. Variables de entorno: `.env`
 
 Un único **`.env` en la raíz del proyecto** lo usan todos los componentes. Créalo a partir del ejemplo:
 
@@ -54,7 +60,8 @@ Edita `.env` y ajusta al menos:
 
 | Variable | Uso |
 |----------|-----|
-| **ADN_CONFIG_PATH** | Ruta absoluta a `adn-mon.yaml` (backend y monitor). Ej: `/opt/adn-monitor/monitor/adn-mon.yaml` |
+| **ADN_CONFIG_PATH** | Ruta absoluta a `adn-monitor.yaml` (backend y monitor). Ej: `/opt/adn-monitor/monitor/adn-monitor.yaml` |
+| **ADN_PROXY_CONFIG_PATH** | Opcional. Ruta absoluta a `adn-proxy.yaml`. Si se omite, el proxy usa `ADN_CONFIG_PATH` (legado) o por defecto `proxy/adn-proxy.yaml`. |
 | **ALIASES_BASE_URL** | Base URL para alias si no la defines en el YAML (backend). |
 | **VITE_API_BASE** | URL base de la API en el build del frontend. Vacío = mismo origen. |
 | **VITE_ALIASES_BASE_URL** | URL base para listas/alias (build). |
@@ -102,7 +109,7 @@ pip install -r requirements.txt   # PyYAML y dependencias del proyecto
 python3 monitor.py
 ```
 
-O: `./run.sh`. El monitor usa `monitor/adn-mon.yaml` (o `ADN_CONFIG_PATH`). En dev, el frontend suele conectar al WebSocket del monitor; en producción Nginx hace proxy de `/ws` al puerto del monitor (p. ej. 9000).
+O: `./run.sh`. El monitor usa `monitor/adn-monitor.yaml` (o `ADN_CONFIG_PATH`). En dev, el frontend suele conectar al WebSocket del monitor; en producción Nginx hace proxy de `/ws` al puerto del monitor (p. ej. 9000).
 
 ---
 
@@ -110,17 +117,17 @@ O: `./run.sh`. El monitor usa `monitor/adn-mon.yaml` (o `ADN_CONFIG_PATH`). En d
 
 ### 1. Base de datos (MySQL)
 
-Crea un usuario y una base para el monitor/backend (las credenciales van en `adn-mon.yaml`, sección **SELF_SERVICE**). Luego crea o actualiza las tablas desde el monitor:
+Crea un usuario y una base para el monitor/backend (las credenciales van en `adn-monitor.yaml`, sección **SELF_SERVICE**). Luego crea o actualiza las tablas desde el monitor:
 
 ```bash
 cd /opt/adn-monitor/monitor
-python3 db_bootstrap.py --config adn-mon.yaml --create   # crear tablas
-python3 db_bootstrap.py --config adn-mon.yaml --update   # migraciones
+python3 db_bootstrap.py --config adn-monitor.yaml --create   # crear tablas
+python3 db_bootstrap.py --config adn-monitor.yaml --update   # migraciones
 ```
 
 ### 2. Configuración
 
-- Deja **adn-mon.yaml** en `monitor/` (o donde prefieras) y apunta **ADN_CONFIG_PATH** a ese archivo en `.env` y en Nginx/PHP-FPM si hace falta.
+- Deja **adn-monitor.yaml** en `monitor/` (o donde prefieras) y apunta **ADN_CONFIG_PATH** a ese archivo en `.env` y en Nginx/PHP-FPM si hace falta.
 - En la raíz del proyecto: `cp .env.example .env` y rellena **ADN_CONFIG_PATH**, **VITE_API_BASE**, etc. para producción.
 
 ### 3. Build del frontend
@@ -164,7 +171,7 @@ Edita el archivo y ajusta:
 
 - **server_name** (dominios)
 - **root** (ruta a `frontend/dist`)
-- **fastcgi_param ADN_CONFIG_PATH** (ruta a `adn-mon.yaml`)
+- **fastcgi_param ADN_CONFIG_PATH** (ruta a `adn-monitor.yaml`)
 - **upstream** del WebSocket (puerto del monitor, p. ej. 127.0.0.1:9000)
 - Si usas HTTPS: certificados y bloque `listen 443 ssl` (en el ejemplo está comentado)
 
@@ -177,7 +184,7 @@ sudo nginx -t && sudo systemctl reload nginx
 ### 7. Resumen producción
 
 1. MySQL creado y `db_bootstrap.py --create` / `--update` ejecutado.
-2. `adn-mon.yaml` y `.env` configurados; **ADN_CONFIG_PATH** apuntando al YAML.
+2. `adn-monitor.yaml` y `.env` configurados; **ADN_CONFIG_PATH** apuntando al YAML.
 3. `npm run build` en `frontend/` y Nginx sirviendo `frontend/dist/`.
 4. PHP-FPM sirviendo `backend/public` para `/api`.
 5. Monitor en ejecución (systemd) y Nginx haciendo proxy de `/ws` al puerto del monitor.
@@ -201,7 +208,7 @@ Para que todo el proyecto funcione por IPv6 (o dual-stack):
 
 | Componente | Qué hacer |
 |-------------|-----------|
-| **Monitor – WebSocket** | En `adn-mon.yaml`, dentro de `WEBSOCKET_SERVER`, pon `LISTEN_INTERFACE: "::"` para que el WebSocket del dashboard acepte IPv4 e IPv6. Por defecto `""` enlaza solo a IPv4. |
+| **Monitor – WebSocket** | En `adn-monitor.yaml`, dentro de `WEBSOCKET_SERVER`, pon `LISTEN_INTERFACE: "::"` para que el WebSocket del dashboard acepte IPv4 e IPv6. Por defecto `""` enlaza solo a IPv4. |
 | **Monitor – conexión al ADN** | Pon en `ADN_CONNECTION.ADN_IP` la IPv6 del servidor de reportes (o un hostname que resuelva a IPv6). No hace falta cambiar código. |
 | **Proxy** | Define la variable de entorno `ADN_PROXY_IPV6=1` y deja `PROXY.LISTEN_IP` vacío para que el proxy escuche en `::`. Usa una IPv6 o un hostname en `PROXY.MASTER` (los hostnames se resuelven al arranque). Ver `proxy/README.md`. |
 | **Backend (PHP)** | No hay que tocar la app. Configura el servidor web (Nginx/Apache) para escuchar en `[::]:80` y/o `[::]:443` y que la API sea accesible por IPv6. |
@@ -229,7 +236,7 @@ El **proxy** (Hotspot Proxy para ADN DMR Peer Server) es derivado del hotspot pr
 ## Más información
 
 - **Monitor (WebSocket, DB, ADN):** ver `monitor/README.md`.
-- **Config en YAML:** opciones y secciones en `monitor/adn-mon.yaml` (comentarios en el propio archivo).
+- **Config en YAML:** opciones y secciones en `monitor/adn-monitor.yaml` (comentarios en el propio archivo).
 
 ---
 

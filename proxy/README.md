@@ -10,22 +10,21 @@ This project is **GPL v3** and is a derivative of the original hotspot proxy:
 - **Credits**: Jon Lee, G4TSN; Norman Williams, M6NBP; Christian, OA4DOA
 - **This rewrite**: Copyright (C) 2026 Rodrigo Pérez, CE5RPY
 
-We have reimplemented it in a clean-architecture layout and integrated config with the ADN monitor YAML. The original and this derivative are free software under the [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html). You must preserve the license and attribution when distributing or modifying this code.
+We have reimplemented it in a clean-architecture layout; proxy settings live in **proxy/adn-proxy.yaml** (shared DB/PBKDF2 with the monitor must stay in sync). The original and this derivative are free software under the [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html). You must preserve the license and attribution when distributing or modifying this code.
 
 ## Config
 
-Configuration lives in the **monitor YAML** (`adn-mon.yaml`). The proxy reads the same file as the monitor and backend.
-
-- **Env**: In the **project root** there is a **`.env.example`** with the variables (including `ADN_CONFIG_PATH`). Copy it to `.env` and set the path to your `adn-mon.yaml`; `.env` is not committed.
-- **ADN_CONFIG_PATH**: Path to `adn-mon.yaml` (used by backend, monitor and proxy).
+- **Default file:** `proxy/adn-proxy.yaml` (copy from `adn-proxy.example.yaml`).
+- **ADN_PROXY_CONFIG_PATH**: Optional absolute path to that YAML (see root `.env.example`).
+- **Legacy:** If `ADN_PROXY_CONFIG_PATH` is unset, the proxy uses **`ADN_CONFIG_PATH`** (same single file as monitor/backend) or falls back to `proxy/adn-proxy.yaml`.
 
 **PROXY.MASTER** in the YAML can be an **IP address** or a **DNS hostname**. The proxy resolves hostnames to an IP at startup (Twisted UDP `write()` accepts only IPs). If resolution fails, the proxy exits with an error.
 
-The YAML must include a **PROXY** section (see `monitor/adn-mon.yaml.example`). Optional env overrides: `ADN_PROXY_DEBUG` (log raw packets), `ADN_PROXY_IPV6`, `ADN_PROXY_STATS`, `ADN_PROXY_CLIENTINFO`, `ADN_PROXY_LISTENPORT`.
+The YAML must include a **PROXY** section (see `adn-proxy.example.yaml`). Optional env overrides: `ADN_PROXY_DEBUG` (log raw packets), `ADN_PROXY_IPV6`, `ADN_PROXY_STATS`, `ADN_PROXY_CLIENTINFO`, `ADN_PROXY_LISTENPORT`.
 
 ### Debug (temporary)
 
-- In YAML: set `PROXY.Debug: true` in `adn-mon.yaml`.
+- In YAML: set `PROXY.Debug: true` in `adn-proxy.yaml` (or your legacy combined YAML).
 - Or without editing config: set env **ADN_PROXY_DEBUG=1** (e.g. in the systemd unit or `.env`). Then restart the proxy. Debug logs raw UDP packets (hex/bytes) and reaper events.
 
 ### Master (DMR Peer Server) must listen on the proxy’s port range
@@ -52,17 +51,17 @@ If the peer server does not send reports to the monitor, or uses a different rep
 
 - Python 3.10+
 - Twisted, PyYAML
-- MySQL for self-service (same DB/schema as monitor; uses **SELF_SERVICE** in the same YAML).
+- MySQL for self-service (same DB/schema as monitor; **SELF_SERVICE** must match `adn-monitor.yaml`).
 - Optional: Pyro5 (priv helper), dmr_utils3, setproctitle
 
 ## Run
 
-From the project root (or proxy directory), with `ADN_CONFIG_PATH` set to the monitor YAML (e.g. via `.env`):
+From the project root (or proxy directory), with `ADN_PROXY_CONFIG_PATH` or default `proxy/adn-proxy.yaml` (or legacy `ADN_CONFIG_PATH`):
 
 ```bash
 python proxy/proxy.py
 # or override config path
-python proxy/proxy.py --config /path/to/adn-mon.yaml
+python proxy/proxy.py --config /path/to/adn-proxy.yaml
 ```
 
 ## Layout

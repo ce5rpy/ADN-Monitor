@@ -1,0 +1,42 @@
+# Hotspot Proxy configuration (YAML)
+# Copy to adn-proxy.yaml in this folder (see .gitignore). Read at proxy startup only.
+#
+# SELF_SERVICE must match monitor/adn-monitor.yaml (same DB credentials / PBKDF2) so self-service
+# and the proxy agree on passwords and options.
+
+# ------------------------------------------------------------------------------
+# PROXY – Hotspot Proxy for ADN DMR Peer Server (repeaters <-> peer server)
+# ------------------------------------------------------------------------------
+PROXY:
+  MASTER: "127.0.0.1"
+  LISTEN_PORT: 62031
+  LISTEN_IP: ""
+  DESTPORT_START: 54000
+  DEST_PORT_END: 54100
+  TIMEOUT: 30
+  STATS: false
+  DEBUG: false
+  CLIENT_INFO: true
+  BLACK_LIST: []
+  IP_BLACK_LIST: {}
+
+# ------------------------------------------------------------------------------
+# SELF_SERVICE – same MySQL + PBKDF2 as monitor/adn-monitor.yaml
+# ------------------------------------------------------------------------------
+SELF_SERVICE:
+  USE_SELFSERVICE: true
+  DB_SERVER: localhost
+  DB_USERNAME: self_service_user
+  DB_PASSWORD: your-password
+  DB_NAME: self_service
+  DB_PORT: 3306
+  PBKDF2_SALT: "ADN"
+  PBKDF2_ITERATIONS: 2000
+
+# ------------------------------------------------------------------------------
+# LOGGER – proxy log file only (monitor uses adn-mon.log from its own YAML)
+# ------------------------------------------------------------------------------
+LOGGER:
+  LOG_PATH: "./log"
+  PROXY_LOG_FILE: hotspot-proxy.log
+  LOG_LEVEL: INFO

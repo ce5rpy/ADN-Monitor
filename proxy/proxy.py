@@ -23,11 +23,11 @@
 Hotspot Proxy for ADN DMR Peer Server.
 
 UDP proxy between repeaters (Homebrew protocol) and the ADN DMR Peer Server.
-Config is in the monitor YAML (adn-mon.yaml); use ADN_CONFIG_PATH in .env like the
-backend and monitor.
+Default config: proxy/adn-proxy.yaml. Set ADN_PROXY_CONFIG_PATH in .env, or use
+ADN_CONFIG_PATH to reuse the monitor YAML (legacy single-file install).
 
   python proxy.py
-  python proxy.py --config /path/to/adn-mon.yaml
+  python proxy.py --config /path/to/adn-proxy.yaml
 """
 
 from __future__ import annotations
@@ -62,9 +62,13 @@ from adn_proxy.infrastructure.persistence import ProxyDbRepository
 
 __version__ = "2.0.0"
 
-# Config file: same as monitor (adn-mon.yaml). Set ADN_CONFIG_PATH in .env.
-_DEFAULT_CONFIG = str(_ROOT.parent / "monitor" / "adn-mon.yaml")
-CONFIG_FILE = os.environ.get("ADN_CONFIG_PATH", _DEFAULT_CONFIG)
+# Config: ADN_PROXY_CONFIG_PATH, else ADN_CONFIG_PATH (legacy one YAML), else proxy/adn-proxy.yaml
+_DEFAULT_CONFIG = str(_ROOT / "adn-proxy.yaml")
+CONFIG_FILE = (
+    os.environ.get("ADN_PROXY_CONFIG_PATH")
+    or os.environ.get("ADN_CONFIG_PATH")
+    or _DEFAULT_CONFIG
+)
 for i, arg in enumerate(sys.argv[1:]):
     if arg == "--config" and i + 2 <= len(sys.argv):
         CONFIG_FILE = sys.argv[i + 2]

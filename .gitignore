@@ -14,7 +14,8 @@ backend/.env
 *.local
 *.local.yaml
 *.local.yml
-monitor/adn-mon.yaml
+monitor/adn-monitor.yaml
+proxy/adn-proxy.yaml
 
 # -----------------------------------------------------------------------------
 # Node

@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 
-"""Load proxy config from monitor YAML (adn-mon.yaml). Reads PROXY, SELF_SERVICE, LOGGER."""
+"""Load proxy config from YAML (adn-proxy.yaml or legacy monitor adn-monitor.yaml). Reads PROXY, SELF_SERVICE, LOGGER."""
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ def _str(val: object) -> str:
 
 def load_config(cfg_file: str) -> Result[dict, ConfigError]:
     """
-    Load config from monitor YAML (adn-mon.yaml). Same file as monitor; use ADN_CONFIG_PATH.
+    Load proxy YAML (typically proxy/adn-proxy.yaml). Legacy installs may pass monitor/adn-monitor.yaml.
     Returns Success(config_dict) or Failure(ConfigError).
     config_dict has keys: PROXY, SELF_SERVICE, LOG (from LOGGER section).
     """
