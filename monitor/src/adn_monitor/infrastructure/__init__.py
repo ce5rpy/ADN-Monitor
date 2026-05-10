@@ -22,7 +22,7 @@
 
 
 from .config_loader import load_config
-from .logging_config import create_logger
+from .logging_config import create_logger, reopen_file_handlers
 from .report_payload_decoder import PickleJsonReportPayloadDecoder
 from .repositories import (
     MoniDBAliasRepository,
@@ -39,6 +39,7 @@ from .twisted_adapters import (
 
 __all__ = [
     "create_logger",
+    "reopen_file_handlers",
     "DashboardBroadcast",
     "load_config",
     "make_dashboard_factory",

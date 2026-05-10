@@ -56,6 +56,7 @@ from adn_proxy.infrastructure import (
     create_pool,
     create_priv_helper,
     load_config,
+    reopen_file_handlers,
     test_db,
 )
 from adn_proxy.infrastructure.persistence import ProxyDbRepository
@@ -228,8 +229,14 @@ def main() -> None:
         logger.info("(GLOBAL) SHUTDOWN: PROXY IS TERMINATING WITH SIGNAL %s", sig)
         reactor.stop()
 
+    def sigusr2_reopen_logs(_sig, _frame):
+        """Logrotate: reopen file log handlers (does not reload config)."""
+        n = reopen_file_handlers()
+        logger.info("(LOGGER) Reopened %s file log handler(s) after SIGUSR2", n)
+
     signal.signal(signal.SIGTERM, sig_handler)
     signal.signal(signal.SIGINT, sig_handler)
+    signal.signal(signal.SIGUSR2, sigusr2_reopen_logs)
 
     def start_server():
         reactor.listenUDP(listen_port, proxy_protocol, interface=listen_ip)

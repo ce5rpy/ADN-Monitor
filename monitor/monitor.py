@@ -37,6 +37,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import signal
 import sys
 import urllib.request
 from pathlib import Path
@@ -57,7 +58,7 @@ from twisted.internet.defer import inlineCallbacks
 from twisted.internet.threads import deferToThread
 
 # Config and logging (infrastructure, clean architecture)
-from adn_monitor.infrastructure import create_logger, load_config
+from adn_monitor.infrastructure import create_logger, load_config, reopen_file_handlers
 
 # Persistence: pool + repos
 from adn_monitor.domain import is_fail
@@ -647,6 +648,13 @@ def main():
         "\n\n\tCopyright (C) Rodrigo Pérez <ce5rpy@qmd.cl>\n\t"
         "License: GPLv3 — ADN Systems Monitor\n\n"
     )
+
+    def sigusr2_reopen_logs(_sig, _frame):
+        """Logrotate: reopen file log handlers (does not reload config)."""
+        n = reopen_file_handlers()
+        logger.info("(LOGGER) Reopened %s file log handler(s) after SIGUSR2", n)
+
+    signal.signal(signal.SIGUSR2, sigusr2_reopen_logs)
 
     pool = create_pool(
         CONF["DB"]["SERVER"],

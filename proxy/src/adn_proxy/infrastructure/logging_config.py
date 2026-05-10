@@ -19,9 +19,37 @@
 from __future__ import annotations
 
 import logging
+import sys
 from pathlib import Path
 
 from logging.config import dictConfig
+
+
+def reopen_file_handlers(logger: logging.Logger | None = None) -> int:
+    """Reopen all :class:`logging.FileHandler` streams on *logger* (default: root).
+
+    Use after **logrotate** moves/renames the log file (``create`` + ``postrotate``).
+    Typically invoked from **SIGUSR2**. Does not reload YAML. Returns handlers reopened.
+    """
+    target = logger if logger is not None else logging.root
+    count = 0
+    for handler in target.handlers:
+        if not isinstance(handler, logging.FileHandler):
+            continue
+        handler.acquire()
+        try:
+            handler.flush()
+            if handler.stream:
+                handler.stream.close()
+            handler.stream = handler._open()
+            count += 1
+        except OSError as e:
+            sys.stderr.write(
+                "(LOGGER) Could not reopen log file %s: %s\n" % (getattr(handler, "baseFilename", "?"), e)
+            )
+        finally:
+            handler.release()
+    return count
 
 
 def create_logger(conf: dict) -> logging.Logger:

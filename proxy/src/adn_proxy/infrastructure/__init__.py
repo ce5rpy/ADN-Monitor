@@ -16,13 +16,14 @@
 
 
 from .config_loader import load_config
-from .logging_config import create_logger
+from .logging_config import create_logger, reopen_file_handlers
 from .persistence import ProxyDbRepository, create_pool, test_db
 from .priv_helper import PyroPrivHelper, create_priv_helper
 from .twisted_adapters import ProxyProtocol
 
 __all__ = [
     "create_logger",
+    "reopen_file_handlers",
     "create_pool",
     "create_priv_helper",
     "load_config",
