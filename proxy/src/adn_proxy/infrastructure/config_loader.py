@@ -22,7 +22,7 @@ from pathlib import Path
 
 import yaml
 
-from ..domain import ConfigError, Failure, Result, Success
+from ..domain import ConfigError, Failure, Result, Success, is_fail
 
 
 def _bool(val: object) -> bool:
@@ -50,6 +50,42 @@ def _str(val: object) -> str:
     return str(val).strip()
 
 
+def _resolve_udp_dest_pool(px: dict) -> Result[tuple[int, int, int], ConfigError]:
+    """Compute inclusive UDP port pool on MASTER.
+
+    Same semantics as ``adn-server`` SYSTEM **PORT** + **GENERATOR**: listeners at
+    ``PORT + i`` for ``i`` in ``0 .. GENERATOR-1``. **GENERATOR** is required (match the
+    server's SYSTEM **GENERATOR**). ``DEST_PORT_END`` is not supported in YAML.
+    """
+    if px.get("DEST_PORT_END") is not None or px.get("DestPortEnd") is not None:
+        return Failure(
+            ConfigError(
+                "PROXY DEST_PORT_END is no longer supported; use PORT (or DESTPORT_START) "
+                "and GENERATOR (same integer as adn-server SYSTEM GENERATOR)."
+            )
+        )
+
+    dest_start = _int(
+        px.get("PORT") or px.get("DESTPORT_START") or px.get("DestportStart"),
+        56400,
+    )
+    gen_raw = px.get("GENERATOR")
+    if gen_raw is None:
+        gen_raw = px.get("Generator")
+    gen = _int(gen_raw, 0) if gen_raw is not None else 0
+
+    if gen > 0:
+        return Success((dest_start, dest_start + gen - 1, gen))
+
+    return Failure(
+        ConfigError(
+            "PROXY has no UDP listener pool: set GENERATOR (same integer as "
+            "adn-server SYSTEM GENERATOR) with PORT (or DESTPORT_START) matching SYSTEM PORT; "
+            "UDP ports on MASTER must be PORT through PORT+GENERATOR-1."
+        )
+    )
+
+
 def load_config(cfg_file: str) -> Result[dict, ConfigError]:
     """
     Load proxy YAML (typically proxy/adn-proxy.yaml). Legacy installs may pass monitor/adn-monitor.yaml.
@@ -74,12 +110,17 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
 
     # PROXY (YAML keys in UPPERCASE)
     px = data.get("PROXY") or {}
+    pool_r = _resolve_udp_dest_pool(px)
+    if is_fail(pool_r):
+        return Failure(pool_r.error)
+    dest_start, dest_end, generator_slots = pool_r.value
     CONF["PROXY"] = {
         "Master": _str(px.get("MASTER") or px.get("Master", "127.0.0.1")),
         "ListenPort": _int(px.get("LISTEN_PORT") or px.get("ListenPort"), 62031),
         "ListenIP": _str(px.get("LISTEN_IP") or px.get("ListenIP", "")),
-        "DestportStart": _int(px.get("DESTPORT_START") or px.get("DestportStart"), 54000),
-        "DestPortEnd": _int(px.get("DEST_PORT_END") or px.get("DestPortEnd"), 54100),
+        "DestportStart": dest_start,
+        "DestPortEnd": dest_end,
+        "GENERATOR": generator_slots,
         "Timeout": _int(px.get("TIMEOUT") or px.get("Timeout"), 30),
         "Stats": _bool(px.get("STATS") if px.get("STATS") is not None else px.get("Stats", False)),
         "Debug": _bool(px.get("DEBUG") if px.get("DEBUG") is not None else px.get("Debug", False)),

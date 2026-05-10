@@ -101,7 +101,7 @@ class ProxyProtocol(DatagramProtocol):
         self.client_info = client_info
         self.dest_port_start = dest_port_start
         self.dest_port_end = dest_port_end
-        self.num_ports = dest_port_end - dest_port_start
+        self.num_ports = dest_port_end - dest_port_start + 1
         self.priv_helper = priv_helper
         self.db_proxy = db_proxy
         self.use_selfservice = use_selfservice

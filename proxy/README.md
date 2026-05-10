@@ -29,7 +29,7 @@ The YAML must include a **PROXY** section (see `adn-proxy.example.yaml`). Option
 
 ### Master (DMR Peer Server) must listen on the proxy’s port range
 
-The proxy forwards each client to the **master** at `MASTER:DESTPORT_START` … `MASTER:DEST_PORT_END` (e.g. `127.0.0.1:54000`–`127.0.0.1:54100`), one port per client. The **ADN DMR Peer Server** (or compatible master) must be configured to listen on that same address and port range. If the master only listens on a single port (e.g. 62031), it will never receive the proxy’s traffic and clients will not connect. Configure the peer server to bind to `MASTER` and the range given by `DESTPORT_START`/`DEST_PORT_END` in the YAML.
+Set **`PROXY.PORT`** and **`PROXY.GENERATOR`** to match **`SYSTEM.PORT`** and **`SYSTEM.GENERATOR`** in `adn-server` (same integers). The proxy forwards each client to **MASTER** at one UDP port per session, chosen from **`PORT` … `PORT+GENERATOR-1`** (inclusive). The peer server must listen on that full range on **`MASTER`** (e.g. `127.0.0.1`). If the master only binds one UDP port, proxied clients will not complete login.
 
 ### When does the proxy notify the server (FreeDMR/ADN) and the hotspot about TG/options?
 

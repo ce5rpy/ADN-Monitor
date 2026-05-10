@@ -121,6 +121,14 @@ def main() -> None:
     listen_ip = px["ListenIP"] or ""
     dest_start = px["DestportStart"]
     dest_end = px["DestPortEnd"]
+    logger.info(
+        "Proxy UDP pool on MASTER (same as adn-server SYSTEM PORT+GENERATOR): %s..%s inclusive "
+        "(%d UDP listeners, GENERATOR=%s)",
+        dest_start,
+        dest_end,
+        dest_end - dest_start + 1,
+        px["GENERATOR"],
+    )
     timeout_sec = px["Timeout"]
     stats_enabled = px["Stats"]
     debug = px["Debug"]

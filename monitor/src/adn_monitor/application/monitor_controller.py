@@ -75,12 +75,22 @@ def _apply_bridges_to_state(
     build_tgstats(state)
 
 
-def _ctable_counts(state: MonitorState) -> tuple[int, int, int]:
-    """Return (MASTERS count, PEERS count, OPENBRIDGES count) for logging."""
+def _ctable_counts(state: MonitorState) -> tuple[int, int, int, int]:
+    """Return counts for logging.
+
+    The flat ``CTABLE["PEERS"]`` dict is **only** XLXPEER / standalone PEER systems from
+    YAML — not hotspots under MASTER. Hotspots live under ``MASTERS[name]["PEERS"]``.
+    ``nested_peers`` sums radio IDs under all masters (what operators usually mean by “hotspots”).
+    """
+    nested_peers = 0
+    for master in state.CTABLE.get("MASTERS", {}).values():
+        if isinstance(master, dict):
+            nested_peers += len(master.get("PEERS", {}))
     return (
         len(state.CTABLE.get("MASTERS", {})),
         len(state.CTABLE.get("PEERS", {})),
         len(state.CTABLE.get("OPENBRIDGES", {})),
+        nested_peers,
     )
 
 
@@ -140,8 +150,14 @@ def process_message(
         decode_result = report_decoder.decode_config(raw_message)
         config_dict = unwrap_or(decode_result, {})
         _apply_config_to_state(state, config_dict, config_global)
-        n_m, n_p, n_o = _ctable_counts(state)
-        logger.info("(REPORT) CONFIG applied: CTABLE MASTERS=%d PEERS=%d OPENBRIDGES=%d", n_m, n_p, n_o)
+        n_m, n_p, n_o, n_mp = _ctable_counts(state)
+        logger.info(
+            "(REPORT) CONFIG applied: CTABLE MASTERS=%d PEERS=%d OPENBRIDGES=%d MASTER_PEERS=%d",
+            n_m,
+            n_p,
+            n_o,
+            n_mp,
+        )
         return Success(None)
 
     if opcode.value == Opcode.BRIDGE_SND:

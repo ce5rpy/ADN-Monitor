@@ -46,9 +46,6 @@ ADN_CONNECTION:
   # ms to wait for HELLO (opcode 0xFF) before assuming legacy (no extra TCP opcodes; same as classic FDMR)
   HELLO_TIMEOUT_MS: 1500
 
-# Hotspot Proxy has its own YAML: proxy/adn-proxy.yaml (see proxy/adn-proxy.example.yaml).
-# Legacy: you can still put a PROXY section in this file and point the proxy at it via ADN_CONFIG_PATH.
-
 # ------------------------------------------------------------------------------
 # OPB_FILTER
 # Generally you don't need to use this but if you don't want to show in lastheard
@@ -81,7 +78,7 @@ ALIASES:
   BRIDGE_LIST_URL: "https://adn.systems/files/server_ids.tsv"
 
 # ------------------------------------------------------------------------------
-# LOGGER – monitor log file (Hotspot Proxy logs: proxy/adn-proxy.yaml)
+# LOGGER
 # ------------------------------------------------------------------------------
 LOGGER:
   LOG_PATH: "./log"

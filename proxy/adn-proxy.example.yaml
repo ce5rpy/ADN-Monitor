@@ -3,6 +3,8 @@
 #
 # SELF_SERVICE must match monitor/adn-monitor.yaml (same DB credentials / PBKDF2) so self-service
 # and the proxy agree on passwords and options.
+#
+# Use the same PORT + GENERATOR as new-adn-server adn-server.example.yaml (SYSTEM block).
 
 # ------------------------------------------------------------------------------
 # PROXY – Hotspot Proxy for ADN DMR Peer Server (repeaters <-> peer server)
@@ -11,8 +13,8 @@ PROXY:
   MASTER: "127.0.0.1"
   LISTEN_PORT: 62031
   LISTEN_IP: ""
-  DESTPORT_START: 54000
-  DEST_PORT_END: 54100
+  PORT: 56400
+  GENERATOR: 102
   TIMEOUT: 30
   STATS: false
   DEBUG: false
@@ -38,5 +40,5 @@ SELF_SERVICE:
 # ------------------------------------------------------------------------------
 LOGGER:
   LOG_PATH: "./log"
-  PROXY_LOG_FILE: hotspot-proxy.log
+  PROXY_LOG_FILE: adn-proxy.log
   LOG_LEVEL: INFO
