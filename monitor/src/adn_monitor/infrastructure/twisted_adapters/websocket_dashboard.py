@@ -37,7 +37,7 @@ from ...application import ws_ctable_views
 from ...application.monitor_controller import MonitorState
 from ...application.ports import BroadcastPort
 
-logger = logging.getLogger("adn-mon")
+logger = logging.getLogger("adn-monitor")
 
 # Group names matching original GROUPS
 GROUP_NAMES = (

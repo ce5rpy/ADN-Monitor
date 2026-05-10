@@ -40,7 +40,7 @@ from .ports import (
 )
 from .time_utils import format_display_datetime, format_utc_naive_datetime, time_str
 
-logger = logging.getLogger("adn-mon")
+logger = logging.getLogger("adn-monitor")
 
 # Orphan START rows in sys_dict: must survive long PTTs (same cap as clean_sys_dict).
 # A prior 3s threshold deleted active calls' START before END arrived → no match, wrong LH.

@@ -37,7 +37,7 @@ from ...application.ports import TgCountRepository
 from ...application.time_utils import format_utc_naive_date
 from ..persistence.db_pool import sec_time
 
-logger = logging.getLogger("adn-mon")
+logger = logging.getLogger("adn-monitor")
 
 
 class MoniDBTgCountRepository(TgCountRepository):

@@ -26,8 +26,8 @@
 Bootstrap DB schema (create or update tables).
 
 Usage:
-  python db_bootstrap.py --config adn-mon.yaml --create   # create tables
-  python db_bootstrap.py --config adn-mon.yaml --update  # run migrations
+  python db_bootstrap.py --config adn-monitor.yaml --create   # create tables
+  python db_bootstrap.py --config adn-monitor.yaml --update  # run migrations
 """
 
 from __future__ import annotations
@@ -48,7 +48,7 @@ from adn_monitor.domain import is_fail
 from adn_monitor.infrastructure import load_config
 from adn_monitor.infrastructure.persistence import create_pool, test_db, create_tables, updt_table
 
-CONFIG_FILE = os.environ.get("ADN_CONFIG_PATH", str(_ROOT / "adn-mon.yaml"))
+CONFIG_FILE = os.environ.get("ADN_CONFIG_PATH", str(_ROOT / "adn-monitor.yaml"))
 for i, arg in enumerate(sys.argv[1:]):
     if arg == "--config" and i + 2 <= len(sys.argv):
         CONFIG_FILE = sys.argv[i + 2]

@@ -19,7 +19,7 @@ use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-/** Proxies configured world server status JSON (same-origin for the SPA; URL from adn-mon.yaml). */
+/** Proxies configured world server status JSON (same-origin for the SPA; URL from adn-monitor.yaml). */
 final class ServersStatusController
 {
     private const DEFAULT_URL = 'https://adn.systems/servers/status.json';

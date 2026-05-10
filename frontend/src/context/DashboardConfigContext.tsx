@@ -65,7 +65,7 @@ type DashboardConfig = {
   background: boolean;
   /** Show/hide local Self-service nav item only. SelfCare link is always in header (hardcoded). */
   selfService: boolean;
-  /** Show Console page in Info menu (call start/end messages). Set show_console in adn-mon.yaml DASHBOARD. */
+  /** Show Console page in Info menu (call start/end messages). Set show_console in adn-monitor.yaml DASHBOARD. */
   showConsole: boolean;
   /** Footer links: same structure as nav_links items (name + url) */
   footer: NavLinkItem[];
@@ -107,7 +107,7 @@ const getApiBase = (): string =>
 /**
  * Dashboard config flow:
  * 1. Frontend requests GET {apiBase}/api/config/dashboard
- * 2. Backend (PHP) reads monitor/adn-mon.yaml (path from ADN_CONFIG_PATH env or .env)
+ * 2. Backend (PHP) reads monitor/adn-monitor.yaml (path from ADN_CONFIG_PATH env or .env)
  * 3. Backend returns JSON with title (DASHTITLE), language, footer1, footer2, etc.
  * 4. If the request fails (no backend, CORS, wrong VITE_API_BASE), defaultConfig is used.
  * Build: set VITE_API_BASE to '' for same-origin (nginx must proxy /api to PHP).

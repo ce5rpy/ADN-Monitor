@@ -34,7 +34,7 @@ from twisted.enterprise import adbapi
 from ...application.ports import AliasRepository
 from ...domain.entities import PeerAlias, SubscriberAlias, TalkgroupAlias
 
-logger = logging.getLogger("adn-mon")
+logger = logging.getLogger("adn-monitor")
 
 # Cap in-memory caches to avoid unbounded growth
 MAX_SUBSCRIBER_CACHE = 100_000

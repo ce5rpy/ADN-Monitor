@@ -40,7 +40,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 
 from ...domain import Failure, RepositoryError, Result, Success
 
-logger = logging.getLogger("adn-mon")
+logger = logging.getLogger("adn-monitor")
 
 
 def sec_time(_time: int | float) -> str:

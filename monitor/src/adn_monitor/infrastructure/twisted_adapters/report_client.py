@@ -44,7 +44,7 @@ from ...application.ports import (
 from ...domain import is_fail
 from ...domain.value_objects import Opcode, ServerMode
 
-logger = logging.getLogger("adn-mon")
+logger = logging.getLogger("adn-monitor")
 
 # Increase if HBlink link break occurs
 NetstringReceiver.MAX_LENGTH = 5000000

@@ -28,8 +28,8 @@ ADN Systems Monitor
 Dependencies: monitor/ + src/adn_monitor (config and logging in infrastructure). Sends JSON over WebSocket.
 
 Run from monitor with:
-  python monitor.py [--config adn-mon.yaml]
-Default config: monitor/adn-mon.yaml
+  python monitor.py [--config adn-monitor.yaml]
+Default config: monitor/adn-monitor.yaml
 """
 
 from __future__ import annotations
@@ -94,7 +94,7 @@ from adn_monitor.infrastructure import (
 __version__ = "1.0.0"
 
 # Config file: env ADN_CONFIG_PATH, or --config, or this folder
-CONFIG_FILE = os.environ.get("ADN_CONFIG_PATH", str(_ROOT / "adn-mon.yaml"))
+CONFIG_FILE = os.environ.get("ADN_CONFIG_PATH", str(_ROOT / "adn-monitor.yaml"))
 for i, arg in enumerate(sys.argv[1:]):
     if arg == "--config" and i + 2 <= len(sys.argv):
         CONFIG_FILE = sys.argv[i + 2]

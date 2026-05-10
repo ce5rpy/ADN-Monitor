@@ -20,7 +20,7 @@
 # HBmonitor (Cortney T. Buffington, N0MJS, Copyright (C) 2013-2018).
 # Original works and this derivative are under GPLv3.
 
-"""Load monitor config from YAML (adn-mon.yaml). Returns Result (Success/Failure)."""
+"""Load monitor config from YAML (adn-monitor.yaml). Returns Result (Success/Failure)."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ import yaml
 
 from ..domain import ConfigError, Failure, Result, Success
 
-logger = logging.getLogger("adn-mon")
+logger = logging.getLogger("adn-monitor")
 
 
 def _bool(val: object) -> bool:
@@ -61,7 +61,7 @@ def _str(val: object) -> str:
 
 def load_config(cfg_file: str) -> Result[dict, ConfigError]:
     """
-    Load config from YAML (adn-mon.yaml).
+    Load config from YAML (adn-monitor.yaml).
     Returns Success(config_dict) or Failure(ConfigError).
     config_dict has keys: GLOBAL, ADN_CXN, OPB_FLTR, FILES, LOG, WS, DASHBOARD, DB (if present), ALIASES (if present).
     """
@@ -159,7 +159,7 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
     # LOGGER
     log = data.get("LOGGER") or {}
     log_path = _str(log.get("LOG_PATH", "./log"))
-    log_file = _str(log.get("LOG_FILE", "adn-mon.log"))
+    log_file = _str(log.get("LOG_FILE", "adn-monitor.log"))
     CONF["LOG"] = {
         "PATH": log_path,
         "LOG_FILE": log_file,

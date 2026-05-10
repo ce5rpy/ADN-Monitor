@@ -37,7 +37,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from ...application.ports import LastHeardRepository
 from ...application.time_utils import format_utc_naive_datetime
 
-logger = logging.getLogger("adn-mon")
+logger = logging.getLogger("adn-monitor")
 
 
 class MoniDBLastHeardRepository(LastHeardRepository):

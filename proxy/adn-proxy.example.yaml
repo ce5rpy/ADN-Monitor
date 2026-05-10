@@ -34,7 +34,7 @@ SELF_SERVICE:
   PBKDF2_ITERATIONS: 2000
 
 # ------------------------------------------------------------------------------
-# LOGGER – proxy log file only (monitor uses adn-mon.log from its own YAML)
+# LOGGER – proxy log file only (monitor uses adn-monitor.log from its own YAML)
 # ------------------------------------------------------------------------------
 LOGGER:
   LOG_PATH: "./log"

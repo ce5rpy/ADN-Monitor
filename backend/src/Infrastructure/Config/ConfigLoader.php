@@ -32,7 +32,7 @@ namespace AdnSystemsMonitor\Backend\Infrastructure\Config;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * Loads adn-mon config from YAML (adn-mon.yaml).
+ * Loads monitor config from YAML (adn-monitor.yaml).
  * Section and key names are preserved; lowercase key aliases are added for compatibility
  * with code that expects lowercased option names.
  */
@@ -85,7 +85,7 @@ final class ConfigLoader
 
     public static function fromEnv(): self
     {
-        $path = $_ENV['ADN_CONFIG_PATH'] ?? dirname(__DIR__, 3) . '/../adn-mon.yaml';
+        $path = $_ENV['ADN_CONFIG_PATH'] ?? dirname(__DIR__, 4) . '/monitor/adn-monitor.yaml';
         return new self($path);
     }
 }

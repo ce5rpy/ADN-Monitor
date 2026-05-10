@@ -60,7 +60,7 @@ if (is_file($projectRoot . '/.env')) {
     $dotenv->safeLoad();
 }
 
-// Path to adn-mon.yaml: after .env load, prefer $_ENV (what Dotenv wrote), then $_SERVER (e.g. nginx), then getenv, then default
+// Path to adn-monitor.yaml: after .env load, prefer $_ENV (what Dotenv wrote), then $_SERVER (e.g. nginx), then getenv, then default
 $configPath = ($_ENV['ADN_CONFIG_PATH'] ?? $_SERVER['ADN_CONFIG_PATH'] ?? null);
 if ($configPath !== null && $configPath !== '') {
     $configPath = trim((string) $configPath);
@@ -68,7 +68,7 @@ if ($configPath !== null && $configPath !== '') {
     $configPath = getenv('ADN_CONFIG_PATH') ?: null;
     $configPath = ($configPath !== false && $configPath !== '') ? trim((string) $configPath) : null;
 }
-$defaultYaml = $projectRoot . '/monitor/adn-mon.yaml';
+$defaultYaml = $projectRoot . '/monitor/adn-monitor.yaml';
 if ($configPath === null || $configPath === '' || !is_readable($configPath)) {
     $configPath = $defaultYaml;
 }

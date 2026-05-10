@@ -39,7 +39,7 @@ from zoneinfo import ZoneInfo
 
 from ..domain.value_objects import ElapsedTime
 
-logger = logging.getLogger("adn-mon")
+logger = logging.getLogger("adn-monitor")
 
 
 def get_display_zone(config_global: dict[str, Any] | None) -> ZoneInfo | None:

@@ -31,7 +31,7 @@ from pickle import loads
 from adn_monitor.application.ports import ReportPayloadDecoder
 from adn_monitor.domain import Failure, ReportProtocolError, Success
 
-logger = logging.getLogger("adn-mon")
+logger = logging.getLogger("adn-monitor")
 
 # Payload kind constants (Clean Code: no magic strings in logic)
 CONFIG_PAYLOAD = "CONFIG"

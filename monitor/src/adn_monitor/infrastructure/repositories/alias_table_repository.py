@@ -36,7 +36,7 @@ from twisted.enterprise import adbapi
 
 from ...application.ports import AliasTableRepository
 
-logger = logging.getLogger("adn-mon")
+logger = logging.getLogger("adn-monitor")
 
 SUB_FIELDS = ("id", "callsign", "fname", "surname", "city", "state", "country")
 PEER_FIELDS = ("id", "call_sign", "city", "state")
