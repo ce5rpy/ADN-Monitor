@@ -307,8 +307,13 @@ def render_fromdb(tbl: str, row_num: int, send_to=None):
             result = yield get_tgcount_repo().select_tgcount(row_num)
         else:
             result = None
-        if not result and tbl != "tgcount":
-            return
+        # Empty DB is valid after install — still answer conf,main (and periodic sync) so the UI
+        # leaves "Waiting for server info..." instead of looking like a failure.
+        if not result:
+            if tbl in ("last_heard", "lstheard_log"):
+                result = []
+            elif tbl != "tgcount":
+                return
         state = get_state()
         conf_global = get_config_global()
         if tbl == "last_heard":
