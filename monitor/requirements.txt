@@ -2,3 +2,4 @@
 pyyaml>=6.0
 twisted>=22.0
 autobahn>=23.0
+mysqlclient>=2.2.0
