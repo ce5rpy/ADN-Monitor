@@ -63,19 +63,19 @@ ALIASES:
   PEER_FILE: peer_ids.json
   SUBSCRIBER_FILE: subscriber_ids.json
   TGID_FILE: talkgroup_ids.json
-  PEER_URL: "https://adn.systems/files/peer_ids.json"
-  SUBSCRIBER_URL: "https://adn.systems/files/subscriber_ids.json"
-  TGID_URL: "https://adn.systems/files/talkgroup_ids.json"
+  PEER_URL: "https://servers.adn.systems/peer_ids.json"
+  SUBSCRIBER_URL: "https://servers.adn.systems/subscriber_ids.json"
+  TGID_URL: "https://servers.adn.systems/talkgroup_ids.json"
   LOCAL_SUBSCRIBER_FILE: local_subscriber_ids.json
   # If file is older than STALE_HOURS or missing, download and verify checksum.
   # REVIEW_INTERVAL_MINUTES = how often to check (if missing, re-download). Defaults: 24 h, 5 min.
   STALE_HOURS: 24
   REVIEW_INTERVAL_MINUTES: 5
-  CHECKSUM_URL: "https://adn.systems/files/file_checksums.json"
+  CHECKSUM_URL: "https://servers.adn.systems/file_checksums.json"
   CHECKSUM_FILE: file_checksums.json
   # TG List and Bridge List pages (backend proxy for frontend)
-  TG_LIST_URL: "https://adn.systems/files/talkgroup_ids.json"
-  BRIDGE_LIST_URL: "https://adn.systems/files/server_ids.tsv"
+  TG_LIST_URL: "https://servers.adn.systems/talkgroup_ids.json"
+  BRIDGE_LIST_URL: "https://servers.adn.systems/server_ids.tsv"
 
 # ------------------------------------------------------------------------------
 # LOGGER
