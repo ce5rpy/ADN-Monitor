@@ -160,11 +160,14 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
     log = data.get("LOGGER") or {}
     log_path = _str(log.get("LOG_PATH", "./log"))
     log_file = _str(log.get("LOG_FILE", "adn-monitor.log"))
+    enabled = True if "ENABLED" not in log else _bool(log.get("ENABLED"))
     CONF["LOG"] = {
+        "ENABLED": enabled,
         "PATH": log_path,
         "LOG_FILE": log_file,
         "LOG_LEVEL": _str(log.get("LOG_LEVEL", "INFO")),
         "P2F_LOG": Path(log_path, log_file),
+        "LOG_HANDLERS": [] if not enabled else ["console", "file"],
     }
 
     # WEBSOCKET_SERVER

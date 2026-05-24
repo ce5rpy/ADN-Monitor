@@ -642,10 +642,11 @@ def main():
     global _lastheard_repo, _tgcount_repo, _groups, _config_global, _local_lstmod
 
     log_conf = {
+        "ENABLED": CONF["LOG"]["ENABLED"],
         "PATH": CONF["LOG"]["PATH"],
         "LOG_FILE": CONF["LOG"]["LOG_FILE"],
         "LOG_LEVEL": CONF["LOG"]["LOG_LEVEL"],
-        "LOG_HANDLERS": ["console", "file"],
+        "LOG_HANDLERS": CONF["LOG"]["LOG_HANDLERS"],
     }
     logger = create_logger(log_conf)
     logger.info("monitor.py starting")

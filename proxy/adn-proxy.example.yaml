@@ -39,6 +39,7 @@ SELF_SERVICE:
 # LOGGER – proxy log file only (monitor uses adn-monitor.log from its own YAML)
 # ------------------------------------------------------------------------------
 LOGGER:
+  # ENABLED: false   # omit or true = normal; false = no console/file logs
   LOG_PATH: "./log"
   PROXY_LOG_FILE: adn-proxy.log
   LOG_LEVEL: INFO

@@ -98,12 +98,14 @@ def _looping_err(failure):
 def main() -> None:
     global logger, pool, db_proxy, priv_helper, proxy_protocol
 
-    Path(CONF["LOG"]["PATH"]).mkdir(parents=True, exist_ok=True)
+    if CONF["LOG"]["ENABLED"]:
+        Path(CONF["LOG"]["PATH"]).mkdir(parents=True, exist_ok=True)
     log_conf = {
+        "ENABLED": CONF["LOG"]["ENABLED"],
         "PATH": CONF["LOG"]["PATH"],
         "LOG_FILE": CONF["LOG"]["LOG_FILE"],
         "LOG_LEVEL": CONF["LOG"]["LOG_LEVEL"],
-        "LOG_HANDLERS": ["console", "file"],
+        "LOG_HANDLERS": CONF["LOG"]["LOG_HANDLERS"],
     }
     logger = create_logger(log_conf)
     logger.info("proxy.py starting")

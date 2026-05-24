@@ -81,6 +81,7 @@ ALIASES:
 # LOGGER
 # ------------------------------------------------------------------------------
 LOGGER:
+  # ENABLED: false   # omit or true = normal; false = no console/file logs
   LOG_PATH: "./log"
   LOG_FILE: adn-monitor.log
   LOG_LEVEL: INFO

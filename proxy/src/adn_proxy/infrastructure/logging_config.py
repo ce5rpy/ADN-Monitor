@@ -25,6 +25,18 @@ from pathlib import Path
 from logging.config import dictConfig
 
 
+def logging_enabled(conf: dict) -> bool:
+    """LOGGER.ENABLED — default True when omitted (legacy configs unchanged)."""
+    if "ENABLED" not in conf:
+        return True
+    val = conf.get("ENABLED")
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, str):
+        return val.strip().lower() in ("1", "true", "yes", "on")
+    return bool(val)
+
+
 def reopen_file_handlers(logger: logging.Logger | None = None) -> int:
     """Reopen all :class:`logging.FileHandler` streams on *logger* (default: root).
 
@@ -54,10 +66,19 @@ def reopen_file_handlers(logger: logging.Logger | None = None) -> int:
 
 def create_logger(conf: dict) -> logging.Logger:
     """
-    Configure logging from conf dict with keys: PATH, LOG_FILE, LOG_LEVEL, LOG_HANDLERS.
+    Configure logging from conf dict with keys: ENABLED, PATH, LOG_FILE, LOG_LEVEL, LOG_HANDLERS.
     LOG_HANDLERS is a list of handler names, e.g. ['console', 'file'].
     Returns the root logger.
     """
+    if not logging_enabled(conf):
+        dictConfig({
+            "version": 1,
+            "disable_existing_loggers": False,
+            "handlers": {"null": {"class": "logging.NullHandler"}},
+            "root": {"handlers": ["null"], "level": "CRITICAL"},
+        })
+        return logging.getLogger("adn-proxy")
+
     dictConfig({
         "version": 1,
         "disable_existing_loggers": False,
