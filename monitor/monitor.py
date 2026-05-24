@@ -243,7 +243,7 @@ def broadcast_ws_ctable(*, dedup: bool = True, brdg_meta: dict | None = None) ->
 
     if groups.get("lnksys"):
         msg = "c" + json.dumps(
-            {"ctable": ws_ctable_views.ctable_for_lnksys(state.CTABLE), "emaster": emaster},
+            {"ctable": ws_ctable_views.ctable_for_lnksys(state.CTABLE, empty_masters=emaster), "emaster": emaster},
             default=str,
         )
         key = "lnksys"
@@ -258,7 +258,7 @@ def broadcast_ws_ctable(*, dedup: bool = True, brdg_meta: dict | None = None) ->
 
     if groups.get("statictg"):
         msg = "s" + json.dumps(
-            {"ctable": ws_ctable_views.ctable_for_lnksys(state.CTABLE), "emaster": emaster},
+            {"ctable": ws_ctable_views.ctable_for_lnksys(state.CTABLE, empty_masters=emaster), "emaster": emaster},
             default=str,
         )
         key = "statictg"

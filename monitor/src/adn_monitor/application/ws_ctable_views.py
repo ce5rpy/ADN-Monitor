@@ -26,10 +26,21 @@ def _fingerprint_dumps(payload: Any) -> str:
     return json.dumps(_dict_keys_str(payload), sort_keys=True, default=str)
 
 
-def ctable_for_lnksys(ctable: dict[str, Any]) -> dict[str, Any]:
-    """Linked Systems / Static TG: masters + homebrew peers (no OPENBRIDGES)."""
+def ctable_for_lnksys(ctable: dict[str, Any], *, empty_masters: bool = False) -> dict[str, Any]:
+    """Linked Systems / Static TG: masters + homebrew peers (no OPENBRIDGES).
+
+    When ``empty_masters`` is false (default / ``EMPTY_MASTERS: false``), omit masters
+    with no connected peers so WebSocket payloads stay slim.
+    """
+    masters = ctable.get("MASTERS", {})
+    if not empty_masters:
+        masters = {
+            name: data
+            for name, data in masters.items()
+            if isinstance(data, dict) and data.get("PEERS")
+        }
     return {
-        "MASTERS": ctable.get("MASTERS", {}),
+        "MASTERS": masters,
         "PEERS": ctable.get("PEERS", {}),
     }
 

@@ -125,11 +125,12 @@ def make_dashboard_factory(
                     if state.BRIDGES and conf_global.get("BRDG_INC"):
                         _send_json(self, "b", {"btable": state.BTABLE, "dbridges": True})
                 elif group == "lnksys":
-                    ctable = ws_ctable_views.ctable_for_lnksys(state.CTABLE)
+                    emaster = conf_global.get("EMPTY_MASTERS", False)
+                    ctable = ws_ctable_views.ctable_for_lnksys(state.CTABLE, empty_masters=emaster)
                     _log_ctable_sent(self.peer, ctable)
                     _send_json(self, "c", {
                         "ctable": ctable,
-                        "emaster": conf_global.get("EMPTY_MASTERS", False),
+                        "emaster": emaster,
                     })
                 elif group == "opb":
                     _send_json(self, "o", {
@@ -139,9 +140,10 @@ def make_dashboard_factory(
                 elif group == "main":
                     render_last_heard("last_heard", conf_global.get("LH_ROWS", 20), self)
                 elif group == "statictg":
+                    emaster = conf_global.get("EMPTY_MASTERS", False)
                     _send_json(self, "s", {
-                        "ctable": ws_ctable_views.ctable_for_lnksys(state.CTABLE),
-                        "emaster": conf_global.get("EMPTY_MASTERS", False),
+                        "ctable": ws_ctable_views.ctable_for_lnksys(state.CTABLE, empty_masters=emaster),
+                        "emaster": emaster,
                     })
                 elif group == "lsthrd_log":
                     render_lstheard_log(state.lastheard_log_rows, self)
