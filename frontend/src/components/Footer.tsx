@@ -25,6 +25,7 @@
 import { Box, Typography, Link } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useDashboardConfig } from '../context/DashboardConfigContext';
+import { useWebSocketGroup } from '../hooks/useWebSocket';
 
 const currentYear = new Date().getFullYear();
 
@@ -32,6 +33,8 @@ export default function Footer() {
   const { t } = useTranslation();
   const { title, footer } = useDashboardConfig();
   const brand = title || t('footer_brand', 'ADN Systems');
+  const { data } = useWebSocketGroup('server_info');
+  const isV2 = (data as { mode?: string } | null)?.mode === 'v2';
 
   return (
     <Box
@@ -74,7 +77,9 @@ export default function Footer() {
         </Typography>
       )}
       <Typography variant="body2" color="text.secondary" component="div">
-        {brand} · {t('footer_copyright', { year: currentYear, defaultValue: 'Copyright {{year}} - All rights reserved.' })}{' '}
+        {brand}
+        <span id="footer-report-sep">{isV2 ? ' ✦  ' : ' · '}</span>
+        {t('footer_copyright', { year: currentYear, defaultValue: 'Copyright {{year}} - All rights reserved.' })}{' '}
         <Link href="https://adn.systems" target="_blank" rel="noopener" color="primary.main" underline="hover">
           {t('footer_app', 'ADN Systems Monitor')}
         </Link>

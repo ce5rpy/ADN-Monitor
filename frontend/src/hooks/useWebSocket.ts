@@ -24,8 +24,20 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-const WS_GROUPS = ['main', 'bridge', 'lnksys', 'opb', 'statictg', 'log', 'lsthrd_log', 'tgcount'] as const;
+const WS_GROUPS = ['main', 'bridge', 'lnksys', 'opb', 'statictg', 'log', 'lsthrd_log', 'tgcount', 'server_info'] as const;
 export type WsGroup = (typeof WS_GROUPS)[number];
+
+const GROUP_OPCODE: Record<WsGroup, string> = {
+  main: 'i',
+  lnksys: 'c',
+  opb: 'o',
+  statictg: 's',
+  bridge: 'b',
+  log: 'l',
+  lsthrd_log: 'h',
+  tgcount: 't',
+  server_info: 'v',
+};
 
 const RECONNECT_INITIAL_MS = 2000;
 const RECONNECT_MAX_DELAY_MS = 15000;
@@ -110,7 +122,7 @@ export function useWebSocket({ groups, onMessage }: UseWebSocketOptions) {
   return { connected, lastMessage, reconnect: connect };
 }
 
-/** Payload is JSON for opcodes i,c,o,s,b,h,t; plain string for q,l */
+/** Payload is JSON for opcodes i,c,o,s,b,h,t,v; plain string for q,l */
 function parsePayload(opcode: string, payload: string): unknown {
   if (opcode === 'q' || opcode === 'l') return payload;
   try {
@@ -122,11 +134,12 @@ function parsePayload(opcode: string, payload: string): unknown {
 
 export function useWebSocketGroup(group: WsGroup) {
   const [data, setData] = useState<unknown>(null);
-  const groups = [group];
+  const wantOpcode = GROUP_OPCODE[group];
 
   useWebSocket({
-    groups,
+    groups: [group],
     onMessage: (opcode, payload) => {
+      if (opcode !== wantOpcode) return;
       setData(parsePayload(opcode, payload));
     },
   });

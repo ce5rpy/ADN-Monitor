@@ -110,6 +110,8 @@ function isBridge(peer: PeerEntry): boolean {
 export default function Systems() {
   const { t } = useTranslation();
   const { data } = useWebSocketGroup('lnksys');
+  const { data: serverInfo } = useWebSocketGroup('server_info');
+  const isV2 = (serverInfo as { mode?: string } | null)?.mode === 'v2';
   const payload = data as LnksysPayload | null;
   const ctable = payload?.ctable;
   const emaster = payload?.emaster ?? false;
@@ -238,7 +240,7 @@ export default function Systems() {
   const peerCols = [colService, colCallsign, colConnected, colSlot, undefined, undefined] as const;
 
   return (
-    <LiveConnectedProvider ctable={ctable}>
+    <LiveConnectedProvider ctable={ctable} live={isV2}>
     <Box>
       <Typography variant="subtitle1" fontWeight={700} color="text.primary" sx={{ mb: 1.5 }}>
         {t('lnksys_title', { defaultValue: 'Linked systems' })}

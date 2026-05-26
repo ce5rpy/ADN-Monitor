@@ -79,9 +79,12 @@ const LiveConnectedContext = createContext<LiveConnectedContextValue | null>(nul
 export function LiveConnectedProvider({
   ctable,
   children,
+  live = false,
 }: {
   ctable: CtableSlice | undefined;
   children: ReactNode;
+  /** v2 only: tick live from CONNECTED_SINCE; legacy uses WebSocket CONNECTED as-is. */
+  live?: boolean;
 }) {
   const anchorsRef = useRef<Map<string, number | null>>(new Map());
   const [tick, setTick] = useState(0);
@@ -107,21 +110,23 @@ export function LiveConnectedProvider({
   }, [ctable]);
 
   useEffect(() => {
+    if (!live) return;
     const id = window.setInterval(() => setTick((t) => t + 1), 1000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [live]);
 
   const getLabel = useCallback(
     (cellKey: string, fallback: string) => {
+      if (!live) return fallback || '—';
       void tick;
       const since = anchorsRef.current.get(cellKey);
       if (since == null || since <= 0) {
         return fallback || '—';
       }
       const nowSec = Math.floor(Date.now() / 1000);
-      return formatElapsedSeconds(Math.max(0, nowSec - since));
+      return formatElapsedSeconds(Math.max(0, nowSec - since), { showSecondsAfterHour: true });
     },
-    [tick],
+    [tick, live],
   );
 
   return (
