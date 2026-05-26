@@ -40,18 +40,31 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useWebSocketGroup } from '../hooks/useWebSocket';
 import QrzLink from '../components/QrzLink';
+import {
+  ConnectedTime,
+  LiveConnectedProvider,
+  masterPeerKey,
+  servicePeerKey,
+} from '../context/LiveConnectedContext';
 
 type TsEntry = { TS?: boolean | string; TRX?: string; SUB?: string; DEST?: string };
 type SingleTs = { TGID?: number | string; TO?: string };
 type PeerEntry = Record<string, unknown> & {
   CALLSIGN?: string;
   CONNECTED?: string;
+  CONNECTED_SINCE?: number | null;
   RX_FREQ?: string;
   TX_FREQ?: string;
   LOCATION?: string;
   1?: TsEntry;
   2?: TsEntry;
-  STATS?: { CONNECTION?: string; CONNECTED?: string; PINGS_SENT?: number; PINGS_ACKD?: number };
+  STATS?: {
+    CONNECTION?: string;
+    CONNECTED?: string;
+    CONNECTED_SINCE?: number | null;
+    PINGS_SENT?: number;
+    PINGS_ACKD?: number;
+  };
   SINGLE_TS1?: SingleTs;
   SINGLE_TS2?: SingleTs;
   TS1_STATIC?: string[];
@@ -161,7 +174,7 @@ export default function Systems() {
               <Typography variant="caption" display="block" color="text.secondary">{String(p.LOCATION ?? '')}</Typography>
             </TableCell>
             <TableCell rowSpan={2} align="center" sx={{ bgcolor: 'success.light', color: 'success.contrastText', whiteSpace: 'nowrap', ...colConnected }}>
-              {String(p.CONNECTED ?? '—')}
+              <ConnectedTime cellKey={masterPeerKey(masterName, String(peerId))} fallback={String(p.CONNECTED ?? '—')} />
             </TableCell>
             <TableCell align="center" sx={colSlotCell}>
               <Chip size="small" label="TS1" color={chipColor1} />
@@ -225,6 +238,7 @@ export default function Systems() {
   const peerCols = [colService, colCallsign, colConnected, colSlot, undefined, undefined] as const;
 
   return (
+    <LiveConnectedProvider ctable={ctable}>
     <Box>
       <Typography variant="subtitle1" fontWeight={700} color="text.primary" sx={{ mb: 1.5 }}>
         {t('lnksys_title', { defaultValue: 'Linked systems' })}
@@ -370,7 +384,7 @@ export default function Systems() {
                       <TableCell rowSpan={2} sx={colService}><Typography fontWeight="bold" noWrap>{name}</Typography><Typography variant="caption" noWrap>{String(peer.MODE ?? '')}</Typography></TableCell>
                       <TableCell sx={colCallsign}><Typography fontWeight="bold" component="span" noWrap><QrzLink callsign={String(peer.CALLSIGN ?? '')}>{String(peer.CALLSIGN ?? '')}</QrzLink></Typography> <Chip size="small" label={String(peer.RADIO_ID ?? '')} /></TableCell>
                       <TableCell rowSpan={2} align="center" sx={{ bgcolor: st?.CONNECTION === 'YES' ? 'success.light' : 'warning.light', whiteSpace: 'nowrap', ...colConnected }}>
-                        {String(st?.CONNECTED ?? '—')}
+                        <ConnectedTime cellKey={servicePeerKey(name)} fallback={String(st?.CONNECTED ?? '—')} />
                         {typeof st?.PINGS_SENT === 'number' && <Typography variant="caption" display="block">{st.PINGS_SENT} / {String(st.PINGS_ACKD ?? 0)}</Typography>}
                       </TableCell>
                       <TableCell><Chip size="small" label="TS1" color={chipColor1} /></TableCell>
@@ -392,5 +406,6 @@ export default function Systems() {
       )}
 
     </Box>
+    </LiveConnectedProvider>
   );
 }

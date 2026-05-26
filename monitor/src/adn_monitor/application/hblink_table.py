@@ -44,6 +44,18 @@ def _decode_freq(freq: Any) -> str:
     return "N/A"
 
 
+def _connected_since(conf: dict, *, connection_key: str = "CONNECTION") -> int | None:
+    """Unix timestamp when CONNECTION=YES; None if disconnected or invalid."""
+    if conf.get(connection_key) != "YES":
+        return None
+    raw = conf.get("CONNECTED", 0)
+    try:
+        ts = int(float(raw))
+    except (TypeError, ValueError):
+        return None
+    return ts if ts > 0 else None
+
+
 def _decode_slots(slots: Any) -> str:
     if slots == b"0" or slots == "0":
         return "NONE"
@@ -75,6 +87,7 @@ def add_hb_peer(
         peer[key] = decode_utf8_field(peer_conf.get(key, ""))
     peer["CONNECTION"] = peer_conf.get("CONNECTION", "")
     peer["CONNECTED"] = time_str_fn(peer_conf.get("CONNECTED", 0), "since")
+    peer["CONNECTED_SINCE"] = _connected_since(peer_conf)
     peer["IP"] = peer_conf.get("IP", "")
     peer["PORT"] = peer_conf.get("PORT", "")
     for ts in (1, 2):
@@ -127,10 +140,12 @@ def build_hblink_table_impl(
                 stats_table["PEERS"][name]["STATS"]["CONNECTION"] = xlx.get("CONNECTION", "NO")
                 if xlx.get("CONNECTION") == "YES":
                     stats_table["PEERS"][name]["STATS"]["CONNECTED"] = time_str_fn(xlx.get("CONNECTED", 0), "since")
+                    stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = _connected_since(xlx)
                     stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = xlx.get("PINGS_SENT", 0)
                     stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = xlx.get("PINGS_ACKD", 0)
                 else:
                     stats_table["PEERS"][name]["STATS"]["CONNECTED"] = "--   --"
+                    stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = None
                     stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = 0
                     stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = 0
             else:
@@ -138,10 +153,12 @@ def build_hblink_table_impl(
                 stats_table["PEERS"][name]["STATS"]["CONNECTION"] = st.get("CONNECTION", "NO")
                 if st.get("CONNECTION") == "YES":
                     stats_table["PEERS"][name]["STATS"]["CONNECTED"] = time_str_fn(st.get("CONNECTED", 0), "since")
+                    stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = _connected_since(st)
                     stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = st.get("PINGS_SENT", 0)
                     stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = st.get("PINGS_ACKD", 0)
                 else:
                     stats_table["PEERS"][name]["STATS"]["CONNECTED"] = "--   --"
+                    stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = None
                     stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = 0
                     stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = 0
             slot_val = data.get("SLOTS", b"0")
@@ -244,19 +261,22 @@ def update_hblink_table_impl(
             peer_4 = bytes_4_fn(peer_id)
             if peer_4 in config.get(name, {}).get("PEERS", {}):
                 peer_conf = config[name]["PEERS"][peer_4]
-                stats_table["MASTERS"][name]["PEERS"][peer_id]["CONNECTED"] = time_str_fn(
-                    peer_conf.get("CONNECTED", 0), "since"
-                )
+                ent = stats_table["MASTERS"][name]["PEERS"][peer_id]
+                ent["CONNECTION"] = peer_conf.get("CONNECTION", "")
+                ent["CONNECTED"] = time_str_fn(peer_conf.get("CONNECTED", 0), "since")
+                ent["CONNECTED_SINCE"] = _connected_since(peer_conf)
     for name in stats_table.get("PEERS", {}):
         if stats_table["PEERS"][name].get("MODE") == "XLXPEER":
             xlx = config.get(name, {}).get("XLXSTATS", {})
             stats_table["PEERS"][name]["STATS"]["CONNECTION"] = xlx.get("CONNECTION", "NO")
             if xlx.get("CONNECTION") == "YES":
                 stats_table["PEERS"][name]["STATS"]["CONNECTED"] = time_str_fn(xlx.get("CONNECTED", 0), "since")
+                stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = _connected_since(xlx)
                 stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = xlx.get("PINGS_SENT", 0)
                 stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = xlx.get("PINGS_ACKD", 0)
             else:
                 stats_table["PEERS"][name]["STATS"]["CONNECTED"] = "--   --"
+                stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = None
                 stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = 0
                 stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = 0
         else:
@@ -264,10 +284,12 @@ def update_hblink_table_impl(
             stats_table["PEERS"][name]["STATS"]["CONNECTION"] = st.get("CONNECTION", "NO")
             if st.get("CONNECTION") == "YES":
                 stats_table["PEERS"][name]["STATS"]["CONNECTED"] = time_str_fn(st.get("CONNECTED", 0), "since")
+                stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = _connected_since(st)
                 stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = st.get("PINGS_SENT", 0)
                 stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = st.get("PINGS_ACKD", 0)
             else:
                 stats_table["PEERS"][name]["STATS"]["CONNECTED"] = "--   --"
+                stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = None
                 stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = 0
                 stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = 0
     clean_te(stats_table)
