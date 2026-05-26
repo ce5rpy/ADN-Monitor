@@ -79,6 +79,7 @@ from adn_monitor.application import (
     time_str,
 )
 from adn_monitor.application.time_utils import format_stored_utc_for_display, utc_calendar_date
+from adn_monitor.application.monitor_controller import build_tgstats
 from adn_monitor.application.tgstats import parse_options_to_static
 from adn_monitor.application.hblink_table import clean_te
 import adn_monitor.application.ws_ctable_views as ws_ctable_views
@@ -706,6 +707,8 @@ def main():
         "server_info",
     )}
 
+    _report_factory_ref: list = []
+
     DashboardFactory, DashboardProtocol = make_dashboard_factory(
         _state,
         conf_global,
@@ -714,6 +717,7 @@ def main():
         lambda tbl, rows, client: render_fromdb(tbl, rows, client),
         lambda rows, client: render_fromdb("lstheard_log", rows, client),
         lambda rows, client: render_fromdb("tgcount", rows, client),
+        refresh_from_server=lambda: _report_factory_ref[0].request_refresh() if _report_factory_ref else False,
     )
 
     ws_port = CONF["WS"]["WS_PORT"]
@@ -740,6 +744,7 @@ def main():
     def on_config_applied():
         """After CONFIG_SND: CTABLE rebuilt; refresh WebSocket clients."""
         conf = get_config_global()
+        build_tgstats(_state)
         if get_groups().get("main"):
             render_fromdb("last_heard", conf.get("LH_ROWS", 20))
         broadcast_ws_ctable()
@@ -782,6 +787,7 @@ def main():
         on_server_mode_detected=on_server_mode_detected,
         hello_timeout_sec=hello_timeout_sec,
     )
+    _report_factory_ref.append(report_factory)
 
     # Loops — safety resync (default 60s); primary updates are event-driven
     safety_interval = CONF["WS"].get("FREQUENCY", 1)

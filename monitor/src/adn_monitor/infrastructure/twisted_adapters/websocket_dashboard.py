@@ -97,6 +97,7 @@ def make_dashboard_factory(
     render_last_heard: Callable[[str, int, Any], Any],
     render_lstheard_log: Callable[[int], Any],
     render_tgcount: Callable[[int], Any],
+    refresh_from_server: Callable[[], bool] | None = None,
 ) -> tuple[WebSocketServerFactory, type]:
     """Build WebSocket server factory and protocol class. Sends JSON payloads, no HTML."""
 
@@ -117,6 +118,11 @@ def make_dashboard_factory(
                 return
             # "conf,all" => send full config for all groups so client doesn't wait for safety_sync
             requested = list(SEND_ALL_GROUPS) if "all" in msg[1:] else msg[1:]
+            refresh_ctable = (
+                refresh_from_server is not None
+                and any(g in ("lnksys", "statictg") for g in requested)
+                and refresh_from_server()
+            )
             for group in requested:
                 if group not in groups:
                     continue
@@ -125,6 +131,8 @@ def make_dashboard_factory(
                     if state.BRIDGES and conf_global.get("BRDG_INC"):
                         _send_json(self, "b", {"btable": state.BTABLE, "dbridges": True})
                 elif group == "lnksys":
+                    if refresh_ctable:
+                        continue
                     emaster = conf_global.get("EMPTY_MASTERS", False)
                     ctable = ws_ctable_views.ctable_for_lnksys(state.CTABLE, empty_masters=emaster)
                     _log_ctable_sent(self.peer, ctable)
@@ -140,6 +148,8 @@ def make_dashboard_factory(
                 elif group == "main":
                     render_last_heard("last_heard", conf_global.get("LH_ROWS", 20), self)
                 elif group == "statictg":
+                    if refresh_ctable:
+                        continue
                     emaster = conf_global.get("EMPTY_MASTERS", False)
                     _send_json(self, "s", {
                         "ctable": ws_ctable_views.ctable_for_lnksys(state.CTABLE, empty_masters=emaster),

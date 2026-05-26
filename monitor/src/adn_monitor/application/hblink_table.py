@@ -204,6 +204,18 @@ def update_hblink_table_impl(
     bytes_4_fn: Callable[[int], bytes],
 ) -> None:
     """Sync CTABLE with config: add new peers, remove missing, update connection times."""
+    for key in ("MASTERS", "PEERS", "OPENBRIDGES"):
+        for name in list(stats_table.get(key, {})):
+            if name not in config:
+                del stats_table[key][name]
+    for name, data in config.items():
+        if not data.get("ENABLED", True) or data.get("MODE") != "OPENBRIDGE":
+            continue
+        if name not in stats_table.get("OPENBRIDGES", {}):
+            stats_table.setdefault("OPENBRIDGES", {})[name] = {
+                "NETWORK_ID": int_id_fn(data.get("NETWORK_ID", 0)),
+                "STREAMS": {},
+            }
     for name in config:
         if config[name].get("MODE") != "MASTER":
             continue

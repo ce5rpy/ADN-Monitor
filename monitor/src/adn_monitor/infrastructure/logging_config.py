@@ -85,6 +85,10 @@ def create_logger(conf: dict) -> logging.Logger:
         })
         return logging.getLogger(__name__)
 
+    handlers = conf.get("LOG_HANDLERS", ["console"])
+    if "file" in handlers:
+        Path(conf["PATH"]).mkdir(parents=True, exist_ok=True)
+
     dictConfig({
         "version": 1,
         "disable_existing_loggers": False,
@@ -108,7 +112,7 @@ def create_logger(conf: dict) -> logging.Logger:
             },
         },
         "root": {
-            "handlers": conf.get("LOG_HANDLERS", ["console"]),
+            "handlers": handlers,
             "level": "NOTSET",
         },
     })

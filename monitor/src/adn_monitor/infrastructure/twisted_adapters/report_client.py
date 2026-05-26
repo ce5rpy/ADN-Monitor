@@ -236,7 +236,7 @@ class ReportClientFactory(ReconnectingClientFactory):
 
     def buildProtocol(self, addr: Any) -> ReportProtocol:
         self.resetDelay()
-        return ReportProtocol(
+        proto = ReportProtocol(
             state=self._state,
             alias_svc=self._alias_svc,
             alias_repo=self._alias_repo,
@@ -252,6 +252,18 @@ class ReportClientFactory(ReconnectingClientFactory):
             on_server_mode_detected=self._on_server_mode_detected,
             hello_timeout_sec=self._hello_timeout_sec,
         )
+        self._report_protocol = proto
+        return proto
+
+    def request_refresh(self) -> bool:
+        """Ask adn-server for fresh CONFIG + BRIDGES (CONFIG_REQ / BRIDGE_REQ)."""
+        proto = getattr(self, "_report_protocol", None)
+        if proto is None or proto.transport is None:
+            return False
+        proto.sendString(Opcode.CONFIG_REQ)
+        proto.sendString(Opcode.BRIDGE_REQ)
+        logger.debug("(REPORT) CONFIG_REQ + BRIDGE_REQ sent")
+        return True
 
     def clientConnectionFailed(self, connector: Any, reason: Any) -> None:
         err_msg = getattr(reason, "getErrorMessage", lambda: str(reason))()
@@ -267,6 +279,7 @@ class ReportClientFactory(ReconnectingClientFactory):
             logger.info("Next connection attempt in %.0f seconds.", self.delay)
 
     def clientConnectionLost(self, connector: Any, reason: Any) -> None:
+        self._report_protocol = None
         self._state.CTABLE["MASTERS"].clear()
         self._state.CTABLE["PEERS"].clear()
         self._state.CTABLE["OPENBRIDGES"].clear()
