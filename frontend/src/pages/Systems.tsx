@@ -38,7 +38,7 @@ import {
   CardContent,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { useWebSocketGroup } from '../hooks/useWebSocket';
+import { useWebSocketGroup, useServerInfo } from '../hooks/useWebSocket';
 import QrzLink from '../components/QrzLink';
 import {
   ConnectedTime,
@@ -110,8 +110,8 @@ function isBridge(peer: PeerEntry): boolean {
 export default function Systems() {
   const { t } = useTranslation();
   const { data } = useWebSocketGroup('lnksys');
-  const { data: serverInfo } = useWebSocketGroup('server_info');
-  const isV2 = (serverInfo as { mode?: string } | null)?.mode === 'v2';
+  const serverInfo = useServerInfo();
+  const isV2 = serverInfo?.mode === 'v2';
   const payload = data as LnksysPayload | null;
   const ctable = payload?.ctable;
   const emaster = payload?.emaster ?? false;

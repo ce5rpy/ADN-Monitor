@@ -48,78 +48,165 @@ function getWsUrl(): string {
   return `${proto}//${host}/ws`;
 }
 
+type MessageHandler = (opcode: string, payload: string) => void;
+
+type SharedSubscription = {
+  groups: WsGroup[];
+  handler: MessageHandler;
+};
+
+/** One browser tab shares a single WebSocket; groups are ref-counted per subscriber. */
+const shared = {
+  ws: null as WebSocket | null,
+  groupRefCount: new Map<WsGroup, number>(),
+  subscriptions: new Set<SharedSubscription>(),
+  reconnectTimer: null as ReturnType<typeof setTimeout> | null,
+  attempt: 0,
+  connectedListeners: new Set<(connected: boolean) => void>(),
+};
+
+function activeGroups(): WsGroup[] {
+  return WS_GROUPS.filter((g) => (shared.groupRefCount.get(g) ?? 0) > 0);
+}
+
+function notifyConnected(connected: boolean) {
+  for (const listener of shared.connectedListeners) {
+    listener(connected);
+  }
+}
+
+function sendConf(groups: WsGroup[]) {
+  if (shared.ws?.readyState === WebSocket.OPEN && groups.length > 0) {
+    shared.ws.send('conf,' + groups.join(','));
+  }
+}
+
+function adjustGroupRefs(groups: WsGroup[], delta: number): WsGroup[] {
+  const newlyActive: WsGroup[] = [];
+  for (const group of groups) {
+    const prev = shared.groupRefCount.get(group) ?? 0;
+    const next = prev + delta;
+    if (delta > 0 && prev === 0) newlyActive.push(group);
+    if (next <= 0) shared.groupRefCount.delete(group);
+    else shared.groupRefCount.set(group, next);
+  }
+  return newlyActive;
+}
+
+function connectShared() {
+  if (
+    shared.ws?.readyState === WebSocket.OPEN
+    || shared.ws?.readyState === WebSocket.CONNECTING
+  ) {
+    return;
+  }
+  if (activeGroups().length === 0) return;
+
+  const ws = new WebSocket(getWsUrl());
+  shared.ws = ws;
+
+  ws.onopen = () => {
+    shared.attempt = 0;
+    notifyConnected(true);
+    sendConf(activeGroups());
+  };
+
+  ws.onclose = () => {
+    shared.ws = null;
+    notifyConnected(false);
+    if (activeGroups().length === 0) return;
+    const delay = Math.min(
+      RECONNECT_INITIAL_MS * Math.pow(1.5, shared.attempt),
+      RECONNECT_MAX_DELAY_MS,
+    );
+    shared.attempt += 1;
+    shared.reconnectTimer = setTimeout(() => {
+      shared.reconnectTimer = null;
+      connectShared();
+    }, delay);
+  };
+
+  ws.onerror = () => {
+    // Close will follow; no extra handling needed
+  };
+
+  ws.onmessage = (event) => {
+    const data = String(event.data);
+    const opcode = data.slice(0, 1);
+    const payload = data.slice(1);
+    for (const sub of shared.subscriptions) {
+      sub.handler(opcode, payload);
+    }
+  };
+}
+
+function subscribeShared(groups: WsGroup[], handler: MessageHandler): () => void {
+  const sub: SharedSubscription = { groups, handler };
+  const newlyActive = adjustGroupRefs(groups, 1);
+  shared.subscriptions.add(sub);
+  connectShared();
+  if (newlyActive.length > 0) sendConf(newlyActive);
+
+  return () => {
+    shared.subscriptions.delete(sub);
+    adjustGroupRefs(groups, -1);
+    if (activeGroups().length === 0) {
+      if (shared.reconnectTimer) {
+        clearTimeout(shared.reconnectTimer);
+        shared.reconnectTimer = null;
+      }
+      shared.ws?.close();
+      shared.ws = null;
+      shared.attempt = 0;
+    }
+  };
+}
+
+function useSharedConnected(): boolean {
+  const [connected, setConnected] = useState(shared.ws?.readyState === WebSocket.OPEN);
+  useEffect(() => {
+    shared.connectedListeners.add(setConnected);
+    setConnected(shared.ws?.readyState === WebSocket.OPEN);
+    return () => {
+      shared.connectedListeners.delete(setConnected);
+    };
+  }, []);
+  return connected;
+}
+
 export interface UseWebSocketOptions {
   groups: WsGroup[];
   onMessage?: (opcode: string, payload: string) => void;
 }
 
 export function useWebSocket({ groups, onMessage }: UseWebSocketOptions) {
-  const [connected, setConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<{ opcode: string; payload: string } | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mountedRef = useRef(true);
-  const attemptRef = useRef(0);
+  const connected = useSharedConnected();
   const onMessageRef = useRef(onMessage);
   onMessageRef.current = onMessage;
-
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
-    const url = getWsUrl();
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      attemptRef.current = 0;
-      setConnected(true);
-      if (groups.length > 0) {
-        ws.send('conf,' + groups.join(','));
-      }
-    };
-
-    ws.onclose = () => {
-      setConnected(false);
-      wsRef.current = null;
-      if (!mountedRef.current) return;
-      const delay = Math.min(
-        RECONNECT_INITIAL_MS * Math.pow(1.5, attemptRef.current),
-        RECONNECT_MAX_DELAY_MS
-      );
-      attemptRef.current += 1;
-      reconnectTimeoutRef.current = setTimeout(() => {
-        reconnectTimeoutRef.current = null;
-        connect();
-      }, delay);
-    };
-
-    ws.onerror = () => {
-      // Close will follow; no extra handling needed
-    };
-
-    ws.onmessage = (event) => {
-      const data = String(event.data);
-      const opcode = data.slice(0, 1);
-      const payload = data.slice(1);
-      setLastMessage({ opcode, payload });
-      onMessageRef.current?.(opcode, payload);
-    };
-  }, [groups.join(',')]);
+  const groupsKey = groups.join(',');
 
   useEffect(() => {
-    mountedRef.current = true;
-    connect();
-    return () => {
-      mountedRef.current = false;
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-      wsRef.current?.close();
-      wsRef.current = null;
-    };
-  }, [connect]);
+    const subscribedGroups = groupsKey.split(',').filter(Boolean) as WsGroup[];
+    if (subscribedGroups.length === 0) return undefined;
+    return subscribeShared(subscribedGroups, (opcode, payload) => {
+      setLastMessage({ opcode, payload });
+      onMessageRef.current?.(opcode, payload);
+    });
+  }, [groupsKey]);
 
-  return { connected, lastMessage, reconnect: connect };
+  const reconnect = useCallback(() => {
+    if (shared.reconnectTimer) {
+      clearTimeout(shared.reconnectTimer);
+      shared.reconnectTimer = null;
+    }
+    shared.ws?.close();
+    shared.ws = null;
+    shared.attempt = 0;
+    connectShared();
+  }, []);
+
+  return { connected, lastMessage, reconnect };
 }
 
 /** Payload is JSON for opcodes i,c,o,s,b,h,t,v; plain string for q,l */
@@ -136,13 +223,58 @@ export function useWebSocketGroup(group: WsGroup) {
   const [data, setData] = useState<unknown>(null);
   const wantOpcode = GROUP_OPCODE[group];
 
-  useWebSocket({
-    groups: [group],
-    onMessage: (opcode, payload) => {
+  useEffect(() => {
+    return subscribeShared([group], (opcode, payload) => {
       if (opcode !== wantOpcode) return;
       setData(parsePayload(opcode, payload));
-    },
-  });
+    });
+  }, [group, wantOpcode]);
 
   return { data };
+}
+
+export type ServerInfoPayload = { mode?: string; info?: Record<string, unknown> };
+
+/** Opcode v (server_info): one WS group subscription, many React consumers. */
+const serverInfoStore = {
+  data: null as ServerInfoPayload | null,
+  listeners: new Set<(data: ServerInfoPayload | null) => void>(),
+  unsubscribe: null as (() => void) | null,
+  consumers: 0,
+};
+
+function pushServerInfo(data: ServerInfoPayload | null) {
+  serverInfoStore.data = data;
+  for (const listener of serverInfoStore.listeners) listener(data);
+}
+
+function ensureServerInfoSubscription() {
+  if (serverInfoStore.unsubscribe) return;
+  serverInfoStore.unsubscribe = subscribeShared(['server_info'], (opcode, payload) => {
+    if (opcode !== 'v') return;
+    pushServerInfo(parsePayload(opcode, payload) as ServerInfoPayload);
+  });
+}
+
+function releaseServerInfoSubscription() {
+  serverInfoStore.unsubscribe?.();
+  serverInfoStore.unsubscribe = null;
+}
+
+export function useServerInfo(): ServerInfoPayload | null {
+  const [data, setData] = useState<ServerInfoPayload | null>(serverInfoStore.data);
+
+  useEffect(() => {
+    serverInfoStore.consumers += 1;
+    ensureServerInfoSubscription();
+    serverInfoStore.listeners.add(setData);
+    setData(serverInfoStore.data);
+    return () => {
+      serverInfoStore.listeners.delete(setData);
+      serverInfoStore.consumers -= 1;
+      if (serverInfoStore.consumers === 0) releaseServerInfoSubscription();
+    };
+  }, []);
+
+  return data;
 }
