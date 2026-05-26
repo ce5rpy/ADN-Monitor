@@ -94,6 +94,7 @@ class ReportProtocol(NetstringReceiver):
         logger.info("(REPORT) Connection to report server established")
         self._monitor_state.server_mode = ServerMode.LEGACY
         self._monitor_state.server_info = {}
+        self._monitor_state.server_mode_confirmed = False
         self._mode_signalled = False
         from twisted.internet import reactor
 
@@ -128,6 +129,7 @@ class ReportProtocol(NetstringReceiver):
         if self._mode_signalled:
             return
         self._mode_signalled = True
+        self._monitor_state.server_mode_confirmed = True
         if self._on_server_mode_detected:
             try:
                 self._on_server_mode_detected(self._monitor_state.server_mode, dict(self._monitor_state.server_info))
@@ -256,13 +258,25 @@ class ReportClientFactory(ReconnectingClientFactory):
         return proto
 
     def request_refresh(self) -> bool:
-        """Ask adn-server for fresh CONFIG + BRIDGES (CONFIG_REQ / BRIDGE_REQ)."""
+        """Request fresh CONFIG + BRIDGE from v2 adn-server only.
+
+        Do not send CONFIG_REQ / BRIDGE_REQ to legacy adn-dmr-server: hblink report
+        handles CONFIG_REQ with self.send_config() (missing on the protocol instance;
+        only reportFactory.send_config exists), which drops the TCP session. Legacy
+        clients rely on periodic CONFIG_SND from REPORT_INTERVAL.
+        """
+        if not getattr(self._state, "server_mode_confirmed", False):
+            logger.debug("(REPORT) skip refresh: server mode not confirmed yet (HELLO wait)")
+            return False
+        if getattr(self._state, "server_mode", ServerMode.LEGACY) != ServerMode.V2:
+            logger.debug("(REPORT) skip refresh opcodes (legacy server; periodic CONFIG only)")
+            return False
         proto = getattr(self, "_report_protocol", None)
         if proto is None or proto.transport is None:
             return False
         proto.sendString(Opcode.CONFIG_REQ)
         proto.sendString(Opcode.BRIDGE_REQ)
-        logger.debug("(REPORT) CONFIG_REQ + BRIDGE_REQ sent")
+        logger.debug("(REPORT) CONFIG_REQ + BRIDGE_REQ sent (v2 server)")
         return True
 
     def clientConnectionFailed(self, connector: Any, reason: Any) -> None:
@@ -280,10 +294,7 @@ class ReportClientFactory(ReconnectingClientFactory):
 
     def clientConnectionLost(self, connector: Any, reason: Any) -> None:
         self._report_protocol = None
-        self._state.CTABLE["MASTERS"].clear()
-        self._state.CTABLE["PEERS"].clear()
-        self._state.CTABLE["OPENBRIDGES"].clear()
-        self._state.BTABLE["BRIDGES"].clear()
+        # Keep CTABLE/BTABLE until CONFIG/BRIDGE on reconnect (avoid blank lnksys on brief blip).
         err_msg = getattr(reason, "getErrorMessage", lambda: str(reason))()
         err_type = getattr(getattr(reason, "type", None), "__name__", type(reason).__name__)
         logger.info("Lost connection. type=%s message=%s (full: %s)", err_type, err_msg, reason)

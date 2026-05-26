@@ -56,6 +56,24 @@ def _connected_since(conf: dict, *, connection_key: str = "CONNECTION") -> int |
     return ts if ts > 0 else None
 
 
+def _apply_connected_since(
+    target: dict,
+    conf: dict,
+    *,
+    include: bool,
+    disconnected: bool = False,
+    connection_key: str = "CONNECTION",
+) -> None:
+    """Set or strip CONNECTED_SINCE (v2 servers only)."""
+    if not include:
+        target.pop("CONNECTED_SINCE", None)
+        return
+    if disconnected:
+        target["CONNECTED_SINCE"] = None
+    else:
+        target["CONNECTED_SINCE"] = _connected_since(conf, connection_key=connection_key)
+
+
 def _decode_slots(slots: Any) -> str:
     if slots == b"0" or slots == "0":
         return "NONE"
@@ -72,6 +90,7 @@ def add_hb_peer(
     peer_key: Any,
     time_str_fn: Callable[[Any, str], str],
     int_id_fn: Callable[[Any], int],
+    include_connected_since: bool = False,
 ) -> None:
     """Add one peer to ctable_loc (MASTERS[system][PEERS] or PEERS)."""
     pid = int_id_fn(peer_key)
@@ -87,7 +106,7 @@ def add_hb_peer(
         peer[key] = decode_utf8_field(peer_conf.get(key, ""))
     peer["CONNECTION"] = peer_conf.get("CONNECTION", "")
     peer["CONNECTED"] = time_str_fn(peer_conf.get("CONNECTED", 0), "since")
-    peer["CONNECTED_SINCE"] = _connected_since(peer_conf)
+    _apply_connected_since(peer, peer_conf, include=include_connected_since)
     peer["IP"] = peer_conf.get("IP", "")
     peer["PORT"] = peer_conf.get("PORT", "")
     for ts in (1, 2):
@@ -106,6 +125,7 @@ def build_hblink_table_impl(
     time_str_fn: Callable[[Any, str], str],
     int_id_fn: Callable[[Any], int],
     conf_global: dict | None = None,
+    include_connected_since: bool = False,
 ) -> None:
     """Build MASTERS, PEERS, OPENBRIDGES from config. conf_global used for HB_INC."""
     hb_inc = conf_global.get("HB_INC", True) if conf_global else True
@@ -123,6 +143,7 @@ def build_hblink_table_impl(
                     peer_key,
                     time_str_fn,
                     int_id_fn,
+                    include_connected_since,
                 )
         elif (data.get("MODE") in ("XLXPEER", "PEER")) and hb_inc:
             stats_table["PEERS"][name] = {}
@@ -140,12 +161,21 @@ def build_hblink_table_impl(
                 stats_table["PEERS"][name]["STATS"]["CONNECTION"] = xlx.get("CONNECTION", "NO")
                 if xlx.get("CONNECTION") == "YES":
                     stats_table["PEERS"][name]["STATS"]["CONNECTED"] = time_str_fn(xlx.get("CONNECTED", 0), "since")
-                    stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = _connected_since(xlx)
+                    _apply_connected_since(
+                        stats_table["PEERS"][name]["STATS"],
+                        xlx,
+                        include=include_connected_since,
+                    )
                     stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = xlx.get("PINGS_SENT", 0)
                     stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = xlx.get("PINGS_ACKD", 0)
                 else:
                     stats_table["PEERS"][name]["STATS"]["CONNECTED"] = "--   --"
-                    stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = None
+                    _apply_connected_since(
+                        stats_table["PEERS"][name]["STATS"],
+                        xlx,
+                        include=include_connected_since,
+                        disconnected=True,
+                    )
                     stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = 0
                     stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = 0
             else:
@@ -153,12 +183,21 @@ def build_hblink_table_impl(
                 stats_table["PEERS"][name]["STATS"]["CONNECTION"] = st.get("CONNECTION", "NO")
                 if st.get("CONNECTION") == "YES":
                     stats_table["PEERS"][name]["STATS"]["CONNECTED"] = time_str_fn(st.get("CONNECTED", 0), "since")
-                    stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = _connected_since(st)
+                    _apply_connected_since(
+                        stats_table["PEERS"][name]["STATS"],
+                        st,
+                        include=include_connected_since,
+                    )
                     stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = st.get("PINGS_SENT", 0)
                     stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = st.get("PINGS_ACKD", 0)
                 else:
                     stats_table["PEERS"][name]["STATS"]["CONNECTED"] = "--   --"
-                    stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = None
+                    _apply_connected_since(
+                        stats_table["PEERS"][name]["STATS"],
+                        st,
+                        include=include_connected_since,
+                        disconnected=True,
+                    )
                     stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = 0
                     stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = 0
             slot_val = data.get("SLOTS", b"0")
@@ -219,6 +258,7 @@ def update_hblink_table_impl(
     time_str_fn: Callable[[Any, str], str],
     int_id_fn: Callable[[Any], int],
     bytes_4_fn: Callable[[int], bytes],
+    include_connected_since: bool = False,
 ) -> None:
     """Sync CTABLE with config: add new peers, remove missing, update connection times."""
     for key in ("MASTERS", "PEERS", "OPENBRIDGES"):
@@ -246,6 +286,7 @@ def update_hblink_table_impl(
                     peer_key,
                     time_str_fn,
                     int_id_fn,
+                    include_connected_since,
                 )
     for name in list(stats_table.get("MASTERS", {})):
         if config.get(name, {}).get("MODE") != "MASTER":
@@ -264,19 +305,28 @@ def update_hblink_table_impl(
                 ent = stats_table["MASTERS"][name]["PEERS"][peer_id]
                 ent["CONNECTION"] = peer_conf.get("CONNECTION", "")
                 ent["CONNECTED"] = time_str_fn(peer_conf.get("CONNECTED", 0), "since")
-                ent["CONNECTED_SINCE"] = _connected_since(peer_conf)
+                _apply_connected_since(ent, peer_conf, include=include_connected_since)
     for name in stats_table.get("PEERS", {}):
         if stats_table["PEERS"][name].get("MODE") == "XLXPEER":
             xlx = config.get(name, {}).get("XLXSTATS", {})
             stats_table["PEERS"][name]["STATS"]["CONNECTION"] = xlx.get("CONNECTION", "NO")
             if xlx.get("CONNECTION") == "YES":
                 stats_table["PEERS"][name]["STATS"]["CONNECTED"] = time_str_fn(xlx.get("CONNECTED", 0), "since")
-                stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = _connected_since(xlx)
+                _apply_connected_since(
+                    stats_table["PEERS"][name]["STATS"],
+                    xlx,
+                    include=include_connected_since,
+                )
                 stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = xlx.get("PINGS_SENT", 0)
                 stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = xlx.get("PINGS_ACKD", 0)
             else:
                 stats_table["PEERS"][name]["STATS"]["CONNECTED"] = "--   --"
-                stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = None
+                _apply_connected_since(
+                    stats_table["PEERS"][name]["STATS"],
+                    xlx,
+                    include=include_connected_since,
+                    disconnected=True,
+                )
                 stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = 0
                 stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = 0
         else:
@@ -284,12 +334,21 @@ def update_hblink_table_impl(
             stats_table["PEERS"][name]["STATS"]["CONNECTION"] = st.get("CONNECTION", "NO")
             if st.get("CONNECTION") == "YES":
                 stats_table["PEERS"][name]["STATS"]["CONNECTED"] = time_str_fn(st.get("CONNECTED", 0), "since")
-                stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = _connected_since(st)
+                _apply_connected_since(
+                    stats_table["PEERS"][name]["STATS"],
+                    st,
+                    include=include_connected_since,
+                )
                 stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = st.get("PINGS_SENT", 0)
                 stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = st.get("PINGS_ACKD", 0)
             else:
                 stats_table["PEERS"][name]["STATS"]["CONNECTED"] = "--   --"
-                stats_table["PEERS"][name]["STATS"]["CONNECTED_SINCE"] = None
+                _apply_connected_since(
+                    stats_table["PEERS"][name]["STATS"],
+                    st,
+                    include=include_connected_since,
+                    disconnected=True,
+                )
                 stats_table["PEERS"][name]["STATS"]["PINGS_SENT"] = 0
                 stats_table["PEERS"][name]["STATS"]["PINGS_ACKD"] = 0
     clean_te(stats_table)

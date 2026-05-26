@@ -34,7 +34,8 @@ from typing import Any, Callable
 from autobahn.twisted.websocket import WebSocketServerFactory, WebSocketServerProtocol
 
 from ...application import ws_ctable_views
-from ...application.monitor_controller import MonitorState
+from ...application.monitor_controller import MonitorState, ctable_is_empty, sync_ctable_from_config
+from ...domain.value_objects import ServerMode
 from ...application.ports import BroadcastPort
 
 logger = logging.getLogger("adn-monitor")
@@ -81,12 +82,36 @@ def _send_json(protocol: Any, opcode: str, payload: dict) -> None:
     protocol.sendMessage((opcode + json.dumps(payload, default=str)).encode("utf-8"))
 
 
-def _log_ctable_sent(peer: str, ctable: dict) -> None:
+def _log_ctable_sent(
+    peer: str,
+    ctable: dict,
+    full_ctable: dict | None = None,
+    *,
+    config_keys: int = 0,
+) -> None:
     """Log ctable stats when sending to a client (single responsibility, DRY)."""
     n_m = len(ctable.get("MASTERS", {}))
     n_p = len(ctable.get("PEERS", {}))
     n_o = len(ctable.get("OPENBRIDGES", {}))
-    logger.info("(WS) client %s registered lnksys: sending ctable MASTERS=%d PEERS=%d OPENBRIDGES=%d", peer, n_m, n_p, n_o)
+    logger.info(
+        "(WS) client %s registered lnksys: sending ctable MASTERS=%d PEERS=%d OPENBRIDGES=%d",
+        peer, n_m, n_p, n_o,
+    )
+    if full_ctable is not None and n_m == 0 and n_p == 0:
+        fm = len(full_ctable.get("MASTERS", {}))
+        fp = len(full_ctable.get("PEERS", {}))
+        fo = len(full_ctable.get("OPENBRIDGES", {}))
+        logger.info(
+            "(WS) client %s lnksys slice empty; full CTABLE MASTERS=%d PEERS=%d OPENBRIDGES=%d",
+            peer, fm, fp, fo,
+        )
+        if fm == 0 and fp == 0 and fo == 0:
+            logger.warning(
+                "(WS) client %s CTABLE empty in memory (cached CONFIG keys=%d); "
+                "on legacy servers wait for periodic CONFIG_SND (~60s) after report reconnect",
+                peer,
+                config_keys,
+            )
 
 
 def make_dashboard_factory(
@@ -118,11 +143,6 @@ def make_dashboard_factory(
                 return
             # "conf,all" => send full config for all groups so client doesn't wait for safety_sync
             requested = list(SEND_ALL_GROUPS) if "all" in msg[1:] else msg[1:]
-            refresh_ctable = (
-                refresh_from_server is not None
-                and any(g in ("lnksys", "statictg") for g in requested)
-                and refresh_from_server()
-            )
             for group in requested:
                 if group not in groups:
                     continue
@@ -131,11 +151,16 @@ def make_dashboard_factory(
                     if state.BRIDGES and conf_global.get("BRDG_INC"):
                         _send_json(self, "b", {"btable": state.BTABLE, "dbridges": True})
                 elif group == "lnksys":
-                    if refresh_ctable:
-                        continue
+                    if ctable_is_empty(state.CTABLE) and state.CONFIG:
+                        sync_ctable_from_config(state, conf_global)
                     emaster = conf_global.get("EMPTY_MASTERS", False)
                     ctable = ws_ctable_views.ctable_for_lnksys(state.CTABLE, empty_masters=emaster)
-                    _log_ctable_sent(self.peer, ctable)
+                    _log_ctable_sent(
+                        self.peer,
+                        ctable,
+                        state.CTABLE,
+                        config_keys=len(state.CONFIG or {}),
+                    )
                     _send_json(self, "c", {
                         "ctable": ctable,
                         "emaster": emaster,
@@ -148,8 +173,8 @@ def make_dashboard_factory(
                 elif group == "main":
                     render_last_heard("last_heard", conf_global.get("LH_ROWS", 20), self)
                 elif group == "statictg":
-                    if refresh_ctable:
-                        continue
+                    if ctable_is_empty(state.CTABLE) and state.CONFIG:
+                        sync_ctable_from_config(state, conf_global)
                     emaster = conf_global.get("EMPTY_MASTERS", False)
                     _send_json(self, "s", {
                         "ctable": ws_ctable_views.ctable_for_lnksys(state.CTABLE, empty_masters=emaster),
@@ -170,6 +195,13 @@ def make_dashboard_factory(
                         "mode": getattr(mode, "value", str(mode) if mode is not None else "legacy"),
                         "info": info,
                     })
+            if (
+                refresh_from_server is not None
+                and any(g in ("lnksys", "statictg") for g in requested)
+                and getattr(state, "server_mode_confirmed", False)
+                and getattr(state, "server_mode", ServerMode.LEGACY) == ServerMode.V2
+            ):
+                refresh_from_server()
 
         def onClose(self, wasClean: bool, code: int | None, reason: str | None) -> None:
             self.factory.unregister(self)

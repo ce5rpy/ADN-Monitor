@@ -79,7 +79,8 @@ from adn_monitor.application import (
     time_str,
 )
 from adn_monitor.application.time_utils import format_stored_utc_for_display, utc_calendar_date
-from adn_monitor.application.monitor_controller import build_tgstats
+from adn_monitor.application.monitor_controller import build_tgstats, sync_ctable_from_config
+from adn_monitor.domain.value_objects import ServerMode
 from adn_monitor.application.tgstats import parse_options_to_static
 from adn_monitor.application.hblink_table import clean_te
 import adn_monitor.application.ws_ctable_views as ws_ctable_views
@@ -765,6 +766,9 @@ def main():
             }
             dashboard_server.broadcast("v" + json.dumps(payload, separators=(",", ":")), "all_clients")
             logger.info("Server mode detected: mode=%s info=%s", payload["mode"], payload["info"])
+            if payload["mode"] == ServerMode.V2.value and _state.CONFIG:
+                sync_ctable_from_config(_state, conf_global)
+                broadcast_ws_ctable()
         except Exception as e:
             logger.warning("Failed to broadcast server_info: %s", e)
 

@@ -28,7 +28,7 @@ import json
 import logging
 import time
 from collections import deque
-from ..domain import Failure, ReportProtocolError, ServerMode, Success, unwrap_or
+from ..domain import Failure, ReportProtocolError, ServerMode, Success, is_fail, unwrap_or
 from ..domain.value_objects import Opcode
 from .alias_service import AliasService
 from .ports import (
@@ -48,6 +48,10 @@ SYS_DICT_MAX_ENTRIES = 20_000
 SYS_DICT_MAX_AGE_SEC = 300
 
 
+def _include_connected_since(state: MonitorState) -> bool:
+    return getattr(state, "server_mode", ServerMode.LEGACY) == ServerMode.V2
+
+
 def _apply_config_to_state(
     state: MonitorState,
     config_dict: dict,
@@ -56,10 +60,29 @@ def _apply_config_to_state(
     """Apply decoded CONFIG to state (build/update CTABLE). Single responsibility."""
     state.CONFIG = config_dict
     state.CONFIG_RX = format_display_datetime(time.time(), config_global)
+    include_since = _include_connected_since(state)
     if state.CTABLE["MASTERS"]:
-        update_hblink_table(state.CONFIG, state.CTABLE, time_str, config_global)
+        update_hblink_table(
+            state.CONFIG, state.CTABLE, time_str, config_global, include_connected_since=include_since
+        )
     else:
-        build_hblink_table(state.CONFIG, state.CTABLE, time_str, config_global)
+        build_hblink_table(
+            state.CONFIG, state.CTABLE, time_str, config_global, include_connected_since=include_since
+        )
+
+
+def sync_ctable_from_config(state: MonitorState, config_global: dict) -> None:
+    """Re-sync CTABLE from cached CONFIG (e.g. after v2 mode is confirmed or CTABLE was wiped)."""
+    if not state.CONFIG:
+        return
+    _apply_config_to_state(state, state.CONFIG, config_global)
+
+
+def ctable_is_empty(ctable: dict) -> bool:
+    """True when CTABLE has no masters, service peers, or openbridges."""
+    return not (
+        ctable.get("MASTERS") or ctable.get("PEERS") or ctable.get("OPENBRIDGES")
+    )
 
 
 def _apply_bridges_to_state(
@@ -123,6 +146,8 @@ class MonitorState:
         self.PEER_OPTIONS: dict = {}
         self.server_mode: ServerMode = ServerMode.LEGACY
         self.server_info: dict = {}
+        # True after HELLO (v2) or HELLO timeout (legacy); gates v2-only report opcodes.
+        self.server_mode_confirmed: bool = False
 
 
 def process_message(
@@ -148,7 +173,10 @@ def process_message(
             logger.error("CONFIG_SND: state is not MonitorState (got %s), skipping", type(state).__name__)
             return Success(None)
         decode_result = report_decoder.decode_config(raw_message)
-        config_dict = unwrap_or(decode_result, {})
+        if is_fail(decode_result):
+            logger.warning("(REPORT) CONFIG_SND decode failed; keeping existing CTABLE")
+            return Success(None)
+        config_dict = decode_result.value
         _apply_config_to_state(state, config_dict, config_global)
         n_m, n_p, n_o, n_mp = _ctable_counts(state)
         logger.info(
@@ -165,7 +193,10 @@ def process_message(
             logger.error("BRIDGE_SND: state is not MonitorState (got %s), skipping", type(state).__name__)
             return Success(None)
         decode_result = report_decoder.decode_bridges(raw_message)
-        bridges_dict = unwrap_or(decode_result, {})
+        if is_fail(decode_result):
+            logger.warning("(REPORT) BRIDGE_SND decode failed; keeping existing BTABLE")
+            return Success(None)
+        bridges_dict = decode_result.value
         _apply_bridges_to_state(state, bridges_dict, config_global)
         n_brg = len(state.BTABLE.get("BRIDGES", {}))
         logger.info("(REPORT) BRIDGES applied: BTABLE BRIDGES=%d", n_brg)
@@ -380,19 +411,31 @@ def bytes_4(peer_id: int) -> bytes:
 
 
 def build_hblink_table(
-    config: dict, stats_table: dict, time_str_fn, config_global: dict | None = None
+    config: dict,
+    stats_table: dict,
+    time_str_fn,
+    config_global: dict | None = None,
+    include_connected_since: bool = False,
 ) -> None:
     """Populate CTABLE from CONFIG (MASTERS, PEERS, OPENBRIDGES)."""
     from .hblink_table import build_hblink_table_impl
-    build_hblink_table_impl(config, stats_table, time_str_fn, int_id, config_global)
+    build_hblink_table_impl(
+        config, stats_table, time_str_fn, int_id, config_global, include_connected_since
+    )
 
 
 def update_hblink_table(
-    config: dict, stats_table: dict, time_str_fn, config_global: dict | None = None
+    config: dict,
+    stats_table: dict,
+    time_str_fn,
+    config_global: dict | None = None,
+    include_connected_since: bool = False,
 ) -> None:
     """Sync CTABLE with CONFIG (add/remove peers, update connection times)."""
     from .hblink_table import update_hblink_table_impl
-    update_hblink_table_impl(config, stats_table, time_str_fn, int_id, bytes_4)
+    update_hblink_table_impl(
+        config, stats_table, time_str_fn, int_id, bytes_4, include_connected_since
+    )
 
 
 def build_bridge_table(bridges: dict, now: float) -> dict:
