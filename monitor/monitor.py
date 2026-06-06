@@ -96,6 +96,10 @@ from adn_monitor.infrastructure import (
 
 __version__ = "1.0.0"
 
+if "--version" in sys.argv:
+    print(__version__)
+    sys.exit(0)
+
 # Config file: env ADN_CONFIG_PATH, or --config, or this folder
 CONFIG_FILE = os.environ.get("ADN_CONFIG_PATH", str(_ROOT / "adn-monitor.yaml"))
 for i, arg in enumerate(sys.argv[1:]):

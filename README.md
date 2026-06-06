@@ -1,5 +1,7 @@
 # ADN Systems Monitor
 
+**Version 1.0.0** — first stable release. Compatible with **adn-server 1.0.0**.
+
 Dashboard for ADN networks: PHP API, React frontend, and a Python process that connects to the ADN/peer report server, writes to the database, and serves live data over WebSocket.
 
 ---

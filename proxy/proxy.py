@@ -61,7 +61,11 @@ from adn_proxy.infrastructure import (
 )
 from adn_proxy.infrastructure.persistence import ProxyDbRepository
 
-__version__ = "2.0.0"
+__version__ = "1.0.0"
+
+if "--version" in sys.argv:
+    print(__version__)
+    sys.exit(0)
 
 # Config: ADN_PROXY_CONFIG_PATH, else ADN_CONFIG_PATH (legacy one YAML), else proxy/adn-proxy.yaml
 _DEFAULT_CONFIG = str(_ROOT / "adn-proxy.yaml")
