@@ -344,7 +344,7 @@ export default function Systems() {
                   <TableCell sx={{ fontWeight: 600 }} align="center">{t('lnksys_dst', { defaultValue: 'Destination' })}</TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>{renderMasterPeerRows((_, p) => isBridge(p), 'brg')}</TableBody>
+              <TableBody>{renderMasterPeerRows((_, p) => isBridge(p as PeerEntry), 'brg')}</TableBody>
             </Table>
           </TableContainer>
         </Paper>

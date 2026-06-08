@@ -94,6 +94,10 @@ class Opcode:
     BRIDGE_UPD = b"\x05"
     LINK_EVENT = b"\x06"
     BRDG_EVENT = b"\x07"
+    TOPOLOGY_SND = b"\x10"
+    ROUTING_TABLE_SND = b"\x11"
+    VOICE_EVENT_SND = b"\x12"
+    DELTA_SND = b"\x13"
     HELLO = b"\xff"
     SERVER_MSG = b"b"
 

@@ -1,0 +1,208 @@
+"""Map report JSON payloads to legacy CONFIG / BRIDGES / BRDG_EVENT CSV shapes."""
+
+from __future__ import annotations
+
+import json
+import logging
+import time
+from typing import Any
+
+from ..domain import Failure, ReportProtocolError, Success
+
+logger = logging.getLogger("adn-monitor")
+
+REPORT_PROTOCOL = 2
+
+
+def decode_report_payload(raw_message: bytes) -> Success[dict] | Failure[ReportProtocolError]:
+    """Decode JSON payload after the single-byte opcode."""
+    data = raw_message[1:]
+    if not data:
+        return Failure(ReportProtocolError("report payload empty"))
+    try:
+        obj = json.loads(data.decode("utf-8", errors="replace"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        logger.warning("(REPORT) JSON decode failed: %s", e)
+        return Failure(ReportProtocolError(f"JSON decode failed: {e}"))
+    if not isinstance(obj, dict):
+        return Failure(ReportProtocolError("report payload is not a JSON object"))
+    return Success(obj)
+
+
+def _bytes_4(peer_id: int) -> bytes:
+    """Peer dict keys match legacy CONFIG pickle (4-byte big-endian)."""
+    return peer_id.to_bytes(4, "big")
+
+
+_PEER_JSON_TO_LEGACY: tuple[tuple[str, str], ...] = (
+    ("callsign", "CALLSIGN"),
+    ("rx_freq", "RX_FREQ"),
+    ("tx_freq", "TX_FREQ"),
+    ("location", "LOCATION"),
+    ("description", "DESCRIPTION"),
+    ("url", "URL"),
+    ("slots", "SLOTS"),
+    ("package_id", "PACKAGE_ID"),
+    ("software_id", "SOFTWARE_ID"),
+    ("colorcode", "COLORCODE"),
+    ("tx_power", "TX_POWER"),
+)
+
+_BYTE_PEER_FIELDS = frozenset({"RX_FREQ", "TX_FREQ", "SLOTS"})
+
+
+def _legacy_peer_field(legacy_key: str, value: Any) -> Any:
+    if legacy_key in _BYTE_PEER_FIELDS:
+        if isinstance(value, bytes):
+            return value
+        text = str(value).strip()
+        return text.encode("utf-8") if text else b""
+    return value
+
+
+_CALL_FAMILY_TO_CSV = {
+    "GROUP": "GROUP VOICE",
+    "PRIVATE": "PRIVATE VOICE",
+    "UNIT": "UNIT DATA",
+}
+
+
+def topology_to_config(topology: dict[str, Any], *, ts: float | None = None) -> dict[str, Any]:
+    """Build a CONFIG dict compatible with ``build_hblink_table`` / ``update_hblink_table``."""
+    epoch = float(topology.get("ts", time.time())) if ts is None else ts
+    config: dict[str, Any] = {}
+    for system in topology.get("systems", []):
+        if not isinstance(system, dict):
+            continue
+        name = system.get("name")
+        if not name:
+            continue
+        entry: dict[str, Any] = {
+            "ENABLED": bool(system.get("enabled", True)),
+            "MODE": system.get("mode", "MASTER"),
+        }
+        if system.get("ip"):
+            entry["IP"] = str(system["ip"])
+        port = system.get("port")
+        if port is not None:
+            entry["PORT"] = int(port)
+        if "repeat" in system:
+            entry["REPEAT"] = bool(system["repeat"])
+        if system.get("enhanced_obp"):
+            entry["ENHANCED_OBP"] = True
+        if system.get("mode") == "OPENBRIDGE" and system.get("network_id") is not None:
+            entry["NETWORK_ID"] = _bytes_4(int(system["network_id"]))
+        peers: dict[bytes, dict[str, Any]] = {}
+        for peer in system.get("peers", []):
+            if not isinstance(peer, dict):
+                continue
+            pid = int(peer["id"])
+            connected = bool(peer.get("connected", False))
+            peer_conf: dict[str, Any] = {
+                "CONNECTION": "YES" if connected else "NO",
+                "CONNECTED": int(epoch) if connected else 0,
+                "IP": peer.get("ip", ""),
+                "PORT": peer.get("port", ""),
+                "TX_FREQ": b"",
+                "RX_FREQ": b"",
+                "SLOTS": b"0",
+            }
+            for json_key, legacy_key in _PEER_JSON_TO_LEGACY:
+                if json_key in peer:
+                    peer_conf[legacy_key] = _legacy_peer_field(legacy_key, peer[json_key])
+            peers[_bytes_4(pid)] = peer_conf
+        entry["PEERS"] = peers
+        config[str(name)] = entry
+    return config
+
+
+def routing_table_to_bridges(routing: dict[str, Any]) -> dict[str, Any]:
+    """Build a BRIDGES dict compatible with ``build_bridge_table``."""
+    bridges: dict[str, Any] = {}
+    for route in routing.get("routes", []):
+        if not isinstance(route, dict):
+            continue
+        key = str(route.get("bridge_key", ""))
+        if not key:
+            continue
+        legs: list[dict[str, Any]] = []
+        for leg in route.get("legs", []):
+            if not isinstance(leg, dict):
+                continue
+            row: dict[str, Any] = {
+                "SYSTEM": str(leg.get("system", "")),
+                "TS": int(leg.get("ts", 1)),
+                "TGID": int(leg.get("tgid", 0)),
+                "ACTIVE": bool(leg.get("active", False)),
+                "TO_TYPE": str(leg.get("to_type", "NONE")),
+            }
+            timer = leg.get("timer_expires_at")
+            if timer is not None:
+                row["TIMER"] = float(timer)
+            legs.append(row)
+        bridges[key] = legs
+    return bridges
+
+
+def voice_event_to_csv_parts(voice: dict[str, Any]) -> list[str] | None:
+    """Convert a ``voice_event`` to legacy BRDG_EVENT CSV field list."""
+    family = voice.get("call_family")
+    csv_family = _CALL_FAMILY_TO_CSV.get(family)
+    if csv_family is None:
+        return None
+    phase = str(voice.get("phase", ""))
+    if family == "UNIT" and phase == "DATA":
+        csv_family = "UNIT DATA HEADER"
+    direction = str(voice.get("direction", "RX"))
+    parts = [
+        csv_family,
+        phase,
+        direction,
+        str(voice.get("system", "")),
+        str(int(voice.get("stream_id", 0))),
+        str(int(voice.get("peer_id", 0))),
+        str(int(voice.get("src_id", 0))),
+        str(int(voice.get("slot", 1))),
+        str(int(voice.get("dst_id", 0))),
+    ]
+    if phase == "END":
+        dur = voice.get("duration_s")
+        if dur is not None:
+            parts.append(f"{float(dur):.2f}")
+    return parts
+
+
+def merge_topology_delta(previous: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+    """Merge a topology delta patch into the last full snapshot."""
+    merged = dict(previous)
+    prev_systems = {s["name"]: s for s in previous.get("systems", []) if isinstance(s, dict) and s.get("name")}
+    for system in patch.get("systems", []):
+        if isinstance(system, dict) and system.get("name"):
+            prev_systems[system["name"]] = system
+    merged["type"] = "topology"
+    merged["systems"] = list(prev_systems.values())
+    if "seq" in patch:
+        merged["seq"] = patch["seq"]
+    if "ts" in patch:
+        merged["ts"] = patch["ts"]
+    return merged
+
+
+def merge_routing_delta(previous: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+    """Merge a routing_table delta patch into the last full snapshot."""
+    merged = dict(previous)
+    prev_routes = {
+        r["bridge_key"]: r
+        for r in previous.get("routes", [])
+        if isinstance(r, dict) and r.get("bridge_key")
+    }
+    for route in patch.get("routes", []):
+        if isinstance(route, dict) and route.get("bridge_key"):
+            prev_routes[route["bridge_key"]] = route
+    merged["type"] = "routing_table"
+    merged["routes"] = list(prev_routes.values())
+    if "seq" in patch:
+        merged["seq"] = patch["seq"]
+    if "ts" in patch:
+        merged["ts"] = patch["ts"]
+    return merged

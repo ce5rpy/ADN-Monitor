@@ -26,6 +26,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any, Callable
 
@@ -95,6 +96,11 @@ class ReportProtocol(NetstringReceiver):
         self._monitor_state.server_mode = ServerMode.LEGACY
         self._monitor_state.server_info = {}
         self._monitor_state.server_mode_confirmed = False
+        self._monitor_state.report_protocol = None
+        self._monitor_state.topology_snapshot = None
+        self._monitor_state.routing_snapshot = None
+        self._monitor_state.topology_seq = 0
+        self._monitor_state.routing_seq = 0
         self._mode_signalled = False
         from twisted.internet import reactor
 
@@ -149,10 +155,12 @@ class ReportProtocol(NetstringReceiver):
     def stringReceived(self, data: bytes) -> None:
         opcode = data[:1] if data else b""
         # Log report messages: CONFIG_SND=0x01, BRIDGE_SND=0x03; BRDG_EVENT=0x07 only at DEBUG (formatted line goes to INFO in controller)
-        if opcode in (b"\x01", b"\x03"):
+        if opcode in (b"\x01", b"\x03", Opcode.TOPOLOGY_SND, Opcode.ROUTING_TABLE_SND):
             logger.info("(REPORT) stringReceived: opcode=%s len=%d", opcode.hex(), len(data))
-        elif opcode == b"\x07":
-            logger.debug("(REPORT) stringReceived: BRDG_EVENT opcode=07 len=%d", len(data))
+        elif opcode in (b"\x07", Opcode.VOICE_EVENT_SND):
+            logger.debug("(REPORT) stringReceived: voice opcode=%s len=%d", opcode.hex(), len(data))
+        elif opcode == Opcode.DELTA_SND:
+            logger.info("(REPORT) stringReceived: DELTA_SND len=%d", len(data))
         elif opcode == Opcode.HELLO:
             logger.info("(REPORT) stringReceived: HELLO opcode=%s len=%d", opcode.hex(), len(data))
         else:
@@ -174,11 +182,23 @@ class ReportProtocol(NetstringReceiver):
             logger.warning("process_message error: %s", result.error)
         elif opcode == Opcode.HELLO:
             self._signal_mode_detected()
-        elif opcode == b"\x01" and self._on_config_applied:
+        elif opcode in (b"\x01", Opcode.TOPOLOGY_SND) and self._on_config_applied:
             self._on_config_applied()
-        elif opcode == b"\x03" and self._on_bridges_applied:
+        elif opcode in (b"\x03", Opcode.ROUTING_TABLE_SND) and self._on_bridges_applied:
             self._on_bridges_applied()
-        elif opcode == b"\x07" and self._on_ctable_updated:
+        elif opcode == Opcode.DELTA_SND and not is_fail(result):
+            patch_type = None
+            try:
+                payload = json.loads(data[1:].decode("utf-8", errors="replace") or "{}")
+                patch = payload.get("patch") if isinstance(payload, dict) else None
+                patch_type = patch.get("type") if isinstance(patch, dict) else None
+            except Exception:
+                pass
+            if patch_type == "topology" and self._on_config_applied:
+                self._on_config_applied()
+            elif patch_type == "routing_table" and self._on_bridges_applied:
+                self._on_bridges_applied()
+        elif opcode in (b"\x07", Opcode.VOICE_EVENT_SND) and self._on_ctable_updated:
             # GROUP VOICE + INGRESS does not change CTABLE (rts_update returns early); skip WS refresh.
             msg = data.decode("utf-8", "ignore")
             parts = msg[1:].split(",") if len(msg) > 1 else []
@@ -258,7 +278,7 @@ class ReportClientFactory(ReconnectingClientFactory):
         return proto
 
     def request_refresh(self) -> bool:
-        """Request fresh CONFIG + BRIDGE from v2 adn-server only.
+        """Request fresh CONFIG + BRIDGE from adn-server only.
 
         Do not send CONFIG_REQ / BRIDGE_REQ to legacy adn-dmr-server: hblink report
         handles CONFIG_REQ with self.send_config() (missing on the protocol instance;
@@ -276,7 +296,7 @@ class ReportClientFactory(ReconnectingClientFactory):
             return False
         proto.sendString(Opcode.CONFIG_REQ)
         proto.sendString(Opcode.BRIDGE_REQ)
-        logger.debug("(REPORT) CONFIG_REQ + BRIDGE_REQ sent (v2 server)")
+        logger.debug("(REPORT) CONFIG_REQ + BRIDGE_REQ sent")
         return True
 
     def clientConnectionFailed(self, connector: Any, reason: Any) -> None:

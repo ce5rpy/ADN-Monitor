@@ -38,6 +38,15 @@ from .ports import (
     ReportPayloadDecoder,
     TgCountRepository,
 )
+from .report_mapper import (
+    REPORT_PROTOCOL,
+    decode_report_payload,
+    merge_routing_delta,
+    merge_topology_delta,
+    routing_table_to_bridges,
+    topology_to_config,
+    voice_event_to_csv_parts,
+)
 from .time_utils import format_display_datetime, format_utc_naive_datetime, time_str
 
 logger = logging.getLogger("adn-monitor")
@@ -148,6 +157,12 @@ class MonitorState:
         self.server_info: dict = {}
         # True after HELLO (v2) or HELLO timeout (legacy); gates v2-only report opcodes.
         self.server_mode_confirmed: bool = False
+        # None until HELLO; set to report_protocol from server (2 on current line).
+        self.report_protocol: int | None = None
+        self.topology_snapshot: dict | None = None
+        self.routing_snapshot: dict | None = None
+        self.topology_seq: int = 0
+        self.routing_seq: int = 0
 
 
 def process_message(
@@ -218,91 +233,219 @@ def process_message(
             info = {}
         state.server_mode = ServerMode.V2
         state.server_info = info
-        logger.info("(REPORT) HELLO received: mode=v2 server=%s version=%s features=%s",
-                    info.get("server"), info.get("version"), info.get("features"))
+        report_protocol = info.get("report_protocol")
+        state.report_protocol = int(report_protocol) if report_protocol is not None else None
+        if state.report_protocol == REPORT_PROTOCOL:
+            logger.info(
+                "(REPORT) HELLO received: report_protocol=%s server=%s version=%s features=%s",
+                state.report_protocol,
+                info.get("server"),
+                info.get("version"),
+                info.get("features"),
+            )
+        elif state.report_protocol is None:
+            logger.info(
+                "(REPORT) HELLO received (legacy handshake): server=%s version=%s",
+                info.get("server"),
+                info.get("version"),
+            )
+        else:
+            logger.warning(
+                "(REPORT) HELLO report_protocol=%s (expected %s)",
+                state.report_protocol,
+                REPORT_PROTOCOL,
+            )
         return Success(None)
 
     if opcode.value == Opcode.BRDG_EVENT:
         parts = message[1:].split(",")
-        if len(parts) < 9:
-            logger.debug("(REPORT) BRDG_EVENT ignored: parts len=%d (need >= 9)", len(parts))
+        return _handle_brdg_event_parts(
+            parts,
+            state,
+            alias_svc,
+            alias_repo,
+            lastheard_repo,
+            tgcount_repo,
+            broadcast,
+            config_global,
+        )
+
+    if opcode.value == Opcode.TOPOLOGY_SND:
+        decode_result = decode_report_payload(raw_message)
+        if is_fail(decode_result):
+            logger.warning("(REPORT) TOPOLOGY_SND decode failed")
             return Success(None)
-        if not isinstance(state, MonitorState) or not getattr(state, "CTABLE", None):
-            logger.warning("(REPORT) BRDG_EVENT ignored: state or CTABLE missing")
+        topology = decode_result.value
+        if topology.get("type") != "topology":
+            logger.warning("(REPORT) TOPOLOGY_SND unexpected type=%s", topology.get("type"))
             return Success(None)
-        logger.debug("(REPORT) BRDG_EVENT parts[0]=%s parts[1]=%s parts[2]=%s", parts[0], parts[1], parts[2])
-        # Ensure aliases in cache (async in original: db2dict)
-        alias_repo.ensure_subscriber_in_cache(int(parts[6]))
-        alias_repo.ensure_talkgroup_in_cache(int(parts[8]))
-        if parts[0] in ("GROUP VOICE", "PRIVATE VOICE"):
-            _event_ts = time.time()
-            rts_update(
-                parts,
-                state,
-                alias_svc,
-                time_str,
-            )
-            skip_persist = parts[2] == "TX" or parts[5] in config_global.get("OPB_FILTER", [])
-            if skip_persist:
-                logger.debug("(REPORT) BRDG_EVENT GROUP VOICE skip persist: dir=%s src=%s", parts[2], parts[5])
-            _now = format_display_datetime(_event_ts, config_global, with_tz_abbr=True)
-            _wall_db = format_utc_naive_datetime(_event_ts)
-            reported_dur = float(parts[9]) if len(parts) > 9 else 0.0
-            duration_sec = int(reported_dur)
-            if parts[1] == "INGRESS":
-                log_message = _format_log_message(_now, parts, alias_svc, None)
-            elif parts[1] == "END" and parts[4] in state.sys_dict and state.sys_dict[parts[4]]["sys"] == parts[3]:
-                _sd = state.sys_dict[parts[4]]
-                del state.sys_dict[parts[4]]
-                if not skip_persist:
-                    # Server may send 0.00 on quench/loop/BCSQ; use wall time since START on this monitor.
-                    wall_dur = max(0.0, _event_ts - _sd["timeST"])
-                    merged_dur = max(reported_dur, wall_dur)
-                    duration_sec = int(merged_dur)
-                    if config_global.get("TGC_INC") and merged_dur > 5:
-                        tgcount_repo.insert_tgcount(parts[8], parts[6], str(int(merged_dur)))
-                        logger.debug("(REPORT) BRDG_EVENT saved tgcount tg=%s dmr=%s", parts[8], parts[6])
-                    if config_global.get("LH_INC"):
-                        # lstheard_log (Last Heard page): all calls
-                        lastheard_repo.insert_lstheard_log(
-                            merged_dur,
-                            parts[0],
-                            parts[3],
-                            int(parts[8]),
-                            int(parts[6]),
-                            wall_date_time=_wall_db,
-                        )
-                        # Dashboard table only: minimum duration (seconds); Last Heard page always shows all
-                        min_duration = config_global.get("DASHBOARD_MIN_DURATION", 3)
-                        if merged_dur >= min_duration:
-                            lastheard_repo.insert_last_heard(
-                                merged_dur,
-                                parts[0],
-                                parts[3],
-                                int(parts[8]),
-                                int(parts[6]),
-                                wall_date_time=_wall_db,
-                            )
-                        logger.debug("(REPORT) BRDG_EVENT saved lastheard sys=%s tg=%s dmr=%s", parts[3], parts[8], parts[6])
-                if not state.sys_dict["lst_clean"] or time.time() - state.sys_dict["lst_clean"] >= 3:
-                    state.sys_dict["lst_clean"] = time.time()
-                    for k, v in list(state.sys_dict.items()):
-                        if k == "lst_clean":
-                            continue
-                        if time.time() - v["timeST"] >= SYS_DICT_MAX_AGE_SEC:
-                            del state.sys_dict[k]
-                log_message = _format_log_message(_now, parts, alias_svc, duration_sec)
-            elif parts[1] == "START":
-                log_message = _format_log_message(_now, parts, alias_svc, None)
-                if not skip_persist:
-                    # Same time base as _event_ts on END so duration merge is consistent.
-                    state.sys_dict[parts[4]] = {"sys": parts[3], "timeST": _event_ts}
-            elif parts[1] == "END":
-                log_message = _format_log_message(_now, parts, alias_svc, duration_sec)
-                # Not the matched branch above (no START, or sys/stream mismatch): still persist RX from server.
-                if not skip_persist and config_global.get("LH_INC"):
+        seq = int(topology.get("seq", 0))
+        if seq < state.topology_seq:
+            logger.debug("(REPORT) TOPOLOGY_SND stale seq=%s (have %s)", seq, state.topology_seq)
+            return Success(None)
+        state.topology_snapshot = topology
+        state.topology_seq = seq
+        config_dict = topology_to_config(topology)
+        _apply_config_to_state(state, config_dict, config_global)
+        n_m, n_p, n_o, n_mp = _ctable_counts(state)
+        logger.info(
+            "(REPORT) topology applied seq=%s: CTABLE MASTERS=%d PEERS=%d OPENBRIDGES=%d MASTER_PEERS=%d",
+            seq,
+            n_m,
+            n_p,
+            n_o,
+            n_mp,
+        )
+        return Success(None)
+
+    if opcode.value == Opcode.ROUTING_TABLE_SND:
+        decode_result = decode_report_payload(raw_message)
+        if is_fail(decode_result):
+            logger.warning("(REPORT) ROUTING_TABLE_SND decode failed")
+            return Success(None)
+        routing = decode_result.value
+        if routing.get("type") != "routing_table":
+            logger.warning("(REPORT) ROUTING_TABLE_SND unexpected type=%s", routing.get("type"))
+            return Success(None)
+        seq = int(routing.get("seq", 0))
+        if seq < state.routing_seq:
+            logger.debug("(REPORT) ROUTING_TABLE_SND stale seq=%s (have %s)", seq, state.routing_seq)
+            return Success(None)
+        state.routing_snapshot = routing
+        state.routing_seq = seq
+        bridges_dict = routing_table_to_bridges(routing)
+        _apply_bridges_to_state(state, bridges_dict, config_global)
+        n_brg = len(state.BTABLE.get("BRIDGES", {}))
+        logger.info("(REPORT) routing_table applied seq=%s: BTABLE BRIDGES=%d", seq, n_brg)
+        return Success(None)
+
+    if opcode.value == Opcode.VOICE_EVENT_SND:
+        decode_result = decode_report_payload(raw_message)
+        if is_fail(decode_result):
+            logger.warning("(REPORT) VOICE_EVENT_SND decode failed")
+            return Success(None)
+        voice = decode_result.value
+        if voice.get("type") != "voice_event":
+            logger.warning("(REPORT) VOICE_EVENT_SND unexpected type=%s", voice.get("type"))
+            return Success(None)
+        parts = voice_event_to_csv_parts(voice)
+        if parts is None:
+            logger.debug("(REPORT) VOICE_EVENT_SND not mapped: family=%s phase=%s", voice.get("call_family"), voice.get("phase"))
+            return Success(None)
+        return _handle_brdg_event_parts(
+            parts,
+            state,
+            alias_svc,
+            alias_repo,
+            lastheard_repo,
+            tgcount_repo,
+            broadcast,
+            config_global,
+        )
+
+    if opcode.value == Opcode.DELTA_SND:
+        decode_result = decode_report_payload(raw_message)
+        if is_fail(decode_result):
+            logger.warning("(REPORT) DELTA_SND decode failed")
+            return Success(None)
+        delta = decode_result.value
+        if delta.get("type") != "delta":
+            logger.warning("(REPORT) DELTA_SND unexpected type=%s", delta.get("type"))
+            return Success(None)
+        patch = delta.get("patch")
+        if not isinstance(patch, dict):
+            return Success(None)
+        patch_type = patch.get("type")
+        since_seq = delta.get("since_seq")
+        if patch_type == "topology":
+            if state.topology_snapshot is None:
+                logger.warning("(REPORT) DELTA_SND topology patch without prior snapshot")
+                return Success(None)
+            if since_seq is not None and int(since_seq) != state.topology_seq:
+                logger.warning(
+                    "(REPORT) DELTA_SND topology since_seq=%s expected %s",
+                    since_seq,
+                    state.topology_seq,
+                )
+            merged = merge_topology_delta(state.topology_snapshot, patch)
+            seq = int(merged.get("seq", state.topology_seq))
+            state.topology_snapshot = merged
+            state.topology_seq = seq
+            config_dict = topology_to_config(merged)
+            _apply_config_to_state(state, config_dict, config_global)
+            logger.info("(REPORT) topology delta applied seq=%s", seq)
+            return Success(None)
+        if patch_type == "routing_table":
+            if state.routing_snapshot is None:
+                logger.warning("(REPORT) DELTA_SND routing patch without prior snapshot")
+                return Success(None)
+            if since_seq is not None and int(since_seq) != state.routing_seq:
+                logger.warning(
+                    "(REPORT) DELTA_SND routing since_seq=%s expected %s",
+                    since_seq,
+                    state.routing_seq,
+                )
+            merged = merge_routing_delta(state.routing_snapshot, patch)
+            seq = int(merged.get("seq", state.routing_seq))
+            state.routing_snapshot = merged
+            state.routing_seq = seq
+            bridges_dict = routing_table_to_bridges(merged)
+            _apply_bridges_to_state(state, bridges_dict, config_global)
+            logger.info("(REPORT) routing_table delta applied seq=%s", seq)
+            return Success(None)
+        logger.warning("(REPORT) DELTA_SND unknown patch type=%s", patch_type)
+        return Success(None)
+
+    if opcode.value == Opcode.SERVER_MSG:
+        return Success(None)
+
+    return Failure(ReportProtocolError(f"Unknown opcode: {repr(opcode.value)}"))
+
+
+def _handle_brdg_event_parts(
+    parts: list[str],
+    state: MonitorState,
+    alias_svc: AliasService,
+    alias_repo: AliasRepository,
+    lastheard_repo: LastHeardRepository,
+    tgcount_repo: TgCountRepository,
+    broadcast: BroadcastPort | None,
+    config_global: dict,
+) -> Success[None]:
+    """Shared BRDG_EVENT / VOICE_EVENT_SND handler (legacy CSV field list)."""
+    if len(parts) < 9:
+        logger.debug("(REPORT) bridge event ignored: parts len=%d (need >= 9)", len(parts))
+        return Success(None)
+    if not isinstance(state, MonitorState) or not getattr(state, "CTABLE", None):
+        logger.warning("(REPORT) bridge event ignored: state or CTABLE missing")
+        return Success(None)
+    logger.debug("(REPORT) bridge event parts[0]=%s parts[1]=%s parts[2]=%s", parts[0], parts[1], parts[2])
+    alias_repo.ensure_subscriber_in_cache(int(parts[6]))
+    alias_repo.ensure_talkgroup_in_cache(int(parts[8]))
+    if parts[0] in ("GROUP VOICE", "PRIVATE VOICE"):
+        _event_ts = time.time()
+        rts_update(parts, state, alias_svc, time_str)
+        skip_persist = parts[2] == "TX" or parts[5] in config_global.get("OPB_FILTER", [])
+        if skip_persist:
+            logger.debug("(REPORT) bridge event skip persist: dir=%s src=%s", parts[2], parts[5])
+        _now = format_display_datetime(_event_ts, config_global, with_tz_abbr=True)
+        _wall_db = format_utc_naive_datetime(_event_ts)
+        reported_dur = float(parts[9]) if len(parts) > 9 else 0.0
+        duration_sec = int(reported_dur)
+        if parts[1] == "INGRESS":
+            log_message = _format_log_message(_now, parts, alias_svc, None)
+        elif parts[1] == "END" and parts[4] in state.sys_dict and state.sys_dict[parts[4]]["sys"] == parts[3]:
+            _sd = state.sys_dict[parts[4]]
+            del state.sys_dict[parts[4]]
+            if not skip_persist:
+                wall_dur = max(0.0, _event_ts - _sd["timeST"])
+                merged_dur = max(reported_dur, wall_dur)
+                duration_sec = int(merged_dur)
+                if config_global.get("TGC_INC") and merged_dur > 5:
+                    tgcount_repo.insert_tgcount(parts[8], parts[6], str(int(merged_dur)))
+                if config_global.get("LH_INC"):
                     lastheard_repo.insert_lstheard_log(
-                        reported_dur,
+                        merged_dur,
                         parts[0],
                         parts[3],
                         int(parts[8]),
@@ -310,38 +453,66 @@ def process_message(
                         wall_date_time=_wall_db,
                     )
                     min_duration = config_global.get("DASHBOARD_MIN_DURATION", 3)
-                    if reported_dur >= min_duration:
+                    if merged_dur >= min_duration:
                         lastheard_repo.insert_last_heard(
-                            reported_dur,
+                            merged_dur,
                             parts[0],
                             parts[3],
                             int(parts[8]),
                             int(parts[6]),
                             wall_date_time=_wall_db,
                         )
-            elif parts[1] == "END WITHOUT MATCHING START":
-                log_message = _format_log_message_unknown_end(_now, parts, alias_svc)
-            else:
-                log_message = f"{_now[10:19]} Unknown voice bridge log message ({parts[0]})."
-            state.LOGBUF.append(log_message)
-            logger.info("(VOICE) %s", log_message)
-            if broadcast:
-                broadcast.broadcast("l" + log_message, "log")
-        elif parts[0] == "UNIT DATA HEADER" and parts[2] != "TX" and parts[5] not in config_global.get("OPB_FILTER", []):
-            _u_ts = time.time()
-            _u_utc = format_utc_naive_datetime(_u_ts)
-            lastheard_repo.insert_last_heard(
-                None, parts[0], parts[3], int(parts[8]), int(parts[6]), wall_date_time=_u_utc
-            )
-            lastheard_repo.insert_lstheard_log(
-                None, parts[0], parts[3], int(parts[8]), int(parts[6]), wall_date_time=_u_utc
-            )
-        return Success(None)
-
-    if opcode.value == Opcode.SERVER_MSG:
-        return Success(None)
-
-    return Failure(ReportProtocolError(f"Unknown opcode: {repr(opcode.value)}"))
+            if not state.sys_dict["lst_clean"] or time.time() - state.sys_dict["lst_clean"] >= 3:
+                state.sys_dict["lst_clean"] = time.time()
+                for k, v in list(state.sys_dict.items()):
+                    if k == "lst_clean":
+                        continue
+                    if time.time() - v["timeST"] >= SYS_DICT_MAX_AGE_SEC:
+                        del state.sys_dict[k]
+            log_message = _format_log_message(_now, parts, alias_svc, duration_sec)
+        elif parts[1] == "START":
+            log_message = _format_log_message(_now, parts, alias_svc, None)
+            if not skip_persist:
+                state.sys_dict[parts[4]] = {"sys": parts[3], "timeST": _event_ts}
+        elif parts[1] == "END":
+            log_message = _format_log_message(_now, parts, alias_svc, duration_sec)
+            if not skip_persist and config_global.get("LH_INC"):
+                lastheard_repo.insert_lstheard_log(
+                    reported_dur,
+                    parts[0],
+                    parts[3],
+                    int(parts[8]),
+                    int(parts[6]),
+                    wall_date_time=_wall_db,
+                )
+                min_duration = config_global.get("DASHBOARD_MIN_DURATION", 3)
+                if reported_dur >= min_duration:
+                    lastheard_repo.insert_last_heard(
+                        reported_dur,
+                        parts[0],
+                        parts[3],
+                        int(parts[8]),
+                        int(parts[6]),
+                        wall_date_time=_wall_db,
+                    )
+        elif parts[1] == "END WITHOUT MATCHING START":
+            log_message = _format_log_message_unknown_end(_now, parts, alias_svc)
+        else:
+            log_message = f"{_now[10:19]} Unknown voice bridge log message ({parts[0]})."
+        state.LOGBUF.append(log_message)
+        logger.info("(VOICE) %s", log_message)
+        if broadcast:
+            broadcast.broadcast("l" + log_message, "log")
+    elif parts[0] == "UNIT DATA HEADER" and parts[2] != "TX" and parts[5] not in config_global.get("OPB_FILTER", []):
+        _u_ts = time.time()
+        _u_utc = format_utc_naive_datetime(_u_ts)
+        lastheard_repo.insert_last_heard(
+            None, parts[0], parts[3], int(parts[8]), int(parts[6]), wall_date_time=_u_utc
+        )
+        lastheard_repo.insert_lstheard_log(
+            None, parts[0], parts[3], int(parts[8]), int(parts[6]), wall_date_time=_u_utc
+        )
+    return Success(None)
 
 
 def _format_log_message(
