@@ -46,6 +46,28 @@ def test_topology_to_config_maps_openbridge_network_id():
     assert config["OBP-CL"]["NETWORK_ID"] == (73010).to_bytes(4, "big")
 
 
+def test_topology_to_config_uses_connected_at_not_snapshot_ts():
+    login_ts = 1717555100
+    topology = {
+        "type": "topology",
+        "seq": 1,
+        "ts": 1717555200.0,
+        "systems": [{
+            "name": "SYS-1",
+            "mode": "MASTER",
+            "enabled": True,
+            "peers": [{
+                "id": 3120001,
+                "connected": True,
+                "connected_at": login_ts,
+            }],
+        }],
+    }
+    config = topology_to_config(topology, ts=topology["ts"])
+    peer_key = (3120001).to_bytes(4, "big")
+    assert config["SYS-1"]["PEERS"][peer_key]["CONNECTED"] == login_ts
+
+
 def test_topology_to_config_maps_peer_display_fields():
     topology = {
         "type": "topology",

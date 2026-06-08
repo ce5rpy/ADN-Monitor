@@ -98,9 +98,19 @@ def topology_to_config(topology: dict[str, Any], *, ts: float | None = None) -> 
                 continue
             pid = int(peer["id"])
             connected = bool(peer.get("connected", False))
+            connected_at = peer.get("connected_at")
+            if connected and connected_at is not None:
+                try:
+                    connected_ts = int(float(connected_at))
+                except (TypeError, ValueError):
+                    connected_ts = 0
+            else:
+                connected_ts = 0
+            if connected and connected_ts <= 0:
+                connected_ts = int(epoch)
             peer_conf: dict[str, Any] = {
                 "CONNECTION": "YES" if connected else "NO",
-                "CONNECTED": int(epoch) if connected else 0,
+                "CONNECTED": connected_ts if connected else 0,
                 "IP": peer.get("ip", ""),
                 "PORT": peer.get("port", ""),
                 "TX_FREQ": b"",
