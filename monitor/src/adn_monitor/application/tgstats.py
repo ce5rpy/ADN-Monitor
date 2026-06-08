@@ -87,13 +87,22 @@ def build_tgstats_impl(state: MonitorState, time_str_fn) -> None:
         for peer in ctable["MASTERS"][system]["PEERS"]:
             ctable["MASTERS"][system]["PEERS"][peer]["SINGLE_TS1"] = {"TGID": "", "TO": ""}
             ctable["MASTERS"][system]["PEERS"][peer]["SINGLE_TS2"] = {"TGID": "", "TO": ""}
-            ts1 = config[system].get("TS1_STATIC")
-            ts2 = config[system].get("TS2_STATIC")
+            peer_key = peer.to_bytes(4, "big") if isinstance(peer, int) else peer
+            peer_cfg = config[system].get("PEERS", {}).get(peer_key, {})
+            ts1 = peer_cfg.get("TS1_STATIC") if isinstance(peer_cfg, dict) else None
+            ts2 = peer_cfg.get("TS2_STATIC") if isinstance(peer_cfg, dict) else None
+            if not ts1 and not ts2:
+                ts1 = config[system].get("TS1_STATIC")
+                ts2 = config[system].get("TS2_STATIC")
             ctable["MASTERS"][system]["PEERS"][peer]["TS1_STATIC"] = (
-                ts1.split(",") if isinstance(ts1, str) else (ts1 if isinstance(ts1, list) else [])
+                [x.strip() for x in ts1.split(",") if x.strip()]
+                if isinstance(ts1, str)
+                else (ts1 if isinstance(ts1, list) else [])
             )
             ctable["MASTERS"][system]["PEERS"][peer]["TS2_STATIC"] = (
-                ts2.split(",") if isinstance(ts2, str) else (ts2 if isinstance(ts2, list) else [])
+                [x.strip() for x in ts2.split(",") if x.strip()]
+                if isinstance(ts2, str)
+                else (ts2 if isinstance(ts2, list) else [])
             )
             # Override with per-peer options from self-service DB (Clients.options)
             # Always apply when peer in PEER_OPTIONS, including empty lists (clears removed TGs)

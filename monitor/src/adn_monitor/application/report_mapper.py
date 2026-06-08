@@ -92,6 +92,13 @@ def topology_to_config(topology: dict[str, Any], *, ts: float | None = None) -> 
             entry["ENHANCED_OBP"] = True
         if system.get("mode") == "OPENBRIDGE" and system.get("network_id") is not None:
             entry["NETWORK_ID"] = _bytes_4(int(system["network_id"]))
+        if system.get("mode") == "MASTER":
+            ts1 = system.get("ts1_static")
+            if isinstance(ts1, list) and ts1:
+                entry["TS1_STATIC"] = ",".join(str(x) for x in ts1)
+            ts2 = system.get("ts2_static")
+            if isinstance(ts2, list) and ts2:
+                entry["TS2_STATIC"] = ",".join(str(x) for x in ts2)
         peers: dict[bytes, dict[str, Any]] = {}
         for peer in system.get("peers", []):
             if not isinstance(peer, dict):
@@ -120,6 +127,12 @@ def topology_to_config(topology: dict[str, Any], *, ts: float | None = None) -> 
             for json_key, legacy_key in _PEER_JSON_TO_LEGACY:
                 if json_key in peer:
                     peer_conf[legacy_key] = _legacy_peer_field(legacy_key, peer[json_key])
+            ts1 = peer.get("ts1_static")
+            if isinstance(ts1, list) and ts1:
+                peer_conf["TS1_STATIC"] = ",".join(str(x) for x in ts1)
+            ts2 = peer.get("ts2_static")
+            if isinstance(ts2, list) and ts2:
+                peer_conf["TS2_STATIC"] = ",".join(str(x) for x in ts2)
             peers[_bytes_4(pid)] = peer_conf
         entry["PEERS"] = peers
         config[str(name)] = entry

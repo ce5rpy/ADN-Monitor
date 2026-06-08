@@ -229,8 +229,16 @@ def _schedule_opb_wire(*, dedup: bool, immediate: bool) -> None:
     _opb_throttle_call = reactor.callLater(delay, _fire)
 
 
-def broadcast_ws_ctable(*, dedup: bool = True, brdg_meta: dict | None = None) -> None:
-    """Push slim ctable slices to lnksys / opb / statictg / bridge with optional dedup."""
+def broadcast_ws_ctable(
+    *,
+    dedup: bool = True,
+    brdg_meta: dict | None = None,
+    groups_filter: tuple[str, ...] | None = None,
+) -> None:
+    """Push slim ctable slices to lnksys / opb / statictg / bridge with optional dedup.
+
+    ``groups_filter`` limits which WS groups are updated (e.g. topology-only vs bridge-only).
+    """
     global _ws_last_hash
     state = get_state()
     groups = get_groups()
@@ -247,7 +255,10 @@ def broadcast_ws_ctable(*, dedup: bool = True, brdg_meta: dict | None = None) ->
             )
         return
 
-    if groups.get("lnksys"):
+    def _want(group: str) -> bool:
+        return groups_filter is None or group in groups_filter
+
+    if groups.get("lnksys") and _want("lnksys"):
         msg = "c" + json.dumps(
             {"ctable": ws_ctable_views.ctable_for_lnksys(state.CTABLE, empty_masters=emaster), "emaster": emaster},
             default=str,
@@ -258,11 +269,11 @@ def broadcast_ws_ctable(*, dedup: bool = True, brdg_meta: dict | None = None) ->
             _ws_last_hash[key] = _ws_payload_hash(msg)
             logger.debug("broadcast_ws_ctable: lnksys (dedup=%s)", dedup)
 
-    if groups.get("opb"):
+    if groups.get("opb") and _want("opb"):
         if _should_send_opb_ws_for_brdg_event(state, brdg_meta):
             _schedule_opb_wire(dedup=dedup, immediate=not dedup)
 
-    if groups.get("statictg"):
+    if groups.get("statictg") and _want("statictg"):
         msg = "s" + json.dumps(
             {"ctable": ws_ctable_views.ctable_for_lnksys(state.CTABLE, empty_masters=emaster), "emaster": emaster},
             default=str,
@@ -273,7 +284,7 @@ def broadcast_ws_ctable(*, dedup: bool = True, brdg_meta: dict | None = None) ->
             _ws_last_hash[key] = _ws_payload_hash(msg)
             logger.debug("broadcast_ws_ctable: statictg (dedup=%s)", dedup)
 
-    if state.BRIDGES and brdg_inc and groups.get("bridge"):
+    if state.BRIDGES and brdg_inc and groups.get("bridge") and _want("bridge"):
         msg = "b" + json.dumps({"btable": state.BTABLE, "dbridges": True}, default=str)
         key = "bridge"
         if not dedup or _ws_last_hash.get(key) != _ws_payload_hash(msg):
@@ -747,19 +758,18 @@ def main():
         broadcast_ws_ctable(brdg_meta=brdg_meta)
 
     def on_config_applied():
-        """After CONFIG_SND: CTABLE rebuilt; refresh WebSocket clients."""
+        """After topology: refresh linked-systems WS groups only (not bridge)."""
         conf = get_config_global()
         build_tgstats(_state)
         if get_groups().get("main"):
             render_fromdb("last_heard", conf.get("LH_ROWS", 20))
-        broadcast_ws_ctable()
+        broadcast_ws_ctable(groups_filter=("lnksys", "statictg", "opb"))
 
     def on_bridges_applied():
-        """After BRIDGE_SND: BTABLE and tgstats CTABLE fields updated."""
-        conf = get_config_global()
-        if get_groups().get("main"):
-            render_fromdb("last_heard", conf.get("LH_ROWS", 20))
-        broadcast_ws_ctable()
+        """After routing_table: update BTABLE in memory; push bridge WS only if subscribed."""
+        if not get_groups().get("bridge"):
+            return
+        broadcast_ws_ctable(groups_filter=("bridge",))
 
     def on_server_mode_detected(mode, info):
         """Broadcast JSON `v{mode,info}` to WebSocket clients (mode legacy or v2)."""

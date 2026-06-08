@@ -94,6 +94,46 @@ def test_topology_to_config_maps_peer_display_fields():
     assert peer["TX_FREQ"] == b"145625000"
 
 
+def test_topology_to_config_maps_peer_options_static():
+    topology = {
+        "type": "topology",
+        "seq": 1,
+        "ts": 1.0,
+        "systems": [{
+            "name": "SYSTEM-10",
+            "mode": "MASTER",
+            "enabled": True,
+            "peers": [{
+                "id": 7301896,
+                "connected": True,
+                "ts2_static": ["730444"],
+            }],
+        }],
+    }
+    config = topology_to_config(topology, ts=1.0)
+    peer_key = (7301896).to_bytes(4, "big")
+    assert config["SYSTEM-10"]["PEERS"][peer_key]["TS2_STATIC"] == "730444"
+
+
+def test_topology_to_config_maps_master_static_tgs():
+    topology = {
+        "type": "topology",
+        "seq": 1,
+        "ts": 1.0,
+        "systems": [{
+            "name": "MASTER-A",
+            "mode": "MASTER",
+            "enabled": True,
+            "ts1_static": ["91", "92"],
+            "ts2_static": ["730"],
+            "peers": [{"id": 3120001, "connected": True}],
+        }],
+    }
+    config = topology_to_config(topology, ts=1.0)
+    assert config["MASTER-A"]["TS1_STATIC"] == "91,92"
+    assert config["MASTER-A"]["TS2_STATIC"] == "730"
+
+
 def test_topology_to_config_from_example():
     topology = _load_example("topology.json")
     config = topology_to_config(topology, ts=topology["ts"])

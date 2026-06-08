@@ -78,6 +78,7 @@ def _apply_config_to_state(
         build_hblink_table(
             state.CONFIG, state.CTABLE, time_str, config_global, include_connected_since=include_since
         )
+    build_tgstats(state)
 
 
 def sync_ctable_from_config(state: MonitorState, config_global: dict) -> None:
