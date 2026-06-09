@@ -273,10 +273,17 @@ def update_hblink_table_impl(
                 "NETWORK_ID": int_id_fn(data.get("NETWORK_ID", 0)),
                 "STREAMS": {},
             }
+    masters_table = stats_table.setdefault("MASTERS", {})
     for name in config:
         if config[name].get("MODE") != "MASTER":
             continue
-        masters_peers = stats_table["MASTERS"].get(name, {}).get("PEERS", {})
+        data = config[name]
+        if name not in masters_table:
+            masters_table[name] = {
+                "REPEAT": "repeat" if data.get("REPEAT") else "isolate",
+                "PEERS": {},
+            }
+        masters_peers = masters_table[name]["PEERS"]
         for peer_key in config[name].get("PEERS", {}):
             pid = int_id_fn(peer_key)
             if pid not in masters_peers and config[name]["PEERS"][peer_key].get("CONNECTION") == "YES":

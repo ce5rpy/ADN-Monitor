@@ -112,6 +112,52 @@ def test_process_report_json_dashboard_state():
     assert "ECHO" in state.CONFIG
 
 
+def test_dashboard_state_update_adds_new_masters_after_first_snapshot():
+    """Slim wire applies multiple snapshots; update must create new MASTER rows (proxy SYSTEM-N)."""
+    state = MonitorState()
+    deps = _deps()
+    echo_only = {
+        "type": "dashboard_state",
+        "ts": 1.0,
+        "ctable": {
+            "MASTERS": {
+                "ECHO": {
+                    "mode": "MASTER",
+                    "peers": {9990: {"id": 9990, "connected": True, "connected_at": 1000}},
+                }
+            },
+            "PEERS": {},
+            "OPENBRIDGES": {},
+        },
+    }
+    process_report_json(echo_only, state, **deps)
+    assert list(state.CTABLE["MASTERS"]) == ["ECHO"]
+
+    full = {
+        "type": "dashboard_state",
+        "ts": 2.0,
+        "ctable": {
+            "MASTERS": {
+                "ECHO": echo_only["ctable"]["MASTERS"]["ECHO"],
+                "D-APRS": {
+                    "mode": "MASTER",
+                    "peers": {730999: {"id": 730999, "connected": True, "connected_at": 1001}},
+                },
+                "SYSTEM-0": {
+                    "mode": "MASTER",
+                    "peers": {7300444: {"id": 7300444, "connected": True, "connected_at": 1002}},
+                },
+            },
+            "PEERS": {},
+            "OPENBRIDGES": {"OBP-CL": {"mode": "OPENBRIDGE", "streams": {}}},
+        },
+    }
+    process_report_json(full, state, **deps)
+    assert set(state.CTABLE["MASTERS"]) == {"ECHO", "D-APRS", "SYSTEM-0"}
+    assert state.CTABLE["MASTERS"]["D-APRS"]["PEERS"][730999]["CONNECTION"] == "YES"
+    assert state.CTABLE["MASTERS"]["SYSTEM-0"]["PEERS"][7300444]["CONNECTION"] == "YES"
+
+
 def test_slim_wire_ignores_topology_after_dashboard_state():
     state = MonitorState()
     state.server_mode = ServerMode.V2

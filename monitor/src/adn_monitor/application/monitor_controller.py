@@ -73,6 +73,15 @@ def _include_connected_since(state: MonitorState) -> bool:
     return getattr(state, "server_mode", ServerMode.LEGACY) == ServerMode.V2
 
 
+def _prune_ctable_not_in_config(ctable: dict, config_dict: dict) -> None:
+    """Drop CTABLE rows absent from CONFIG (slim ``dashboard_state`` is a full snapshot)."""
+    for key in ("MASTERS", "PEERS", "OPENBRIDGES"):
+        section = ctable.get(key, {})
+        for name in list(section):
+            if name not in config_dict:
+                del section[name]
+
+
 def _apply_config_to_state(
     state: MonitorState,
     config_dict: dict,
@@ -82,7 +91,13 @@ def _apply_config_to_state(
     state.CONFIG = config_dict
     state.CONFIG_RX = format_display_datetime(time.time(), config_global)
     include_since = _include_connected_since(state)
-    if state.CTABLE["MASTERS"]:
+    if _uses_slim_v2_wire(state):
+        # D-25: dashboard_state replaces linked-systems view; not CONFIG_SND deltas.
+        _prune_ctable_not_in_config(state.CTABLE, config_dict)
+        build_hblink_table(
+            state.CONFIG, state.CTABLE, time_str, config_global, include_connected_since=include_since
+        )
+    elif state.CTABLE["MASTERS"]:
         update_hblink_table(
             state.CONFIG, state.CTABLE, time_str, config_global, include_connected_since=include_since
         )

@@ -38,12 +38,7 @@ def test_health_endpoints():
         resp = client.get(path)
         assert resp.status_code == 200
         body = resp.json()
-        assert body["status"] == "ok"
-        assert body["ingest"]["mode"] == "tcp"
-        assert body["ingest"]["adn_port"] == 4321
-        assert body["self_service_db"] is True
-        assert body["listen_port"] == 8080
-        assert "report" not in body
+        assert body == {"status": "ok", "service": "adn-monitor"}
 
 
 def test_ws_route_registered():
@@ -80,7 +75,7 @@ def test_dashboard_config_endpoint():
     assert body["navLinks"]["items"][0]["name"] == "ADN"
 
 
-def test_mqtt_ingest_config():
+def test_health_unchanged_for_mqtt_ingest_config():
     cfg = _sample_config()
     cfg["APP"]["INGEST"] = "mqtt"
     cfg["APP"]["MQTT"] = {
@@ -89,7 +84,4 @@ def test_mqtt_ingest_config():
         "QOS": 1,
     }
     resp = TestClient(create_app(cfg)).get("/api/health")
-    ingest = resp.json()["ingest"]
-    assert ingest["mode"] == "mqtt"
-    assert ingest["mqtt_url"] == "mqtt://broker:1883"
-    assert ingest["topic_prefix"] == "adn/7302"
+    assert resp.json() == {"status": "ok", "service": "adn-monitor"}
