@@ -71,7 +71,7 @@ def sync_select_tgcount(
             if not rows:
                 return None
             res: list[Any] = []
-            from ...persistence.db_pool import sec_time
+            from ..persistence.db_pool import sec_time
 
             for tg_num, name, qso_c, qso_time in rows:
                 cur.execute(

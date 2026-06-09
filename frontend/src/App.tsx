@@ -49,6 +49,8 @@ import { useTranslation } from 'react-i18next';
 
 import Footer from './components/Footer';
 import NewsMarquee from './components/NewsMarquee';
+import UiZoomControl from './components/UiZoomControl';
+import { getUiZoom } from './utils/uiZoom';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Systems = lazy(() => import('./pages/Systems'));
@@ -95,6 +97,7 @@ function App() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [infoAnchor, setInfoAnchor] = useState<null | HTMLElement>(null);
   const [linksAnchor, setLinksAnchor] = useState<null | HTMLElement>(null);
+  const [uiZoom, setUiZoom] = useState(() => getUiZoom());
 
   const theme = useMemo(
     () =>
@@ -342,6 +345,7 @@ function App() {
                 ))}
               </Select>
             </FormControl>
+            <UiZoomControl zoom={uiZoom} onZoomChange={setUiZoom} />
             <IconButton onClick={toggleTheme} color="inherit" aria-label={darkMode ? 'Light mode' : 'Dark mode'}>
               {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>
