@@ -67,6 +67,115 @@ _CALL_FAMILY_TO_CSV = {
 }
 
 
+def dashboard_state_to_config(doc: dict[str, Any], *, ts: float | None = None) -> dict[str, Any]:
+    """Build CONFIG dict from ``dashboard_state`` (TCP STATE_SND or MQTT state topic)."""
+    if doc.get("type") != "dashboard_state":
+        return {}
+    epoch = float(doc.get("ts", time.time())) if ts is None else ts
+    ctable = doc.get("ctable")
+    if not isinstance(ctable, dict):
+        return {}
+    config: dict[str, Any] = {}
+
+    for name, master in (ctable.get("MASTERS") or {}).items():
+        if not isinstance(master, dict):
+            continue
+        entry: dict[str, Any] = {
+            "ENABLED": True,
+            "MODE": str(master.get("mode", "MASTER")),
+        }
+        if master.get("ip"):
+            entry["IP"] = str(master["ip"])
+        port = master.get("port")
+        if port is not None:
+            entry["PORT"] = int(port)
+        peers: dict[bytes, dict[str, Any]] = {}
+        raw_peers = master.get("peers") or {}
+        if isinstance(raw_peers, dict):
+            peer_items = raw_peers.items()
+        elif isinstance(raw_peers, list):
+            peer_items = ((p.get("id"), p) for p in raw_peers if isinstance(p, dict) and "id" in p)
+        else:
+            peer_items = ()
+        for pid_key, peer in peer_items:
+            if not isinstance(peer, dict):
+                continue
+            pid = int(peer.get("id", pid_key))
+            connected_at = peer.get("connected_at")
+            if connected_at is not None:
+                try:
+                    connected_ts = int(float(connected_at))
+                except (TypeError, ValueError):
+                    connected_ts = int(epoch)
+            else:
+                connected_ts = int(epoch)
+            peer_conf: dict[str, Any] = {
+                "CONNECTION": "YES",
+                "CONNECTED": connected_ts,
+                "IP": peer.get("ip", ""),
+                "PORT": peer.get("port", ""),
+                "TX_FREQ": b"",
+                "RX_FREQ": b"",
+                "SLOTS": b"0",
+            }
+            for json_key, legacy_key in _PEER_JSON_TO_LEGACY:
+                if json_key in peer:
+                    peer_conf[legacy_key] = _legacy_peer_field(legacy_key, peer[json_key])
+            ts1 = peer.get("ts1_static")
+            if isinstance(ts1, list) and ts1:
+                peer_conf["TS1_STATIC"] = ",".join(str(x) for x in ts1)
+            ts2 = peer.get("ts2_static")
+            if isinstance(ts2, list) and ts2:
+                peer_conf["TS2_STATIC"] = ",".join(str(x) for x in ts2)
+            peers[_bytes_4(pid)] = peer_conf
+        entry["PEERS"] = peers
+        config[str(name)] = entry
+
+    for name, peer_sys in (ctable.get("PEERS") or {}).items():
+        if not isinstance(peer_sys, dict):
+            continue
+        mode = str(peer_sys.get("mode", "PEER"))
+        entry: dict[str, Any] = {"ENABLED": True, "MODE": mode}
+        for json_key, legacy_key in (
+            ("callsign", "CALLSIGN"),
+            ("location", "LOCATION"),
+            ("description", "DESCRIPTION"),
+            ("url", "URL"),
+            ("master_ip", "MASTER_IP"),
+            ("master_port", "MASTER_PORT"),
+        ):
+            if json_key in peer_sys and peer_sys[json_key] is not None:
+                entry[legacy_key] = str(peer_sys[json_key])
+        radio_id = peer_sys.get("radio_id")
+        if radio_id is not None:
+            entry["RADIO_ID"] = int(radio_id)
+        connected_at = peer_sys.get("connected_at")
+        try:
+            connected_ts = int(float(connected_at)) if connected_at is not None else int(epoch)
+        except (TypeError, ValueError):
+            connected_ts = int(epoch)
+        stats_key = "XLXSTATS" if mode == "XLXPEER" else "STATS"
+        entry[stats_key] = {"CONNECTION": "YES", "CONNECTED": connected_ts}
+        config[str(name)] = entry
+
+    for name, obp in (ctable.get("OPENBRIDGES") or {}).items():
+        if not isinstance(obp, dict):
+            continue
+        entry = {"ENABLED": True, "MODE": "OPENBRIDGE"}
+        if obp.get("ip"):
+            entry["IP"] = str(obp["ip"])
+        port = obp.get("port")
+        if port is not None:
+            entry["PORT"] = int(port)
+        if obp.get("network_id") is not None:
+            entry["NETWORK_ID"] = _bytes_4(int(obp["network_id"]))
+        if obp.get("enhanced_obp"):
+            entry["ENHANCED_OBP"] = True
+        config[str(name)] = entry
+
+    return config
+
+
 def topology_to_config(topology: dict[str, Any], *, ts: float | None = None) -> dict[str, Any]:
     """Build a CONFIG dict compatible with ``build_hblink_table`` / ``update_hblink_table``."""
     epoch = float(topology.get("ts", time.time())) if ts is None else ts

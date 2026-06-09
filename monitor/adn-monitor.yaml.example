@@ -17,9 +17,9 @@ GLOBAL:
   # Display TG Count on tgcount page
   TGCOUNT_INC: true
   TGCOUNT_ROWS: 20
-  # IANA timezone for dashboard / logs (e.g. Europe/Madrid). last_heard / lstheard_log store UTC in DB;
-  # Leave empty or omit: logs use server local; lastheard dates are read as UTC then shown in server local.
-  # TIMEZONE: "Europe/Madrid"
+  # IANA timezone (e.g. America/Santiago). last_heard/lstheard_log: stored UTC, shown in TIMEZONE.
+  # TG Count daily bucket uses the calendar day in TIMEZONE when set; otherwise UTC.
+  # TIMEZONE: "America/Santiago"
 
 # ------------------------------------------------------------------------------
 # SELF_SERVICE – Database credentials (MySQL) and password hash (must match hotspot_proxy_self_service.py)
@@ -66,6 +66,7 @@ ALIASES:
   PEER_URL: "https://servers.adn.systems/peer_ids.json"
   SUBSCRIBER_URL: "https://servers.adn.systems/subscriber_ids.json"
   TGID_URL: "https://servers.adn.systems/talkgroup_ids.json"
+  SERVER_ID_URL: "https://servers.adn.systems/server_ids.tsv"
   LOCAL_SUBSCRIBER_FILE: local_subscriber_ids.json
   # If file is older than STALE_HOURS or missing, download and verify checksum.
   # REVIEW_INTERVAL_MINUTES = how often to check (if missing, re-download). Defaults: 24 h, 5 min.
@@ -87,21 +88,27 @@ LOGGER:
   LOG_LEVEL: INFO
 
 # ------------------------------------------------------------------------------
-# WEBSOCKET_SERVER
+# MONITOR_APP — unified FastAPI (REST + WebSocket + report ingest)
+# Run: python monitor.py
 # ------------------------------------------------------------------------------
-WEBSOCKET_SERVER:
-  WEBSOCKET_PORT: 9000
-  # Bind address: "" = all IPv4 (default). Use "::" for IPv6 dual-stack (accept IPv4 + IPv6).
-  # LISTEN_INTERFACE: ""
+MONITOR_APP:
+  LISTEN_HOST: ""
+  LISTEN_PORT: 8080
+  # REST /api/* and WebSocket /ws share LISTEN_HOST:LISTEN_PORT (no separate WS port).
   # Seconds between periodic full resync (last_heard, lstheard_log, slim ctable); live updates are event-driven.
   FREQUENCY: 1
-  # Clients are timed out after this many seconds, 0 to disable
+  # Drop idle WebSocket clients after N seconds (0 = disable; legacy monitor.py only).
   CLIENT_TIMEOUT: 0
-  # SSL configuration
-  USE_SSL: false
-  SSL_PATH: "./ssl"
-  SSL_CERTIFICATE: cert.pem
-  SSL_PRIVATEKEY: key.pem
+  # Report ingest — pick ONE (mutually exclusive; never tcp + mqtt together):
+  #   tcp  — connect to adn-server REPORTS.REPORT_PORT (ADN_CONNECTION below)
+  #   mqtt — subscribe to broker topics (server REPORTS.MQTT.ENABLED); no TCP report
+  INGEST: tcp
+  # Required only when INGEST: mqtt (must match adn-server REPORTS.MQTT)
+  # MQTT:
+  #   URL: "mqtt://127.0.0.1:1883"
+  #   TOPIC_PREFIX: "adn/7302"
+  #   QOS: 0
+  # CORS_ORIGINS: "http://localhost:5173,https://dashboard.example.com"
 
 # ------------------------------------------------------------------------------
 # DASHBOARD
@@ -120,7 +127,7 @@ DASHBOARD:
   # Console: show Console page in Info menu (call start/end messages). Set to true to enable.
   SHOW_CONSOLE: false
 
-  # JSON feed for /serverstatus (network server list). Proxied by PHP GET /api/servers/status (same-origin).
+  # JSON feed for /serverstatus (network server list). Proxied at GET /api/servers/status.
   # Default if omitted: https://adn.systems/servers/status.json
   # SERVER_STATUS_URL: "https://adn.systems/servers/status.json"
 

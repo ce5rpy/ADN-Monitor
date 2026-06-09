@@ -1,8 +1,0 @@
-# Hotspot Proxy – Python deps (install in venv or system)
-# Required:
-pyyaml>=6.0
-twisted>=22.0
-# Optional: priv helper (netfilter/conntrack), int_id helper, process title
-# Pyro5
-# dmr_utils3
-# setproctitle

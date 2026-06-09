@@ -26,8 +26,8 @@
 Bootstrap DB schema (create or update tables).
 
 Usage:
-  python db_bootstrap.py --config adn-monitor.yaml --create   # create tables
-  python db_bootstrap.py --config adn-monitor.yaml --update  # run migrations
+  python db_bootstrap.py --config adn-monitor.yaml --create   # ensure schema (empty DB)
+  python db_bootstrap.py --config adn-monitor.yaml --update  # ensure schema + migrations (existing DB)
 """
 
 from __future__ import annotations
@@ -46,7 +46,10 @@ from twisted.internet import reactor
 
 from adn_monitor.domain import is_fail
 from adn_monitor.infrastructure import load_config
+from adn_monitor.infrastructure.env_loader import load_project_env
 from adn_monitor.infrastructure.persistence import create_pool, test_db, create_tables, updt_table
+
+load_project_env(_ROOT)
 
 CONFIG_FILE = os.environ.get("ADN_CONFIG_PATH", str(_ROOT / "adn-monitor.yaml"))
 for i, arg in enumerate(sys.argv[1:]):

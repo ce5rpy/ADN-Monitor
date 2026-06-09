@@ -7,15 +7,14 @@
 .env.local
 .env.*.local
 !.env.example
-backend/.env
-!backend/.env.example
+frontend/.env
+!frontend/.env.example
 
 # Local/config overrides (keep examples)
 *.local
 *.local.yaml
 *.local.yml
 monitor/adn-monitor.yaml
-proxy/adn-proxy.yaml
 
 # -----------------------------------------------------------------------------
 # Node
@@ -68,11 +67,6 @@ pyenv/
 .python-version
 
 # -----------------------------------------------------------------------------
-# PHP / Composer
-# -----------------------------------------------------------------------------
-backend/vendor/
-
-# -----------------------------------------------------------------------------
 # Build / output
 # -----------------------------------------------------------------------------
 frontend/dist/
@@ -85,9 +79,6 @@ frontend/dist/
 *.log
 log/
 monitor/log/
-# proxy/log: keep directory in repo via .gitkeep, do not commit log files
-proxy/log/*
-!proxy/log/.gitkeep
 tmp/
 temp/
 *.tmp
@@ -118,3 +109,7 @@ monitor/json/*.json
 *.bak
 *.backup
 *.orig
+
+# Brand asset (not in repo)
+logo.png
+frontend/public/img/logo.png

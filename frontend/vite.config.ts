@@ -22,20 +22,17 @@
  * Original works and this derivative are under GPLv3.
  */
 
-import fs from 'fs';
 import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 const projectRoot = path.resolve(__dirname, '..');
-const rootEnv = path.join(projectRoot, '.env');
-// Root .env first (shared with backend/monitor); fallback to frontend/.env if root has none
-const envDir = fs.existsSync(rootEnv) ? projectRoot : __dirname;
 
 export default defineConfig({
   plugins: [react()],
   base: '/',
-  envDir,
+  // Single .env at repo root (see /.env.example)
+  envDir: projectRoot,
   build: {
     outDir: 'dist',
     emptyOutDir: true,
@@ -56,7 +53,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': { target: 'http://localhost:8080', changeOrigin: true },
-      '/ws': { target: 'ws://localhost:9000', ws: true },
+      '/ws': { target: 'ws://localhost:8080', ws: true },
     },
   },
 });

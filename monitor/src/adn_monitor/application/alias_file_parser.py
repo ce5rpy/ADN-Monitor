@@ -1,0 +1,75 @@
+"""Parse alias JSON/CSV files into row tuples for DB import."""
+
+from __future__ import annotations
+
+import logging
+from csv import DictReader as csv_dict_reader
+from json import load as jload
+from pathlib import Path
+
+logger = logging.getLogger("adn-monitor")
+
+SUB_FIELDS = ("id", "callsign", "fname", "surname", "city", "state", "country")
+PEER_FIELDS = ("id", "call_sign", "city", "state")
+TGID_FIELDS = ("id", "callsign")
+
+_ALLOWED = frozenset({"peer_ids", "subscriber_ids", "talkgroup_ids"})
+
+
+def parse_alias_file(path: str, file_name: str, table: str) -> list[tuple]:
+    """Return rows ready for bulk import; empty if file missing or invalid."""
+    if table not in _ALLOWED:
+        return []
+    file_path = Path(path) / file_name
+    if not file_path.exists():
+        logger.debug("Alias file not found, skipping: %s", file_path)
+        return []
+    rows: list[tuple] = []
+    try:
+        with file_path.open("r", encoding="utf8") as f:
+            ext = file_name.rsplit(".", 1)[-1].lower()
+            if ext == "csv":
+                fields = (
+                    SUB_FIELDS
+                    if table == "subscriber_ids"
+                    else PEER_FIELDS
+                    if table == "peer_ids"
+                    else TGID_FIELDS
+                )
+                records = csv_dict_reader(
+                    f, fieldnames=fields, restkey="OTHER", dialect="excel", delimiter=","
+                )
+            else:
+                data = jload(f)
+                if isinstance(data, dict):
+                    if "count" in data:
+                        data.pop("count")
+                    key = next(iter(data), None)
+                    records = data[key] if key is not None else []
+                else:
+                    records = data
+
+            for record in records:
+                if not isinstance(record, dict):
+                    continue
+                try:
+                    if table == "peer_ids":
+                        rows.append(
+                            (
+                                int(record["id"]),
+                                record.get("callsign", record.get("call_sign", "")),
+                            )
+                        )
+                    elif table == "subscriber_ids":
+                        fname = record.get("fname", "")
+                        surname = record.get("surname", "")
+                        name = fname or surname or "NO NAME"
+                        rows.append((int(record["id"]), record.get("callsign", ""), name))
+                    else:
+                        rows.append((int(record["id"]), record.get("callsign", "")))
+                except (KeyError, TypeError, ValueError):
+                    continue
+    except Exception as err:
+        logger.error("parse_alias_file %s: %s", file_name, err)
+        return []
+    return rows

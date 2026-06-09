@@ -22,9 +22,9 @@
 
 """Pure time formatting (no I/O).
 
-Persistence policy: MariaDB DATETIME/DATE values written by the monitor are **naive UTC**
-(unless noted otherwise). ``GLOBAL.TIMEZONE`` only affects **display** (and in-memory labels
-like CONFIG_RX), not what is stored.
+Persistence policy: ``last_heard`` / ``lstheard_log`` ``date_time`` columns are **naive UTC**.
+``tg_count`` / ``user_count`` ``date`` uses the **calendar day in GLOBAL.TIMEZONE** when set,
+otherwise **UTC** (legacy). ``GLOBAL.TIMEZONE`` also controls **display** of stored UTC times.
 """
 
 from __future__ import annotations
@@ -63,13 +63,28 @@ def get_display_zone(config_global: dict[str, Any] | None) -> ZoneInfo | None:
 
 
 def utc_calendar_date(ts: float | None = None) -> date:
-    """Calendar date in UTC (for tg_count / user_count daily bucket, clean_tgcount rollover)."""
+    """Calendar date in UTC."""
     t = time.time() if ts is None else ts
     return datetime.fromtimestamp(t, tz=timezone.utc).date()
 
 
+def dashboard_calendar_date(config_global: dict[str, Any] | None, ts: float | None = None) -> date:
+    """Calendar day for TG-count buckets: operator TZ when configured, else UTC."""
+    t = time.time() if ts is None else ts
+    zi = get_display_zone(config_global)
+    dt_utc = datetime.fromtimestamp(t, tz=timezone.utc)
+    if zi is not None:
+        return dt_utc.astimezone(zi).date()
+    return dt_utc.date()
+
+
+def format_tgcount_date(config_global: dict[str, Any] | None, ts: float | None = None) -> str:
+    """YYYY-MM-DD for tg_count.date / user_count.date (dashboard calendar day)."""
+    return dashboard_calendar_date(config_global, ts).isoformat()
+
+
 def format_utc_naive_date(ts: float | None = None) -> str:
-    """UTC date as YYYY-MM-DD for MariaDB DATE/DATETIME columns (tg_count.date, user_count.date)."""
+    """UTC date as YYYY-MM-DD (legacy helper)."""
     return utc_calendar_date(ts).isoformat()
 
 

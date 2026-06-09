@@ -40,6 +40,7 @@ from .ports import (
 )
 from .report_mapper import (
     REPORT_PROTOCOL,
+    dashboard_state_to_config,
     decode_report_payload,
     merge_routing_delta,
     merge_topology_delta,
@@ -57,7 +58,18 @@ SYS_DICT_MAX_ENTRIES = 20_000
 SYS_DICT_MAX_AGE_SEC = 300
 
 
+def _uses_v2_report_wire(state: MonitorState) -> bool:
+    """True only after HELLO with ``report_protocol: 2`` (new-adn-server 2.x wire)."""
+    return getattr(state, "report_protocol", None) == REPORT_PROTOCOL
+
+
+def _uses_slim_v2_wire(state: MonitorState) -> bool:
+    """True after first ``dashboard_state`` (D-25); topology/routing/delta are not used."""
+    return bool(getattr(state, "slim_wire", False))
+
+
 def _include_connected_since(state: MonitorState) -> bool:
+    """HELLO received (v1 or v2 handshake); same as adn-monitor 1.0.0."""
     return getattr(state, "server_mode", ServerMode.LEGACY) == ServerMode.V2
 
 
@@ -93,6 +105,73 @@ def ctable_is_empty(ctable: dict) -> bool:
     return not (
         ctable.get("MASTERS") or ctable.get("PEERS") or ctable.get("OPENBRIDGES")
     )
+
+
+def _apply_dashboard_state_payload(
+    state: MonitorState,
+    payload: dict,
+    config_global: dict,
+) -> Success[None]:
+    """Apply slim ``dashboard_state`` JSON (TCP STATE_SND or MQTT state topic)."""
+    if payload.get("type") != "dashboard_state":
+        logger.warning("(REPORT) dashboard_state unexpected type=%s", payload.get("type"))
+        return Success(None)
+    ts = float(payload.get("ts", 0.0) or 0.0)
+    if ts and ts < state.dashboard_state_ts:
+        logger.debug(
+            "(REPORT) dashboard_state stale ts=%s (have %s)",
+            ts,
+            state.dashboard_state_ts,
+        )
+        return Success(None)
+    config_dict = dashboard_state_to_config(payload)
+    if not config_dict:
+        logger.warning("(REPORT) dashboard_state produced empty CONFIG")
+        return Success(None)
+    state.slim_wire = True
+    if ts:
+        state.dashboard_state_ts = ts
+    _apply_config_to_state(state, config_dict, config_global)
+    n_m, n_p, n_o, n_mp = _ctable_counts(state)
+    logger.info(
+        "(REPORT) dashboard_state applied: CTABLE MASTERS=%d PEERS=%d OPENBRIDGES=%d MASTER_PEERS=%d",
+        n_m,
+        n_p,
+        n_o,
+        n_mp,
+    )
+    return Success(None)
+
+
+def process_report_json(
+    payload: dict,
+    state: MonitorState,
+    alias_svc: AliasService,
+    alias_repo: AliasRepository,
+    lastheard_repo: LastHeardRepository,
+    tgcount_repo: TgCountRepository,
+    broadcast: BroadcastPort | None,
+    config_global: dict,
+) -> Success[None] | Failure[ReportProtocolError]:
+    """Dispatch typed JSON payloads (MQTT ingest shares TCP semantics)."""
+    msg_type = payload.get("type")
+    if msg_type == "dashboard_state":
+        return _apply_dashboard_state_payload(state, payload, config_global)
+    if msg_type == "voice_event":
+        parts = voice_event_to_csv_parts(payload)
+        if parts is None:
+            return Success(None)
+        return _handle_brdg_event_parts(
+            parts,
+            state,
+            alias_svc,
+            alias_repo,
+            lastheard_repo,
+            tgcount_repo,
+            broadcast,
+            config_global,
+        )
+    return Success(None)
 
 
 def _apply_bridges_to_state(
@@ -156,14 +235,16 @@ class MonitorState:
         self.PEER_OPTIONS: dict = {}
         self.server_mode: ServerMode = ServerMode.LEGACY
         self.server_info: dict = {}
-        # True after HELLO (v2) or HELLO timeout (legacy); gates v2-only report opcodes.
+        # True after HELLO (any) or HELLO timeout (no-HELLO peers).
         self.server_mode_confirmed: bool = False
-        # None until HELLO; set to report_protocol from server (2 on current line).
+        # None until HELLO: no-HELLO / v1 HELLO (protocol:1) / v2 HELLO (report_protocol:2).
         self.report_protocol: int | None = None
         self.topology_snapshot: dict | None = None
         self.routing_snapshot: dict | None = None
         self.topology_seq: int = 0
         self.routing_seq: int = 0
+        self.slim_wire: bool = False
+        self.dashboard_state_ts: float = 0.0
 
 
 def process_message(
@@ -183,6 +264,18 @@ def process_message(
     except Exception as e:
         return Failure(ReportProtocolError(str(e)))
     opcode = Opcode.from_message(raw_message)
+
+    if opcode.value in (Opcode.TOPOLOGY_SND, Opcode.ROUTING_TABLE_SND, Opcode.DELTA_SND):
+        if not _uses_v2_report_wire(state):
+            logger.debug("(REPORT) ignore opcode %s (wire v1 or no-HELLO)", opcode.value.hex())
+            return Success(None)
+        if _uses_slim_v2_wire(state):
+            logger.debug("(REPORT) ignore opcode %s (slim wire active)", opcode.value.hex())
+            return Success(None)
+
+    if opcode.value == Opcode.VOICE_EVENT_SND and not _uses_v2_report_wire(state):
+        logger.debug("(REPORT) ignore VOICE_EVENT_SND (wire v1 or no-HELLO)")
+        return Success(None)
 
     if opcode.value == Opcode.CONFIG_SND:
         if not hasattr(state, "CONFIG"):
@@ -246,7 +339,8 @@ def process_message(
             )
         elif state.report_protocol is None:
             logger.info(
-                "(REPORT) HELLO received (legacy handshake): server=%s version=%s",
+                "(REPORT) HELLO received (v1 wire, protocol=%s): server=%s version=%s",
+                info.get("protocol"),
                 info.get("server"),
                 info.get("version"),
             )
@@ -270,6 +364,13 @@ def process_message(
             broadcast,
             config_global,
         )
+
+    if opcode.value == Opcode.STATE_SND:
+        decode_result = decode_report_payload(raw_message)
+        if is_fail(decode_result):
+            logger.warning("(REPORT) STATE_SND decode failed")
+            return Success(None)
+        return _apply_dashboard_state_payload(state, decode_result.value, config_global)
 
     if opcode.value == Opcode.TOPOLOGY_SND:
         decode_result = decode_report_payload(raw_message)

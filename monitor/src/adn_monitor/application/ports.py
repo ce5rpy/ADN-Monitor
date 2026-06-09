@@ -28,6 +28,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Protocol
 
 from ..domain import ReportProtocolError, Result, Success
+from ..domain.client import Client
 from ..domain.entities import (
     LastHeardEntry,
     PeerAlias,
@@ -158,6 +159,92 @@ class BroadcastPort(Protocol):
 
     def send_to_client(self, client: Any, message: str) -> None:
         """Send message to a single client."""
+        ...
+
+
+class AliasBulkImportPort(ABC):
+    """Port for batched MySQL alias table import (not SQLite)."""
+
+    @abstractmethod
+    def import_from_file(
+        self,
+        path: str,
+        file_name: str,
+        table: str,
+        *,
+        replace: bool,
+    ) -> int:
+        """``replace=True`` full staging swap; ``False`` INSERT IGNORE merge. Returns row count."""
+        ...
+
+
+class AliasFileDownloaderPort(ABC):
+    """Port for downloading alias JSON/CSV with optional checksum verification."""
+
+    @abstractmethod
+    def fetch_checksums(self, checksum_url: str) -> dict[str, str] | None:
+        ...
+
+    @abstractmethod
+    def download_and_verify(
+        self,
+        dest_dir: str,
+        file_name: str,
+        url: str,
+        checksums: dict[str, str],
+    ) -> str:
+        """Download to .tmp, verify BLAKE2b, atomic replace. Returns status string."""
+        ...
+
+    @abstractmethod
+    def download_file(self, url: str, dest_dir: str, file_name: str) -> bool:
+        ...
+
+
+class HttpFetcherPort(ABC):
+    """Port for outbound HTTP GET (alias / status proxies)."""
+
+    @abstractmethod
+    def fetch(self, url: str) -> Result[tuple[bytes, str | None], str]:
+        """Return Success(body, content_type) or Failure(error message)."""
+        ...
+
+
+class AuthRepository(ABC):
+    """Port for self-service login (Clients table)."""
+
+    @abstractmethod
+    def find_by_callsign_and_logged_in(self, callsign: str) -> dict[int, dict[str, str]] | None:
+        """Return int_id -> {callsign, psswd} for logged-in rows, or None."""
+        ...
+
+    @abstractmethod
+    def get_int_ids_for_callsign(self, callsign: str) -> list[int]:
+        """Distinct int_id values for callsign where logged_in=1."""
+        ...
+
+    @abstractmethod
+    def find_by_host(self, ip: str) -> dict[str, object] | None:
+        """Return {callsign, int_ids} when exactly one callsign matches host."""
+        ...
+
+
+class DeviceRepository(ABC):
+    """Port for self-service device CRUD (Clients table)."""
+
+    @abstractmethod
+    def get_by_id(self, int_id: int) -> Client | None:
+        """Return Client entity or None."""
+        ...
+
+    @abstractmethod
+    def update_options(self, int_id: int, options: str) -> int:
+        """UPDATE options and set modified=1; return row count."""
+        ...
+
+    @abstractmethod
+    def get_modified(self, int_id: int) -> bool:
+        """Return Clients.modified flag."""
         ...
 
 

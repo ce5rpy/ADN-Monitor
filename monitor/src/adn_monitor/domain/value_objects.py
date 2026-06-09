@@ -98,6 +98,8 @@ class Opcode:
     ROUTING_TABLE_SND = b"\x11"
     VOICE_EVENT_SND = b"\x12"
     DELTA_SND = b"\x13"
+    STATE_SND = b"\x14"
+    STATE_REQ = b"\x15"
     HELLO = b"\xff"
     SERVER_MSG = b"b"
 

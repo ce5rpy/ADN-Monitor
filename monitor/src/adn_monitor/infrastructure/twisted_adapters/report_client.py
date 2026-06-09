@@ -101,6 +101,8 @@ class ReportProtocol(NetstringReceiver):
         self._monitor_state.routing_snapshot = None
         self._monitor_state.topology_seq = 0
         self._monitor_state.routing_seq = 0
+        self._monitor_state.slim_wire = False
+        self._monitor_state.dashboard_state_ts = 0.0
         self._mode_signalled = False
         from twisted.internet import reactor
 
@@ -155,7 +157,7 @@ class ReportProtocol(NetstringReceiver):
     def stringReceived(self, data: bytes) -> None:
         opcode = data[:1] if data else b""
         # Log report messages: CONFIG_SND=0x01, BRIDGE_SND=0x03; BRDG_EVENT=0x07 only at DEBUG (formatted line goes to INFO in controller)
-        if opcode in (b"\x01", b"\x03", Opcode.TOPOLOGY_SND, Opcode.ROUTING_TABLE_SND):
+        if opcode in (b"\x01", b"\x03", Opcode.STATE_SND, Opcode.TOPOLOGY_SND, Opcode.ROUTING_TABLE_SND):
             logger.info("(REPORT) stringReceived: opcode=%s len=%d", opcode.hex(), len(data))
         elif opcode in (b"\x07", Opcode.VOICE_EVENT_SND):
             logger.debug("(REPORT) stringReceived: voice opcode=%s len=%d", opcode.hex(), len(data))
@@ -182,7 +184,7 @@ class ReportProtocol(NetstringReceiver):
             logger.warning("process_message error: %s", result.error)
         elif opcode == Opcode.HELLO:
             self._signal_mode_detected()
-        elif opcode in (b"\x01", Opcode.TOPOLOGY_SND) and self._on_config_applied:
+        elif opcode in (b"\x01", Opcode.STATE_SND, Opcode.TOPOLOGY_SND) and self._on_config_applied:
             self._on_config_applied()
         elif opcode in (b"\x03", Opcode.ROUTING_TABLE_SND) and self._on_bridges_applied:
             self._on_bridges_applied()
@@ -294,9 +296,13 @@ class ReportClientFactory(ReconnectingClientFactory):
         proto = getattr(self, "_report_protocol", None)
         if proto is None or proto.transport is None:
             return False
-        proto.sendString(Opcode.CONFIG_REQ)
-        proto.sendString(Opcode.BRIDGE_REQ)
-        logger.debug("(REPORT) CONFIG_REQ + BRIDGE_REQ sent")
+        if getattr(self._state, "slim_wire", False):
+            proto.sendString(Opcode.STATE_REQ)
+            logger.debug("(REPORT) STATE_REQ sent (slim v2 wire)")
+        else:
+            proto.sendString(Opcode.CONFIG_REQ)
+            proto.sendString(Opcode.BRIDGE_REQ)
+            logger.debug("(REPORT) CONFIG_REQ + BRIDGE_REQ sent (v2 interim wire)")
         return True
 
     def clientConnectionFailed(self, connector: Any, reason: Any) -> None:

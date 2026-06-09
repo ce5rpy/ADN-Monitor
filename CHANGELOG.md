@@ -1,6 +1,18 @@
 # Changelog
 
-All notable changes to **adn-monitor** (monitor + dashboard + proxy) are documented here.
+All notable changes to **adn-monitor** (monitor + dashboard) are documented here.
+
+## [Unreleased]
+
+### Removed
+
+- **`backend/`** — PHP Slim API (replaced by FastAPI in `monitor.py`).
+- **`proxy/`** — standalone UDP hotspot proxy (use integrated **`PROXY`** in **adn-server**).
+
+### Changed
+
+- Single entrypoint **`monitor/monitor.py`** (FastAPI: REST, WebSocket, report ingest).
+- Single **`.env`** at project root.
 
 ## [1.0.0] - 2026-06-06
 

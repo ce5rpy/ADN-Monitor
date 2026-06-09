@@ -1,4 +1,0 @@
-RewriteEngine On
-# API only
-RewriteCond %{REQUEST_URI} ^/api
-RewriteRule ^ index.php [QSA,L]
