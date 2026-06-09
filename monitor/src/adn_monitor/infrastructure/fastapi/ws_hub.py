@@ -50,6 +50,11 @@ class WsHub(BroadcastPort):
     def __init__(self) -> None:
         self._clients: dict[str, set[WsClient]] = {g: set() for g in GROUP_NAMES}
         self._lock = asyncio.Lock()
+        self._loop: asyncio.AbstractEventLoop | None = None
+
+    def bind_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
+        """Bind the FastAPI/uvicorn loop so Twisted ingest can schedule WS sends."""
+        self._loop = loop
 
     def group_counts(self) -> dict[str, int]:
         return {g: len(self._clients[g]) for g in GROUP_NAMES}
@@ -69,25 +74,34 @@ class WsHub(BroadcastPort):
                 self._clients[group].discard(client)
             client.groups.clear()
 
+    def _schedule_send(self, client: WsClient, message: str) -> None:
+        loop = self._loop
+        if loop is None:
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                logger.debug("WS send dropped: no event loop bound")
+                return
+        coro = self._safe_send(client, message)
+        try:
+            if asyncio.get_running_loop() is loop:
+                loop.create_task(coro)
+                return
+        except RuntimeError:
+            pass
+        asyncio.run_coroutine_threadsafe(coro, loop)
+
     def broadcast(self, message: str, group: str) -> None:
         clients = list(self._clients.get(group, ()))
         if not clients:
             return
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            return
         for client in clients:
-            loop.create_task(self._safe_send(client, message))
+            self._schedule_send(client, message)
 
     def send_to_client(self, client: Any, message: str) -> None:
         if not isinstance(client, WsClient):
             return
-        try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(self._safe_send(client, message))
-        except RuntimeError:
-            pass
+        self._schedule_send(client, message)
 
     async def _safe_send(self, client: WsClient, message: str) -> None:
         try:

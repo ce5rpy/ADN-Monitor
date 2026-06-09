@@ -92,11 +92,17 @@ def _apply_config_to_state(
     state.CONFIG_RX = format_display_datetime(time.time(), config_global)
     include_since = _include_connected_since(state)
     if _uses_slim_v2_wire(state):
-        # D-25: dashboard_state replaces linked-systems view; not CONFIG_SND deltas.
+        # D-25: dashboard_state is a full topology snapshot (prune + sync), not CONFIG_SND deltas.
+        # Use update after the first snapshot so voice timeslots / openbridge streams are preserved.
         _prune_ctable_not_in_config(state.CTABLE, config_dict)
-        build_hblink_table(
-            state.CONFIG, state.CTABLE, time_str, config_global, include_connected_since=include_since
-        )
+        if ctable_is_empty(state.CTABLE):
+            build_hblink_table(
+                state.CONFIG, state.CTABLE, time_str, config_global, include_connected_since=include_since
+            )
+        else:
+            update_hblink_table(
+                state.CONFIG, state.CTABLE, time_str, config_global, include_connected_since=include_since
+            )
     elif state.CTABLE["MASTERS"]:
         update_hblink_table(
             state.CONFIG, state.CTABLE, time_str, config_global, include_connected_since=include_since

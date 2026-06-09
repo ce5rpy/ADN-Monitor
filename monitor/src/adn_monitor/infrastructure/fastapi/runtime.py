@@ -140,8 +140,8 @@ class MonitorRuntime:
             self._tgcount_repo = NoOpTgCountRepository()
             self._alias_svc = AliasService(self._alias_repo)
 
-        on_config = self._pusher.on_config_applied
-        on_ctable = self._pusher.on_ctable_updated
+        on_config = self._on_config_applied
+        on_ctable = self._on_ctable_updated
         on_mode = self._on_server_mode_detected
 
         mode = self.ingest_mode
@@ -187,6 +187,24 @@ class MonitorRuntime:
     @property
     def db_connected(self) -> bool:
         return self._db_ok
+
+    def _push_main_dashboard(self) -> None:
+        self._db_pusher.push_last_heard(
+            self.state,
+            self.config_global,
+            self.config.get("DB"),
+            dedup=False,
+        )
+
+    def _on_config_applied(self) -> None:
+        """Topology snapshot: linked systems + dashboard main (hotspot connect/disconnect)."""
+        self._pusher.on_config_applied()
+        self._push_main_dashboard()
+
+    def _on_ctable_updated(self, brdg_meta: dict | None = None) -> None:
+        """Voice events: lnksys/opb slices + active QSO on main."""
+        self._pusher.on_ctable_updated(brdg_meta)
+        self._push_main_dashboard()
 
     def _on_server_mode_detected(self, mode: ServerMode, info: dict) -> None:
         import json

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 from contextlib import asynccontextmanager
 from typing import Any
@@ -27,6 +28,7 @@ async def _lifespan(app: FastAPI):
     runtime: MonitorRuntime | None = None
     if config.get("APP", {}).get("AUTO_START_INGEST", True):
         runtime = MonitorRuntime(config)
+        runtime.ws_hub.bind_event_loop(asyncio.get_running_loop())
         runtime.start()
         runtime.start_background_tasks()
         app.state.monitor_runtime = runtime

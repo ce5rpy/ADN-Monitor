@@ -158,6 +158,48 @@ def test_dashboard_state_update_adds_new_masters_after_first_snapshot():
     assert state.CTABLE["MASTERS"]["SYSTEM-0"]["PEERS"][7300444]["CONNECTION"] == "YES"
 
 
+def test_dashboard_state_reapply_preserves_voice_timeslots_and_ob_streams():
+    """Slim snapshots must sync topology without wiping active QSO / openbridge streams."""
+    state = MonitorState()
+    state.server_mode = ServerMode.V2
+    deps = _deps()
+    deps["alias_svc"].alias_call.return_value = "CE5RPY"
+    snap = _sample_dashboard_state()
+    process_report_json(snap, state, **deps)
+
+    voice = {
+        "type": "voice_event",
+        "call_family": "GROUP",
+        "phase": "START",
+        "direction": "RX",
+        "system": "OBP-CL",
+        "stream_id": 999001,
+        "peer_id": 73010,
+        "src_id": 3194716,
+        "slot": 1,
+        "dst_id": 73458,
+    }
+    process_report_json(voice, state, **deps)
+    assert state.CTABLE["OPENBRIDGES"]["OBP-CL"]["STREAMS"]
+
+    process_report_json({**snap, "ts": snap["ts"] + 1.0}, state, **deps)
+    assert state.CTABLE["OPENBRIDGES"]["OBP-CL"]["STREAMS"]
+    peer_ts = state.CTABLE["MASTERS"]["ECHO"]["PEERS"][2][1]
+    voice_master = {
+        **voice,
+        "system": "ECHO",
+        "stream_id": 888001,
+        "peer_id": 2,
+        "src_id": 7300444,
+        "dst_id": 91,
+    }
+    process_report_json(voice_master, state, **deps)
+    assert state.CTABLE["MASTERS"]["ECHO"]["PEERS"][2][1]["TS"] is True
+    process_report_json({**snap, "ts": snap["ts"] + 2.0}, state, **deps)
+    assert state.CTABLE["MASTERS"]["ECHO"]["PEERS"][2][1]["TS"] is True
+    assert state.CTABLE["OPENBRIDGES"]["OBP-CL"]["STREAMS"]
+
+
 def test_slim_wire_ignores_topology_after_dashboard_state():
     state = MonitorState()
     state.server_mode = ServerMode.V2
