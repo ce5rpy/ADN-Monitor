@@ -109,6 +109,9 @@ MONITOR_APP:
   #   TOPIC_PREFIX: "adn/7302"
   #   QOS: 0
   # CORS_ORIGINS: "http://localhost:5173,https://dashboard.example.com"
+  # Comma-separated IPs allowed to send X-Real-IP / X-Forwarded-For (login-by-ip behind nginx).
+  # Default when omitted: 127.0.0.1, ::1 — set if the reverse proxy is on another host.
+  # TRUSTED_PROXY_IPS: "127.0.0.1,::1,10.0.0.5"
 
 # ------------------------------------------------------------------------------
 # DASHBOARD
