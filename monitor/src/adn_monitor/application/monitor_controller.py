@@ -111,6 +111,9 @@ def _apply_config_to_state(
         build_hblink_table(
             state.CONFIG, state.CTABLE, time_str, config_global, include_connected_since=include_since
         )
+    from .tgstats import sync_server_ua_sessions_from_config
+
+    sync_server_ua_sessions_from_config(state, config_dict)
     build_tgstats(state)
 
 
@@ -266,6 +269,12 @@ class MonitorState:
         self.routing_seq: int = 0
         self.slim_wire: bool = False
         self.dashboard_state_ts: float = 0.0
+        # (master, peer_id, slot) -> tgid — one UA/SINGLE session per peer/slot
+        self.UA_DYNAMIC_OWNERS: dict[tuple[str, int, int], int] = {}
+        # (master, peer_id, slot) -> (tgid, expires_at) — per-peer OPTIONS TIMER (SINGLE=1)
+        self.UA_SESSION_EXPIRES: dict[tuple[str, int, int], tuple[int, float]] = {}
+        # (master, peer_id, slot) -> set[tgid] when SINGLE=0 (multi dynamic until TG 4000)
+        self.UA_MULTI_TGS: dict[tuple[str, int, int], set[int]] = {}
 
 
 def process_message(
@@ -286,12 +295,17 @@ def process_message(
         return Failure(ReportProtocolError(str(e)))
     opcode = Opcode.from_message(raw_message)
 
-    if opcode.value in (Opcode.TOPOLOGY_SND, Opcode.ROUTING_TABLE_SND, Opcode.DELTA_SND):
+    if opcode.value == Opcode.TOPOLOGY_SND:
         if not _uses_v2_report_wire(state):
             logger.debug("(REPORT) ignore opcode %s (wire v1 or no-HELLO)", opcode.value.hex())
             return Success(None)
         if _uses_slim_v2_wire(state):
-            logger.debug("(REPORT) ignore opcode %s (slim wire active)", opcode.value.hex())
+            logger.debug("(REPORT) ignore TOPOLOGY_SND (slim wire uses dashboard_state)")
+            return Success(None)
+
+    if opcode.value in (Opcode.ROUTING_TABLE_SND, Opcode.DELTA_SND):
+        if not _uses_v2_report_wire(state):
+            logger.debug("(REPORT) ignore opcode %s (wire v1 or no-HELLO)", opcode.value.hex())
             return Success(None)
 
     if opcode.value == Opcode.VOICE_EVENT_SND and not _uses_v2_report_wire(state):
@@ -481,6 +495,9 @@ def process_message(
         patch_type = patch.get("type")
         since_seq = delta.get("since_seq")
         if patch_type == "topology":
+            if _uses_slim_v2_wire(state):
+                logger.debug("(REPORT) ignore DELTA_SND topology (slim wire uses dashboard_state)")
+                return Success(None)
             if state.topology_snapshot is None:
                 logger.warning("(REPORT) DELTA_SND topology patch without prior snapshot")
                 return Success(None)

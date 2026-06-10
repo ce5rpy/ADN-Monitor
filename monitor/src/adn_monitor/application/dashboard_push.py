@@ -93,6 +93,10 @@ class DashboardPusher:
     def on_config_applied(self) -> None:
         self.broadcast_ctable(dedup=False, groups_filter=("lnksys", "statictg", "opb"))
 
+    def on_bridges_applied(self) -> None:
+        """Routing table / BRIDGE_SND: SINGLE_TS* refreshed; push Linked Systems."""
+        self.broadcast_ctable(dedup=False, groups_filter=("lnksys", "statictg"))
+
     def on_ctable_updated(self, brdg_meta: dict | None = None) -> None:
         self.broadcast_ctable(brdg_meta=brdg_meta)
 

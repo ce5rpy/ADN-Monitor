@@ -115,7 +115,7 @@ def test_topology_to_config_maps_peer_options_static():
     assert config["SYSTEM-10"]["PEERS"][peer_key]["TS2_STATIC"] == "730444"
 
 
-def test_topology_to_config_maps_master_static_tgs():
+def test_topology_to_config_does_not_copy_system_static_tgs_to_entry():
     topology = {
         "type": "topology",
         "seq": 1,
@@ -130,8 +130,8 @@ def test_topology_to_config_maps_master_static_tgs():
         }],
     }
     config = topology_to_config(topology, ts=1.0)
-    assert config["MASTER-A"]["TS1_STATIC"] == "91,92"
-    assert config["MASTER-A"]["TS2_STATIC"] == "730"
+    assert "TS1_STATIC" not in config["MASTER-A"]
+    assert "TS2_STATIC" not in config["MASTER-A"]
 
 
 def test_topology_to_config_from_example():

@@ -36,6 +36,7 @@ class TcpReportIngest:
         *,
         broadcast: BroadcastPort | None = None,
         on_config_applied: Callable[[], None] | None = None,
+        on_bridges_applied: Callable[[], None] | None = None,
         on_ctable_updated: Callable[..., None] | None = None,
         on_server_mode_detected: Callable[[Any, dict], None] | None = None,
     ) -> None:
@@ -46,6 +47,7 @@ class TcpReportIngest:
         self._lastheard_repo = lastheard_repo
         self._tgcount_repo = tgcount_repo
         self._on_config_applied = on_config_applied
+        self._on_bridges_applied = on_bridges_applied
         self._on_ctable_updated = on_ctable_updated
         self._on_server_mode_detected = on_server_mode_detected
         self._broadcast = broadcast or NullBroadcast()
@@ -109,6 +111,7 @@ class TcpReportIngest:
             config_global=config_global,
             report_decoder=PickleJsonReportPayloadDecoder(),
             on_config_applied=self._on_config_applied,
+            on_bridges_applied=self._on_bridges_applied,
             on_ctable_updated=self._on_ctable_updated,
             on_server_mode_detected=self._on_server_mode_detected,
             hello_timeout_sec=hello_timeout_sec,

@@ -114,6 +114,9 @@ class DashboardDbPusher:
             ):
                 logger.debug("safety_sync: CONFIG empty, skip ctable")
             return
+        from .monitor_controller import build_tgstats
+
+        build_tgstats(state)
         self.push_last_heard(state, conf_global, db_config)
         self.push_lstheard_log(conf_global, db_config, getattr(state, "lastheard_log_rows", 70))
         pusher.broadcast_ctable(dedup=True)

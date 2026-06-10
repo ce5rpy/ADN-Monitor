@@ -89,6 +89,13 @@ def dashboard_state_to_config(doc: dict[str, Any], *, ts: float | None = None) -
         port = master.get("port")
         if port is not None:
             entry["PORT"] = int(port)
+        if "single_mode" in master:
+            entry["SINGLE_MODE"] = bool(master["single_mode"])
+        if master.get("default_ua_timer") is not None:
+            try:
+                entry["DEFAULT_UA_TIMER"] = float(master["default_ua_timer"])
+            except (TypeError, ValueError):
+                pass
         peers: dict[bytes, dict[str, Any]] = {}
         raw_peers = master.get("peers") or {}
         if isinstance(raw_peers, dict):
@@ -127,6 +134,18 @@ def dashboard_state_to_config(doc: dict[str, Any], *, ts: float | None = None) -
             ts2 = peer.get("ts2_static")
             if isinstance(ts2, list) and ts2:
                 peer_conf["TS2_STATIC"] = ",".join(str(x) for x in ts2)
+            options = peer.get("options")
+            if isinstance(options, str) and options.strip():
+                peer_conf["OPTIONS"] = options.encode("utf-8")
+            if "single_mode" in peer:
+                peer_conf["SINGLE_MODE"] = bool(peer["single_mode"])
+            if peer.get("ua_timer_min") is not None:
+                try:
+                    peer_conf["UA_TIMER_MIN"] = float(peer["ua_timer_min"])
+                except (TypeError, ValueError):
+                    pass
+            if "ua_sessions" in peer:
+                peer_conf["UA_SESSIONS"] = peer.get("ua_sessions") or {}
             peers[_bytes_4(pid)] = peer_conf
         entry["PEERS"] = peers
         config[str(name)] = entry
@@ -201,13 +220,7 @@ def topology_to_config(topology: dict[str, Any], *, ts: float | None = None) -> 
             entry["ENHANCED_OBP"] = True
         if system.get("mode") == "OPENBRIDGE" and system.get("network_id") is not None:
             entry["NETWORK_ID"] = _bytes_4(int(system["network_id"]))
-        if system.get("mode") == "MASTER":
-            ts1 = system.get("ts1_static")
-            if isinstance(ts1, list) and ts1:
-                entry["TS1_STATIC"] = ",".join(str(x) for x in ts1)
-            ts2 = system.get("ts2_static")
-            if isinstance(ts2, list) and ts2:
-                entry["TS2_STATIC"] = ",".join(str(x) for x in ts2)
+        # Per-peer OPTIONS only — do not copy system-level static TG lists onto inject masters.
         peers: dict[bytes, dict[str, Any]] = {}
         for peer in system.get("peers", []):
             if not isinstance(peer, dict):
@@ -242,6 +255,18 @@ def topology_to_config(topology: dict[str, Any], *, ts: float | None = None) -> 
             ts2 = peer.get("ts2_static")
             if isinstance(ts2, list) and ts2:
                 peer_conf["TS2_STATIC"] = ",".join(str(x) for x in ts2)
+            options = peer.get("options")
+            if isinstance(options, str) and options.strip():
+                peer_conf["OPTIONS"] = options.encode("utf-8")
+            if "single_mode" in peer:
+                peer_conf["SINGLE_MODE"] = bool(peer["single_mode"])
+            if peer.get("ua_timer_min") is not None:
+                try:
+                    peer_conf["UA_TIMER_MIN"] = float(peer["ua_timer_min"])
+                except (TypeError, ValueError):
+                    pass
+            if "ua_sessions" in peer:
+                peer_conf["UA_SESSIONS"] = peer.get("ua_sessions") or {}
             peers[_bytes_4(pid)] = peer_conf
         entry["PEERS"] = peers
         config[str(name)] = entry

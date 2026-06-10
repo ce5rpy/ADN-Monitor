@@ -137,8 +137,6 @@ class MqttReportIngest:
             self._on_config_applied()
         elif msg_type == "voice_event" and self._on_ctable_updated:
             voice = payload
-            if voice.get("call_family") == "GROUP" and voice.get("phase") == "INGRESS":
-                return
             brdg_meta = {
                 "call_type": "GROUP VOICE",
                 "action": voice.get("phase"),

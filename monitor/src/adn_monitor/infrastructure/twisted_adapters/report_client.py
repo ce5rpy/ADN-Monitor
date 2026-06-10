@@ -33,6 +33,37 @@ from typing import Any, Callable
 from twisted.internet.protocol import ReconnectingClientFactory
 from twisted.protocols.basic import NetstringReceiver
 
+_CALL_FAMILY_TO_CSV = {
+    "GROUP": "GROUP VOICE",
+    "PRIVATE": "PRIVATE VOICE",
+    "UNIT": "UNIT DATA",
+}
+
+
+def _voice_event_brdg_meta(data: bytes) -> dict[str, str] | None:
+    """Build bridge-event metadata from v2 JSON or legacy CSV voice payloads."""
+    body = data[1:]
+    if not body:
+        return None
+    try:
+        payload = json.loads(body.decode("utf-8", errors="replace"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        payload = None
+    if isinstance(payload, dict) and payload.get("type") == "voice_event":
+        family = payload.get("call_family")
+        csv_family = _CALL_FAMILY_TO_CSV.get(family)
+        if csv_family is None:
+            return None
+        return {
+            "call_type": csv_family,
+            "action": str(payload.get("phase", "")),
+            "system": str(payload.get("system", "")),
+        }
+    parts = body.decode("utf-8", errors="replace").split(",")
+    if len(parts) < 4:
+        return None
+    return {"call_type": parts[0], "action": parts[1], "system": parts[3]}
+
 from ...application.alias_service import AliasService
 from ...application.monitor_controller import MonitorState, process_message
 from ...application.ports import (
@@ -186,7 +217,7 @@ class ReportProtocol(NetstringReceiver):
             self._signal_mode_detected()
         elif opcode in (b"\x01", Opcode.STATE_SND, Opcode.TOPOLOGY_SND) and self._on_config_applied:
             self._on_config_applied()
-        elif opcode in (b"\x03", Opcode.ROUTING_TABLE_SND) and self._on_bridges_applied:
+        elif opcode in (Opcode.BRIDGE_SND, Opcode.ROUTING_TABLE_SND) and self._on_bridges_applied:
             self._on_bridges_applied()
         elif opcode == Opcode.DELTA_SND and not is_fail(result):
             patch_type = None
@@ -201,16 +232,7 @@ class ReportProtocol(NetstringReceiver):
             elif patch_type == "routing_table" and self._on_bridges_applied:
                 self._on_bridges_applied()
         elif opcode in (b"\x07", Opcode.VOICE_EVENT_SND) and self._on_ctable_updated:
-            # GROUP VOICE + INGRESS does not change CTABLE (rts_update returns early); skip WS refresh.
-            msg = data.decode("utf-8", "ignore")
-            parts = msg[1:].split(",") if len(msg) > 1 else []
-            if len(parts) >= 2 and parts[0] == "GROUP VOICE" and parts[1] == "INGRESS":
-                pass
-            else:
-                brdg_meta = None
-                if len(parts) >= 4:
-                    brdg_meta = {"call_type": parts[0], "action": parts[1], "system": parts[3]}
-                self._on_ctable_updated(brdg_meta)
+            self._on_ctable_updated(_voice_event_brdg_meta(data))
         logger.debug("(REPORT) process_message done for opcode=%r", opcode)
 
 

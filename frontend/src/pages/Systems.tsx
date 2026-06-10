@@ -46,6 +46,8 @@ import {
   masterPeerKey,
   servicePeerKey,
 } from '../context/LiveConnectedContext';
+import { TgChipGroup } from '../components/TgChipGroup';
+import type { ReactNode } from 'react';
 
 type TsEntry = { TS?: boolean | string; TRX?: string; SUB?: string; DEST?: string };
 type SingleTs = { TGID?: number | string; TO?: string };
@@ -67,6 +69,9 @@ type PeerEntry = Record<string, unknown> & {
   };
   SINGLE_TS1?: SingleTs;
   SINGLE_TS2?: SingleTs;
+  UA_MULTI_TS1?: SingleTs[];
+  UA_MULTI_TS2?: SingleTs[];
+  SINGLE_MODE?: boolean;
   TS1_STATIC?: string[];
   TS2_STATIC?: string[];
 };
@@ -147,7 +152,7 @@ export default function Systems() {
     filter: (peerId: string, peer: PeerEntry) => boolean,
     tableKey: string
   ) => {
-    const rows: React.ReactNode[] = [];
+    const rows: ReactNode[] = [];
     for (const [masterName, master] of Object.entries(masters)) {
       const peerList = master?.PEERS ?? {};
       const list = Object.entries(peerList).filter(([pid, p]) => filter(String(pid), p as PeerEntry));
@@ -168,6 +173,13 @@ export default function Systems() {
         const activeTg2 = activeTgFromDest(ts2.DEST);
         const staticTs1 = (p.TS1_STATIC ?? []).filter(Boolean);
         const staticTs2 = (p.TS2_STATIC ?? []).filter(Boolean);
+        const singleMode = p.SINGLE_MODE === true;
+        const singleTg1 = singleMode ? String(p.SINGLE_TS1?.TGID ?? '').trim() : '';
+        const singleTg2 = singleMode ? String(p.SINGLE_TS2?.TGID ?? '').trim() : '';
+        const singleTo1 = singleMode ? String(p.SINGLE_TS1?.TO ?? '').trim() : '';
+        const singleTo2 = singleMode ? String(p.SINGLE_TS2?.TO ?? '').trim() : '';
+        const multiTgs1 = singleMode ? [] : (p.UA_MULTI_TS1 ?? []);
+        const multiTgs2 = singleMode ? [] : (p.UA_MULTI_TS2 ?? []);
         rows.push(
           <TableRow key={`${tableKey}-${masterName}-${peerId}-1`} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
             <TableCell rowSpan={2} sx={colCallsign}>
@@ -182,12 +194,15 @@ export default function Systems() {
               <Chip size="small" label="TS1" color={chipColor1} />
             </TableCell>
             <TableCell>
-              {staticTs1.length > 0 ? staticTs1.map((tg) => {
-                const isActive = (trx1 === 'RX' || trx1 === 'TX') && String(tg) === activeTg1;
-                return (
-                  <Chip key={tg} size="small" label={tg} color={isActive ? (trx1 === 'TX' ? 'success' : 'error') : 'default'} sx={{ mr: 0.25, mb: 0.25 }} />
-                );
-              }) : ''}
+              <TgChipGroup
+                staticTgs={staticTs1}
+                singleTg={singleTg1}
+                singleTo={singleTo1}
+                multiTgs={multiTgs1}
+                trx={trx1}
+                activeTg={activeTg1}
+                t={t}
+              />
             </TableCell>
             <TableCell align="center">
               {sub1 ? <Chip size="small" label={sub1} color={chipColor1} /> : ''}
@@ -201,12 +216,15 @@ export default function Systems() {
               <Chip size="small" label="TS2" color={chipColor2} />
             </TableCell>
             <TableCell>
-              {staticTs2.length > 0 ? staticTs2.map((tg) => {
-                const isActive = (trx2 === 'RX' || trx2 === 'TX') && String(tg) === activeTg2;
-                return (
-                  <Chip key={tg} size="small" label={tg} color={isActive ? (trx2 === 'TX' ? 'success' : 'error') : 'default'} sx={{ mr: 0.25, mb: 0.25 }} />
-                );
-              }) : ''}
+              <TgChipGroup
+                staticTgs={staticTs2}
+                singleTg={singleTg2}
+                singleTo={singleTo2}
+                multiTgs={multiTgs2}
+                trx={trx2}
+                activeTg={activeTg2}
+                t={t}
+              />
             </TableCell>
             <TableCell align="center">
               {sub2 ? <Chip size="small" label={sub2} color={chipColor2} /> : ''}
@@ -306,8 +324,13 @@ export default function Systems() {
 
       {countHotspots > 0 && (
         <Paper sx={tablePaperSx}>
-          <Typography variant="subtitle1" fontWeight={600} sx={{ p: 1.5 }}>
+          <Typography variant="subtitle1" fontWeight={600} sx={{ px: 1.5, pt: 1.5, pb: 0.5 }}>
             {t('lnksys_hotspots', { defaultValue: 'Hotspots' })}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ px: 1.5, pb: 1, display: 'block' }}>
+            {t('lnksys_legend_static_single', { defaultValue: 'Amber: static TG active (SINGLE)' })}
+            {' · '}
+            {t('lnksys_legend_dynamic', { defaultValue: 'Indigo: user-activated TG (expires after timeout)' })}
           </Typography>
           <TableContainer sx={{ minWidth: 0 }}>
             <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', width: '100%', minWidth: tableMinWidth }}>

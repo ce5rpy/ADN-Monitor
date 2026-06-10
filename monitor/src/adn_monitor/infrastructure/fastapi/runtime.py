@@ -13,6 +13,7 @@ from ...application.dashboard_db_push import DashboardDbPusher
 from ...application.dashboard_push import DashboardPusher
 from ...application.db_maintenance import run_cleaning_loop
 from ...application.hblink_table import clean_te
+from ...application.monitor_controller import build_tgstats
 from ...application.peer_options_merge import apply_peer_options_rows
 from ...domain.value_objects import ServerMode
 from ...infrastructure.aliases.file_downloader import UrllibAliasFileDownloader
@@ -141,6 +142,7 @@ class MonitorRuntime:
             self._alias_svc = AliasService(self._alias_repo)
 
         on_config = self._on_config_applied
+        on_bridges = self._on_bridges_applied
         on_ctable = self._on_ctable_updated
         on_mode = self._on_server_mode_detected
 
@@ -155,6 +157,7 @@ class MonitorRuntime:
                 self._tgcount_repo,
                 broadcast=self.ws_hub,
                 on_config_applied=on_config,
+                on_bridges_applied=on_bridges,
                 on_ctable_updated=on_ctable,
                 on_server_mode_detected=on_mode,
             )
@@ -201,8 +204,13 @@ class MonitorRuntime:
         self._pusher.on_config_applied()
         self._push_main_dashboard()
 
+    def _on_bridges_applied(self) -> None:
+        """BRIDGE_SND / routing_table: UA TG chips (SINGLE_TS*) on Linked Systems."""
+        self._pusher.on_bridges_applied()
+
     def _on_ctable_updated(self, brdg_meta: dict | None = None) -> None:
         """Voice events: lnksys/opb slices + active QSO on main."""
+        build_tgstats(self.state)
         self._pusher.on_ctable_updated(brdg_meta)
         self._push_main_dashboard()
 
