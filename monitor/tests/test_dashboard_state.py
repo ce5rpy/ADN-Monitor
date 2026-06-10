@@ -759,6 +759,7 @@ def test_dashboard_state_empty_ua_sessions_clears_indigo() -> None:
                                 "id": peer_a,
                                 "connected": True,
                                 "connected_at": int(_time.time()),
+                                "options": _peer_options_bytes(single="1").decode(),
                                 "ua_sessions": {},
                             }
                         },
@@ -777,6 +778,66 @@ def test_dashboard_state_empty_ua_sessions_clears_indigo() -> None:
     assert ("SYSTEM-2", peer_a, 2) not in state.UA_SESSION_EXPIRES
     peer = state.CTABLE["MASTERS"]["SYSTEM-2"]["PEERS"][peer_a]
     assert peer["SINGLE_TS2"]["TGID"] == ""
+
+
+def test_dashboard_state_empty_ua_sessions_preserves_single_zero_multi() -> None:
+    """SINGLE=0: periodic dashboard_state with ``ua_sessions: {}`` must not wipe voice multi-TG."""
+    import time as _time
+
+    peer_a = 730039101
+    state = MonitorState()
+    state.server_mode = ServerMode.V2
+    state.UA_MULTI_TGS = {("SYSTEM-2", peer_a, 2): {7304, 7306}}
+    state.CONFIG = _config_with_peer_options((peer_a, "0", None))
+    state.CTABLE = {
+        "MASTERS": {
+            "SYSTEM-2": {
+                "PEERS": {
+                    peer_a: {
+                        "TS1_STATIC": [],
+                        "TS2_STATIC": ["730", "7305"],
+                        1: {},
+                        2: {},
+                    }
+                }
+            }
+        },
+        "PEERS": {},
+        "OPENBRIDGES": {},
+    }
+    config = dashboard_state_to_config(
+        {
+            "type": "dashboard_state",
+            "ts": _time.time(),
+            "ctable": {
+                "MASTERS": {
+                    "SYSTEM-2": {
+                        "mode": "MASTER",
+                        "peers": {
+                            peer_a: {
+                                "id": peer_a,
+                                "connected": True,
+                                "connected_at": int(_time.time()),
+                                "options": _peer_options_bytes(single="0").decode(),
+                                "ua_sessions": {},
+                            }
+                        },
+                    }
+                },
+                "PEERS": {},
+                "OPENBRIDGES": {},
+            },
+        }
+    )
+    from adn_monitor.application.tgstats import sync_server_ua_sessions_from_config
+
+    state.CONFIG = config
+    sync_server_ua_sessions_from_config(state, config)
+    build_tgstats(state)
+    assert state.UA_MULTI_TGS[("SYSTEM-2", peer_a, 2)] == {7304, 7306}
+    peer = state.CTABLE["MASTERS"]["SYSTEM-2"]["PEERS"][peer_a]
+    multi = {int(e["TGID"]) for e in peer["UA_MULTI_TS2"]}
+    assert multi == {7304, 7306}
 
 
 def test_yaml_defaults_when_peer_options_omit_single_and_timer() -> None:

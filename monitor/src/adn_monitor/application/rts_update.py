@@ -30,6 +30,7 @@ from ..domain.value_objects import ServerMode
 from .alias_service import AliasService
 from .monitor_controller import MonitorState
 from .tgstats import (
+    _apply_multi_mode_chips,
     _peer_single_mode,
     clear_peer_ua_sessions,
     lookup_ua_timeout_for_peer,
@@ -90,12 +91,16 @@ def _apply_voice_single_ts(
         return
     if peer_id is not None:
         register_ua_session(state, system, peer_id, time_slot, destination)
-    if peer_id is not None and _peer_single_mode(state, system, peer_id):
+    if peer_id is None:
+        return
+    if _peer_single_mode(state, system, peer_id):
         existing = peer_row.get(ts_key) if isinstance(peer_row.get(ts_key), dict) else {}
         to_str = lookup_ua_timeout_for_peer(state, system, peer_id, time_slot, destination, time_str)
         if not to_str and isinstance(existing, dict):
             to_str = existing.get("TO", "") if isinstance(existing.get("TO"), str) else ""
         peer_row[ts_key] = {"TGID": destination, "TO": to_str}
+        return
+    _apply_multi_mode_chips(state, system, peer_id, peer_row)
 
 
 def rts_update_impl(

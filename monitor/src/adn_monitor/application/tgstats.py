@@ -353,12 +353,20 @@ def _apply_server_ua_sessions_from_config(
     peer_id: int,
     peer_cfg: dict,
 ) -> None:
-    """Sync SINGLE/indigo from server ``UA_SESSIONS`` in CONFIG (dashboard_state)."""
+    """Sync SINGLE=1 indigo from server ``UA_SESSIONS`` (dashboard_state only).
+
+    SINGLE=0 multi-dynamic TGs are tracked from voice events in ``UA_MULTI_TGS``;
+    an empty ``ua_sessions`` snapshot must not wipe them.
+    """
+    if not _peer_single_mode(state, master_name, peer_id):
+        return
     if "UA_SESSIONS" not in peer_cfg:
         return
-    clear_peer_ua_sessions(state, master_name, peer_id)
     raw = peer_cfg.get("UA_SESSIONS")
-    if not isinstance(raw, dict) or not raw:
+    if not isinstance(raw, dict):
+        return
+    clear_peer_ua_sessions(state, master_name, peer_id)
+    if not raw:
         return
     owners, expires, _multi = _ensure_session_maps(state)
     now = time.time()
