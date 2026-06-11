@@ -90,6 +90,18 @@ class MqttReportIngest:
         self._started = True
         logger.info("(INGEST) MQTT subscriber started prefix=%s", prefix)
 
+    def set_repositories(
+        self,
+        alias_svc: AliasService,
+        alias_repo: AliasRepository,
+        lastheard_repo: LastHeardRepository,
+        tgcount_repo: TgCountRepository,
+    ) -> None:
+        self._alias_svc = alias_svc
+        self._alias_repo = alias_repo
+        self._lastheard_repo = lastheard_repo
+        self._tgcount_repo = tgcount_repo
+
     def stop(self) -> None:
         if not self._started or self._client is None:
             return

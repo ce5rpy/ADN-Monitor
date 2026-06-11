@@ -19,6 +19,7 @@ def health(request: Request) -> dict[str, Any]:
     }
     runtime = getattr(request.app.state, "monitor_runtime", None)
     if runtime is not None:
+        body["db_connected"] = runtime.db_connected
         body["report"] = {
             "connected": runtime.state.server_mode_confirmed,
             "slim_wire": runtime.state.slim_wire,

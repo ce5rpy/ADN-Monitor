@@ -67,14 +67,14 @@ export function TgChipGroup({
     const isUaOnStatic = single === tgStr;
     if (isUaOnStatic) {
       const title = singleTo?.trim()
-        ? t('lnksys_dynamic_tg_to', {
+        ? t('lnksys_active_tg_to', {
             tg: tgStr,
             to: singleTo.trim(),
-            defaultValue: `SINGLE TG ${tgStr} · timeout ${singleTo.trim()}`,
+            defaultValue: `Active TG ${tgStr} · timeout ${singleTo.trim()}`,
           })
-        : t('lnksys_static_single_tg', {
+        : t('lnksys_active_tg', {
             tg: tgStr,
-            defaultValue: `Static TG ${tgStr} · SINGLE active`,
+            defaultValue: `Active TG ${tgStr}`,
           });
       nodes.push(
         <Chip

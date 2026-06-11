@@ -11,7 +11,7 @@
 
 [Unit]
 Description=ADN Systems Monitor (monitor.py)
-After=network-online.target
+After=network-online.target mariadb.service mysql.service
 Wants=network-online.target
 
 [Service]

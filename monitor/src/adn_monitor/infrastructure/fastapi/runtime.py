@@ -35,6 +35,7 @@ from .ws_hub import WsHub
 logger = logging.getLogger("adn-monitor")
 
 _MONITOR_ROOT = Path(__file__).resolve().parents[4]
+_DB_RECONNECT_INTERVAL_SEC = 10.0
 
 
 class MonitorRuntime:
@@ -85,6 +86,7 @@ class MonitorRuntime:
         self._alias_files_task: asyncio.Task | None = None
         self._peer_opts_repo: MysqlPeerOptionsRepository | None = None
         self._db_ok = False
+        self._db_reconnect_task: asyncio.Task | None = None
         self._tg_day = None
 
     @property
@@ -110,6 +112,8 @@ class MonitorRuntime:
             self._peer_opts_task = asyncio.create_task(self._peer_options_loop(15.0))
         if self._alias_sync is not None:
             self._alias_files_task = asyncio.create_task(self._alias_files_loop())
+        if self._db_config() is not None:
+            self._db_reconnect_task = asyncio.create_task(self._db_reconnect_loop())
 
     async def stop_background_tasks(self) -> None:
         for task in (
@@ -119,6 +123,7 @@ class MonitorRuntime:
             self._memory_task,
             self._peer_opts_task,
             self._alias_files_task,
+            self._db_reconnect_task,
         ):
             if task is not None:
                 task.cancel()
@@ -132,9 +137,11 @@ class MonitorRuntime:
         self._memory_task = None
         self._peer_opts_task = None
         self._alias_files_task = None
+        self._db_reconnect_task = None
 
     def start(self) -> None:
-        self._wire_db()
+        if not self._try_wire_db():
+            logger.warning("(RUNTIME) DB unavailable at startup; will retry in background")
         if self._alias_svc is None:
             self._alias_repo = NoOpAliasRepository()
             self._lastheard_repo = NoOpLastHeardRepository()
@@ -318,6 +325,117 @@ class MonitorRuntime:
                 logger.warning("(alias) refresh failed: %s", e)
             await asyncio.sleep(sync.review_interval_sec)
 
+    async def _db_reconnect_loop(self) -> None:
+        app_conf = self.config.get("APP", {})
+        interval = float(app_conf.get("DB_RECONNECT_INTERVAL", _DB_RECONNECT_INTERVAL_SEC))
+        if interval <= 0:
+            return
+        while True:
+            try:
+                await asyncio.sleep(interval)
+                if self._db_config() is None:
+                    continue
+                if self._db_ok:
+                    ok = await asyncio.to_thread(self._db_ping)
+                    if ok:
+                        continue
+                    logger.warning("(RUNTIME) DB health check failed; reconnecting")
+                    await self._stop_db_background_tasks()
+                    await asyncio.to_thread(self._teardown_db)
+                    self._push_repos_to_ingest()
+                    continue
+                if await asyncio.to_thread(self._try_wire_db):
+                    logger.info("(RUNTIME) DB connected")
+                    self._push_repos_to_ingest()
+                    self._start_db_background_tasks()
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.debug("db_reconnect_loop: %s", e)
+
+    def _db_config(self) -> dict[str, Any] | None:
+        db = self.config.get("DB") or {}
+        return db if db else None
+
+    def _db_ping(self) -> bool:
+        db = self._db_config()
+        if db is None:
+            return False
+        try:
+            with SyncMysqlPool(db).connection() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT 1")
+            return True
+        except Exception:
+            return False
+
+    def _push_repos_to_ingest(self) -> None:
+        if self._alias_svc is None or self._alias_repo is None:
+            return
+        if self._lastheard_repo is None or self._tgcount_repo is None:
+            return
+        repos = (
+            self._alias_svc,
+            self._alias_repo,
+            self._lastheard_repo,
+            self._tgcount_repo,
+        )
+        if self._tcp_ingest is not None:
+            self._tcp_ingest.set_repositories(*repos)
+        if self._mqtt_ingest is not None:
+            self._mqtt_ingest.set_repositories(*repos)
+
+    def _start_db_background_tasks(self) -> None:
+        if not self._db_ok:
+            return
+        if self._cleaning_task is None:
+            self._cleaning_task = asyncio.create_task(self._cleaning_loop(900.0))
+        if self.config_global.get("TGC_INC") and self._tgcount_task is None:
+            self._tgcount_task = asyncio.create_task(self._tgcount_loop(60.0))
+        if self._memory_task is None:
+            self._memory_task = asyncio.create_task(self._memory_maintenance_loop(60.0))
+        if self._peer_opts_repo is not None and self._peer_opts_task is None:
+            self._peer_opts_task = asyncio.create_task(self._peer_options_loop(15.0))
+        if self._alias_sync is not None and self._alias_files_task is None:
+            self._alias_files_task = asyncio.create_task(self._alias_files_loop())
+
+    async def _stop_db_background_tasks(self) -> None:
+        for task in (
+            self._cleaning_task,
+            self._tgcount_task,
+            self._memory_task,
+            self._peer_opts_task,
+            self._alias_files_task,
+        ):
+            if task is not None:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+        self._cleaning_task = None
+        self._tgcount_task = None
+        self._memory_task = None
+        self._peer_opts_task = None
+        self._alias_files_task = None
+
+    def _teardown_db(self) -> None:
+        pool = self._pool
+        self._pool = None
+        if pool is not None:
+            try:
+                pool.close()
+            except Exception as e:
+                logger.debug("(RUNTIME) pool close: %s", e)
+        self._alias_table_repo = None
+        self._peer_opts_repo = None
+        self._alias_sync = None
+        self._alias_repo = NoOpAliasRepository()
+        self._lastheard_repo = NoOpLastHeardRepository()
+        self._tgcount_repo = NoOpTgCountRepository()
+        self._alias_svc = AliasService(self._alias_repo)
+        self._db_ok = False
+
     def _wire_alias_sync(self, db: dict[str, Any] | None) -> None:
         files = self.config.get("FILES") or {}
         if not files:
@@ -335,23 +453,30 @@ class MonitorRuntime:
             table_count=table_count,
         )
 
-    def _wire_db(self) -> None:
-        db = self.config.get("DB") or {}
-        if not db:
+    def _try_wire_db(self) -> bool:
+        db = self._db_config()
+        if db is None:
             logger.warning("(RUNTIME) no DB config; Last Heard persistence limited")
             self._wire_alias_sync(None)
-            return
+            return False
+        pool = None
         try:
-            self._pool = create_pool(
+            sync_pool = SyncMysqlPool(db)
+            with sync_pool.connection() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT 1")
+            pool = create_pool(
                 db.get("SERVER", "localhost"),
                 db.get("USER", ""),
                 db.get("PASSWD", ""),
                 db.get("NAME", "hbmon"),
                 int(db.get("PORT", 3306)),
             )
-            self._alias_repo = MoniDBAliasRepository(self._pool)
-            sync_pool = SyncMysqlPool(db)
             ensure_schema(sync_pool)
+            files = self.config.get("FILES") or {}
+            stale_sec = float(files.get("RELOAD_TIME", 24 * 3600))
+            self._pool = pool
+            self._alias_repo = MoniDBAliasRepository(self._pool, stale_seconds=stale_sec)
             self._alias_table_repo = MoniDBAliasTableRepository(self._pool, sync_pool=sync_pool)
             self._lastheard_repo = MoniDBLastHeardRepository(self._pool)
             self._tgcount_repo = MoniDBTgCountRepository(self._pool, self.config_global)
@@ -359,6 +484,13 @@ class MonitorRuntime:
             self._peer_opts_repo = MysqlPeerOptionsRepository(sync_pool)
             self._db_ok = True
             self._wire_alias_sync(db)
+            return True
         except Exception as e:
-            logger.warning("(RUNTIME) DB pool failed (%s); using no-op repos", e)
+            if pool is not None:
+                try:
+                    pool.close()
+                except Exception:
+                    pass
+            logger.warning("(RUNTIME) DB pool failed (%s)", e)
             self._wire_alias_sync(None)
+            return False

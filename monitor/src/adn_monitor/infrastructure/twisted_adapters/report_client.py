@@ -122,6 +122,18 @@ class ReportProtocol(NetstringReceiver):
         self._hello_timer: Any = None  # IDelayedCall or None
         self._mode_signalled = False  # avoid double-firing on_server_mode_detected
 
+    def set_repositories(
+        self,
+        alias_svc: AliasService,
+        alias_repo: AliasRepository,
+        lastheard_repo: LastHeardRepository,
+        tgcount_repo: TgCountRepository,
+    ) -> None:
+        self._alias_svc = alias_svc
+        self._alias_repo = alias_repo
+        self._lastheard_repo = lastheard_repo
+        self._tgcount_repo = tgcount_repo
+
     def connectionMade(self) -> None:
         logger.info("(REPORT) Connection to report server established")
         self._monitor_state.server_mode = ServerMode.LEGACY
@@ -279,6 +291,21 @@ class ReportClientFactory(ReconnectingClientFactory):
         self._on_bridges_applied = on_bridges_applied
         self._on_server_mode_detected = on_server_mode_detected
         self._hello_timeout_sec = hello_timeout_sec
+
+    def set_repositories(
+        self,
+        alias_svc: AliasService,
+        alias_repo: AliasRepository,
+        lastheard_repo: LastHeardRepository,
+        tgcount_repo: TgCountRepository,
+    ) -> None:
+        self._alias_svc = alias_svc
+        self._alias_repo = alias_repo
+        self._lastheard_repo = lastheard_repo
+        self._tgcount_repo = tgcount_repo
+        proto = getattr(self, "_report_protocol", None)
+        if proto is not None:
+            proto.set_repositories(alias_svc, alias_repo, lastheard_repo, tgcount_repo)
 
     def buildProtocol(self, addr: Any) -> ReportProtocol:
         self.resetDelay()

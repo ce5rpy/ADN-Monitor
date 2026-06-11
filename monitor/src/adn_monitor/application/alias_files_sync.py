@@ -8,6 +8,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from .alias_file_parser import alias_file_is_valid, parse_alias_file
 from .alias_paths import resolve_alias_files_dir
 from .ports import (
     AliasBulkImportPort,
@@ -83,11 +84,12 @@ class AliasFilesSyncUseCases:
             mtime = p2f.stat().st_mtime
             if self._local_mtime.get(tbl) == mtime:
                 continue
-            if self._bulk is not None:
-                self._bulk.import_from_file(path, file_name, tbl, replace=False)
-            elif self._table_repo is not None:
-                self._table_repo.populate_from_file(path, file_name, tbl, wipe=False)
-            self._local_mtime[tbl] = mtime
+            imported = self._import_table(path, file_name, tbl, replace=False)
+            if imported:
+                self._invalidate_alias_cache(tbl)
+                self._local_mtime[tbl] = mtime
+            else:
+                logger.warning("(alias) %s: local import skipped (invalid file or DB error)", tbl)
 
     def log_table_counts(self) -> None:
         if self._table_count is None:
@@ -99,6 +101,45 @@ class AliasFilesSyncUseCases:
                     logger.info("%s entries: %s", tbl, n)
             except Exception as err:
                 logger.error("alias table count %s: %s", tbl, err)
+
+    def _invalidate_alias_cache(self, table: str) -> None:
+        if self._alias_repo is None:
+            return
+        invalidate = getattr(self._alias_repo, "invalidate_cache", None)
+        if callable(invalidate):
+            invalidate(table)
+
+    def _import_table(
+        self,
+        path: str,
+        file_name: str,
+        table: str,
+        *,
+        replace: bool,
+    ) -> int:
+        """Import alias rows when the on-disk file validates; return rows imported (0 = skip)."""
+        if not alias_file_is_valid(path, file_name, table):
+            logger.warning(
+                "(alias) %s: file %s missing, empty, or unparseable — skip import",
+                table,
+                file_name,
+            )
+            return 0
+        try:
+            if self._bulk is not None:
+                imported = self._bulk.import_from_file(path, file_name, table, replace=replace)
+            elif self._table_repo is not None:
+                self._table_repo.populate_from_file(path, file_name, table, wipe=replace)
+                imported = len(parse_alias_file(path, file_name, table))
+            else:
+                return 0
+        except Exception as err:
+            logger.warning("(alias) %s: import failed: %s", table, err)
+            return 0
+        if imported <= 0:
+            logger.warning("(alias) %s: import produced no rows", table)
+            return 0
+        return imported
 
     def _update_remote_table(
         self,
@@ -130,7 +171,13 @@ class AliasFilesSyncUseCases:
                 ok = self._downloader.download_file(url, path, file_name)
                 result = "successfully" if ok else "download failed"
             if result and "successfully" in result:
-                if checksum_url:
+                if not alias_file_is_valid(path, file_name, table):
+                    logger.warning(
+                        "(alias) %s: download finished but file failed validation",
+                        table,
+                    )
+                    result = "downloaded file failed validation"
+                elif checksum_url:
                     logger.info("(alias) %s: downloaded and checksum verified", table)
                 else:
                     logger.info("(alias) %s: downloaded", table)
@@ -140,15 +187,20 @@ class AliasFilesSyncUseCases:
                 count = self._table_count(table)
             except Exception:
                 count = None
-        use_file = (result and "successfully" in result) or (
-            not need_download and count is not None and count <= 2
-        )
-        if use_file:
-            if self._bulk is not None:
-                self._bulk.import_from_file(path, file_name, table, replace=True)
-            elif self._table_repo is not None:
-                self._table_repo.populate_from_file(path, file_name, table)
-            if self._alias_repo is not None and hasattr(self._alias_repo, "_not_in_db"):
-                self._alias_repo._not_in_db.clear()  # type: ignore[attr-defined]
-        elif result and "successfully" not in result:
-            logger.warning("(alias) %s: %s", table, result)
+        downloaded_ok = bool(result and "successfully" in result)
+        bootstrap_import = not need_download and count is not None and count <= 2
+        if not downloaded_ok and not bootstrap_import:
+            if result and "successfully" not in result:
+                logger.warning("(alias) %s: %s", table, result)
+            return
+        if not alias_file_is_valid(path, file_name, table):
+            logger.warning(
+                "(alias) %s: skip import — on-disk file missing, empty, or unparseable",
+                table,
+            )
+            return
+        imported = self._import_table(path, file_name, table, replace=True)
+        if imported:
+            self._invalidate_alias_cache(table)
+        else:
+            logger.warning("(alias) %s: import failed — cache unchanged", table)

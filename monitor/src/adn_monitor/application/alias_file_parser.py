@@ -73,3 +73,19 @@ def parse_alias_file(path: str, file_name: str, table: str) -> list[tuple]:
         logger.error("parse_alias_file %s: %s", file_name, err)
         return []
     return rows
+
+
+def alias_file_is_valid(
+    path: str,
+    file_name: str,
+    table: str,
+    *,
+    min_rows: int = 1,
+) -> bool:
+    """True when the alias file exists and parses to at least ``min_rows`` entries."""
+    if min_rows < 1:
+        return False
+    file_path = Path(path) / file_name
+    if not file_path.is_file() or file_path.stat().st_size == 0:
+        return False
+    return len(parse_alias_file(path, file_name, table)) >= min_rows

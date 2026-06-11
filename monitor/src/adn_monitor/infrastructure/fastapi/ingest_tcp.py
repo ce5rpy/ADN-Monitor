@@ -90,6 +90,32 @@ class TcpReportIngest:
             logger.debug("(INGEST) request_refresh failed: %s", e)
             return False
 
+    def set_repositories(
+        self,
+        alias_svc: AliasService,
+        alias_repo: AliasRepository,
+        lastheard_repo: LastHeardRepository,
+        tgcount_repo: TgCountRepository,
+    ) -> None:
+        self._alias_svc = alias_svc
+        self._alias_repo = alias_repo
+        self._lastheard_repo = lastheard_repo
+        self._tgcount_repo = tgcount_repo
+        factory = self._factory
+        if factory is None:
+            return
+
+        def _apply() -> None:
+            factory.set_repositories(alias_svc, alias_repo, lastheard_repo, tgcount_repo)
+
+        try:
+            if reactor.running:
+                reactor.callFromThread(_apply)
+            else:
+                _apply()
+        except Exception as e:
+            logger.debug("(INGEST) set_repositories failed: %s", e)
+
     def _run_reactor(self) -> None:
         adn = self._config.get("ADN_CXN", {})
         global_conf = self._config.get("GLOBAL", {})
