@@ -2,8 +2,6 @@
 
 All notable changes to **adn-monitor** (monitor + dashboard) are documented here.
 
-## [Unreleased]
-
 ## [2.0.0-rc.1] - 2026-06-12
 
 First v2 release candidate since **1.0.0** (~13 commits). Pairs with **adn-server 2.0.0-rc.1**.
