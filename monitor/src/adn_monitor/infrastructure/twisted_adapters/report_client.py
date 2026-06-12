@@ -58,11 +58,17 @@ def _voice_event_brdg_meta(data: bytes) -> dict[str, str] | None:
             "call_type": csv_family,
             "action": str(payload.get("phase", "")),
             "system": str(payload.get("system", "")),
+            "direction": str(payload.get("direction", "")),
         }
     parts = body.decode("utf-8", errors="replace").split(",")
     if len(parts) < 4:
         return None
-    return {"call_type": parts[0], "action": parts[1], "system": parts[3]}
+    return {
+        "call_type": parts[0],
+        "action": parts[1],
+        "system": parts[3],
+        "direction": parts[2] if len(parts) > 2 else "",
+    }
 
 from ...application.alias_service import AliasService
 from ...application.monitor_controller import MonitorState, process_message

@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-import copy
 import json
 from typing import Any
 
@@ -24,6 +23,59 @@ def _dict_keys_str(obj: Any) -> Any:
 
 def _fingerprint_dumps(payload: Any) -> str:
     return json.dumps(_dict_keys_str(payload), sort_keys=True, default=str)
+
+
+def _peer_ts_semantic(ent: Any) -> Any:
+    if not isinstance(ent, dict):
+        return ent
+    return {k: v for k, v in ent.items() if k != "TIMEOUT"}
+
+
+def _streams_semantic(streams: dict) -> dict:
+    out: dict = {}
+    for sid, ent in streams.items():
+        if isinstance(ent, (list, tuple)) and len(ent) >= 3:
+            out[sid] = [ent[0], ent[1], ent[2]]
+        else:
+            out[sid] = ent
+    return out
+
+
+def _main_ctable_semantic(ctable: dict[str, Any]) -> dict[str, Any]:
+    """Semantic main-dashboard CTABLE view without deepcopy (ignore TIMEOUT churn)."""
+    masters_out: dict[str, Any] = {}
+    for sn, master in (ctable.get("MASTERS") or {}).items():
+        if not isinstance(master, dict):
+            continue
+        peers_out: dict[str, Any] = {}
+        for pid, peer in (master.get("PEERS") or {}).items():
+            if not isinstance(peer, dict):
+                continue
+            peers_out[pid] = {
+                ts: _peer_ts_semantic(peer[ts])
+                for ts in (1, 2, "1", "2")
+                if ts in peer
+            }
+        masters_out[sn] = {"PEERS": peers_out}
+
+    peers_out: dict[str, Any] = {}
+    for sys_name, pobj in (ctable.get("PEERS") or {}).items():
+        if not isinstance(pobj, dict):
+            continue
+        peers_out[sys_name] = {
+            ts: _peer_ts_semantic(pobj[ts])
+            for ts in (1, 2, "1", "2")
+            if ts in pobj
+        }
+
+    ob_out: dict[str, Any] = {}
+    for ob_name, ob in (ctable.get("OPENBRIDGES") or {}).items():
+        if not isinstance(ob, dict):
+            continue
+        streams = ob.get("STREAMS") or {}
+        ob_out[ob_name] = {"STREAMS": _streams_semantic(streams)}
+
+    return {"MASTERS": masters_out, "PEERS": peers_out, "OPENBRIDGES": ob_out}
 
 
 def ctable_for_lnksys(ctable: dict[str, Any], *, empty_masters: bool = False) -> dict[str, Any]:
@@ -61,49 +113,27 @@ def ctable_for_main(ctable: dict[str, Any]) -> dict[str, Any]:
 
 def opb_semantic_fingerprint(ctable: dict[str, Any], dbridges: bool) -> str:
     """Stable hash input for OpenBridge ``o`` messages (ignore stream timeout churn)."""
-    ob = copy.deepcopy(ctable.get("OPENBRIDGES", {}))
-    for _sys_name in ob:
-        sys_ob = ob[_sys_name]
+    ob_out: dict[str, Any] = {}
+    for sys_name, sys_ob in (ctable.get("OPENBRIDGES") or {}).items():
         if not isinstance(sys_ob, dict):
             continue
         streams = sys_ob.get("STREAMS") or {}
-        for sid in list(streams.keys()):
-            ent = streams[sid]
-            if isinstance(ent, (list, tuple)) and len(ent) >= 3:
-                streams[sid] = [ent[0], ent[1], ent[2]]
-    return _fingerprint_dumps({"ctable": {"OPENBRIDGES": ob}, "dbridges": dbridges})
+        ob_out[sys_name] = {"STREAMS": _streams_semantic(streams)}
+    return _fingerprint_dumps({"ctable": {"OPENBRIDGES": ob_out}, "dbridges": dbridges})
 
 
 def main_dashboard_semantic_fingerprint(lastheard: list, ctable: dict[str, Any]) -> str:
     """Stable string for dedup of WebSocket ``i`` (Dashboard): lastheard + view without TIMEOUT / stream ts."""
-    cm = copy.deepcopy(ctable_for_main(ctable))
-    for _sn, master in (cm.get("MASTERS") or {}).items():
-        if not isinstance(master, dict):
-            continue
-        for _pid, peer in (master.get("PEERS") or {}).items():
-            if not isinstance(peer, dict):
-                continue
-            for ts in (1, 2, "1", "2"):
-                if ts not in peer:
-                    continue
-                ent = peer[ts]
-                if isinstance(ent, dict) and "TIMEOUT" in ent:
-                    del ent["TIMEOUT"]
-    for _sys, pobj in (cm.get("PEERS") or {}).items():
-        if not isinstance(pobj, dict):
-            continue
-        for ts in (1, 2, "1", "2"):
-            if ts not in pobj:
-                continue
-            ent = pobj[ts]
-            if isinstance(ent, dict) and "TIMEOUT" in ent:
-                del ent["TIMEOUT"]
-    for _ob_name, ob in (cm.get("OPENBRIDGES") or {}).items():
-        if not isinstance(ob, dict):
-            continue
-        streams = ob.get("STREAMS") or {}
-        for sid in list(streams.keys()):
-            ent = streams[sid]
-            if isinstance(ent, (list, tuple)) and len(ent) >= 3:
-                streams[sid] = [ent[0], ent[1], ent[2]]
-    return _fingerprint_dumps({"lastheard": lastheard, "ctable": cm})
+    return _fingerprint_dumps({"lastheard": lastheard, "ctable": _main_ctable_semantic(ctable)})
+
+
+def lastheard_db_refresh_needed(brdg_meta: dict[str, str] | None) -> bool:
+    """True when MySQL last_heard may have changed (END RX or unit-data RX)."""
+    if not brdg_meta:
+        return False
+    call_type = brdg_meta.get("call_type", "")
+    if call_type.startswith("UNIT DATA"):
+        return brdg_meta.get("direction", "") != "TX"
+    if brdg_meta.get("action") == "END":
+        return brdg_meta.get("direction", "") == "RX"
+    return False

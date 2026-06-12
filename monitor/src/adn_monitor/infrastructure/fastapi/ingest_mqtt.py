@@ -153,6 +153,7 @@ class MqttReportIngest:
                 "call_type": "GROUP VOICE",
                 "action": voice.get("phase"),
                 "system": voice.get("system"),
+                "direction": voice.get("direction", ""),
             }
             self._on_ctable_updated(brdg_meta)
 

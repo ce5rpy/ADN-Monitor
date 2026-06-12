@@ -37,6 +37,7 @@ class DashboardDbPusher:
         self._select_rows = sync_select_for_render
         self._select_tgcount = sync_select_tgcount
         self._last_hash: dict[str, str] = {}
+        self._cached_lh_rows: list | None = None
 
     def push_last_heard(
         self,
@@ -45,11 +46,14 @@ class DashboardDbPusher:
         db_config: dict | None,
         *,
         dedup: bool = True,
+        refresh_lastheard: bool = False,
     ) -> None:
         if not self._group_active("main"):
             return
-        rows = self._select_rows(db_config or {}, "last_heard", conf_global.get("LH_ROWS", 20))
-        lh_rows = lastheard_rows(rows, conf_global)
+        if refresh_lastheard or self._cached_lh_rows is None:
+            rows = self._select_rows(db_config or {}, "last_heard", conf_global.get("LH_ROWS", 20))
+            self._cached_lh_rows = lastheard_rows(rows, conf_global)
+        lh_rows = self._cached_lh_rows
         sem_h = _payload_hash(
             ws_ctable_views.main_dashboard_semantic_fingerprint(lh_rows, state.CTABLE)
         )

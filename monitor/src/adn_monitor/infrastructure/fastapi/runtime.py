@@ -198,12 +198,13 @@ class MonitorRuntime:
     def db_connected(self) -> bool:
         return self._db_ok
 
-    def _push_main_dashboard(self) -> None:
+    def _push_main_dashboard(self, *, refresh_lastheard: bool = True) -> None:
         self._db_pusher.push_last_heard(
             self.state,
             self.config_global,
             self.config.get("DB"),
-            dedup=False,
+            dedup=not refresh_lastheard,
+            refresh_lastheard=refresh_lastheard,
         )
 
     def _on_config_applied(self) -> None:
@@ -217,9 +218,11 @@ class MonitorRuntime:
 
     def _on_ctable_updated(self, brdg_meta: dict | None = None) -> None:
         """Voice events: lnksys/opb slices + active QSO on main."""
+        from ...application.ws_ctable_views import lastheard_db_refresh_needed
+
         build_tgstats(self.state)
         self._pusher.on_ctable_updated(brdg_meta)
-        self._push_main_dashboard()
+        self._push_main_dashboard(refresh_lastheard=lastheard_db_refresh_needed(brdg_meta))
 
     def _on_server_mode_detected(self, mode: ServerMode, info: dict) -> None:
         import json
