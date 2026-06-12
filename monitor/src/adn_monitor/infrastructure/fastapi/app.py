@@ -48,7 +48,7 @@ def create_app(config: dict[str, Any]) -> FastAPI:
 
     app = FastAPI(
         title=str(title),
-        version="2.0.0-alpha1",
+        version="2.0.0-rc.1",
         lifespan=_lifespan,
     )
     app.state.monitor_config = config
