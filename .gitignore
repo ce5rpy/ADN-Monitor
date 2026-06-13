@@ -104,12 +104,19 @@ Thumbs.db
 monitor/json/*.json
 
 # -----------------------------------------------------------------------------
+# Local ops scripts (deployment-specific; not shipped in repo)
+# -----------------------------------------------------------------------------
+scripts/
+
+# -----------------------------------------------------------------------------
 # Misc
 # -----------------------------------------------------------------------------
 *.bak
 *.backup
 *.orig
 
-# Brand asset (not in repo)
+# Brand asset: tracked in repo for fresh clones; listed here so local edits are not
+# staged by mistake. After customizing, run:
+#   git update-index --skip-worktree frontend/public/img/logo.png
 logo.png
 frontend/public/img/logo.png
