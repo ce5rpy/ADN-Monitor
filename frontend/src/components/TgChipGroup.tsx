@@ -4,10 +4,28 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Chip } from '@mui/material';
+import { Box, Chip } from '@mui/material';
 import type { Theme } from '@mui/material/styles';
 import type { TFunction } from 'i18next';
 import type { ReactNode } from 'react';
+
+/** Keep TG digits on one line; wrap whole chips, not labels inside a chip. */
+const tgChipSx = {
+  flexShrink: 0,
+  maxWidth: 'none',
+  width: 'auto',
+  '& .MuiChip-label': {
+    whiteSpace: 'nowrap',
+    overflow: 'visible',
+    textOverflow: 'clip',
+    lineHeight: 1.25,
+    px: 0.75,
+  },
+} as const;
+
+function mergeTgChipSx(...parts: Record<string, unknown>[]) {
+  return parts.reduce((acc, part) => ({ ...acc, ...part }), { ...tgChipSx });
+}
 
 function highlightRingSx(theme: Theme, isActive: boolean, trx: string, base: Record<string, unknown>) {
   if (!isActive || (trx !== 'TX' && trx !== 'RX')) {
@@ -82,7 +100,7 @@ export function TgChipGroup({
           size="small"
           label={tg}
           title={title}
-          sx={(theme) => dynamicTgChipSx(theme, isActive, trx)}
+          sx={(theme) => mergeTgChipSx(dynamicTgChipSx(theme, isActive, trx))}
         />
       );
       return;
@@ -93,7 +111,7 @@ export function TgChipGroup({
         size="small"
         label={tg}
         color={isActive ? (trx === 'TX' ? 'success' : 'error') : 'default'}
-        sx={{ mr: 0.25, mb: 0.25 }}
+        sx={mergeTgChipSx({ mr: 0.25, mb: 0.25 })}
       />
     );
   });
@@ -113,7 +131,7 @@ export function TgChipGroup({
         size="small"
         label={single}
         title={title}
-        sx={(theme) => dynamicTgChipSx(theme, isActive, trx)}
+        sx={(theme) => mergeTgChipSx(dynamicTgChipSx(theme, isActive, trx))}
       />
     );
   }
@@ -134,7 +152,7 @@ export function TgChipGroup({
         size="small"
         label={tg}
         title={title}
-        sx={(theme) => dynamicTgChipSx(theme, isActive, trx)}
+        sx={(theme) => mergeTgChipSx(dynamicTgChipSx(theme, isActive, trx))}
       />
     );
   });
@@ -142,5 +160,9 @@ export function TgChipGroup({
   if (nodes.length === 0) {
     return null;
   }
-  return <>{nodes}</>;
+  return (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.25 }}>
+      {nodes}
+    </Box>
+  );
 }

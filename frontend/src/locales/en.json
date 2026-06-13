@@ -171,7 +171,7 @@
   "lnksys_legend_static_single": "Amber: static TG active (SINGLE)",
   "lnksys_legend_dynamic": "Indigo: user-activated TG (expires after timeout)",
   "lnksys_single_tg": "Single TG",
-  "lnksys_to": "T/O",
+  "lnksys_to": "Timeout",
   "lnksys_network_id": "Network ID",
   "statictg_title": "Static TG's",
   "statictg_no_data": "Waiting for server info...",

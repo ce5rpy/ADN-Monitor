@@ -185,7 +185,7 @@ export default function StaticTg() {
                   <TableCell sx={{ fontWeight: 600, width: 56, minWidth: 56, whiteSpace: 'nowrap' }} align="center">{t('lnksys_slot', { defaultValue: 'Slot' })}</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>{t('lnksys_static_tg', { defaultValue: 'Static TG' })}</TableCell>
                   <TableCell sx={{ fontWeight: 600, width: 80, minWidth: 80, whiteSpace: 'nowrap' }}>{t('lnksys_single_tg', { defaultValue: 'Single TG' })}</TableCell>
-                  <TableCell sx={{ fontWeight: 600, width: 80, minWidth: 80 }}>{t('lnksys_to', { defaultValue: 'T/O' })}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, width: 110, minWidth: 110 }}>{t('lnksys_to', { defaultValue: 'Timeout' })}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>{rows}</TableBody>
