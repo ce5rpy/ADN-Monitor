@@ -113,7 +113,9 @@
   "sslog_err_network": "Erro de rede",
   "footer_brand": "ADN Systems",
   "footer_copyright": "Copyright {{year}} - Todos os direitos reservados.",
-  "footer_app": "ADN Systems Monitor",
+  "footer_app": "ADN Systems",
+  "footer_version_monitor": "Monitor",
+  "footer_version_server": "Servidor",
   "footer_developed": "Desenvolvido com",
   "footer_by": "por",
   "country": {

@@ -112,7 +112,9 @@
   "sslog_err_network": "Netwerkfout",
   "footer_brand": "ADN Systems",
   "footer_copyright": "Copyright {{year}} - Alle rechten voorbehouden.",
-  "footer_app": "ADN Systems Monitor",
+  "footer_app": "ADN Systems",
+  "footer_version_monitor": "Monitor",
+  "footer_version_server": "Server",
   "footer_developed": "Ontwikkeld met",
   "footer_by": "door",
   "country": {

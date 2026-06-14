@@ -23,14 +23,21 @@
  */
 
 import path from 'path';
+import { readFileSync } from 'fs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 const projectRoot = path.resolve(__dirname, '..');
+const appVersion = JSON.parse(
+  readFileSync(path.join(__dirname, 'package.json'), 'utf8'),
+).version as string;
 
 export default defineConfig({
   plugins: [react()],
   base: '/',
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   // Single .env at repo root (see /.env.example)
   envDir: projectRoot,
   build: {
