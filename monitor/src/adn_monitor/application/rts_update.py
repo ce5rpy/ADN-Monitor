@@ -104,6 +104,37 @@ def _apply_voice_single_ts(
     _apply_multi_mode_chips(state, system, peer_id, peer_row)
 
 
+def _static_tg_slot_for_peer(peer_row: dict, destination: int, event_slot: int) -> int:
+    """Map wire timeslot to the peer chip that lists this TG in OPTIONS (TS1/TS2)."""
+    tg = str(destination)
+    ts1 = [str(x).strip() for x in (peer_row.get("TS1_STATIC") or []) if str(x).strip()]
+    ts2 = [str(x).strip() for x in (peer_row.get("TS2_STATIC") or []) if str(x).strip()]
+    in_ts1 = tg in ts1
+    in_ts2 = tg in ts2
+    if in_ts1 and not in_ts2:
+        return 1
+    if in_ts2 and not in_ts1:
+        return 2
+    return event_slot
+
+
+def _peer_display_slot(
+    peer_row: dict,
+    peer_key,
+    *,
+    call_type: str,
+    source_peer: int,
+    event_slot: int,
+    destination: int,
+) -> int:
+    """Timeslot index for CTABLE peer chips (1 or 2)."""
+    if _peer_keys_equal(source_peer, peer_key):
+        return event_slot
+    if call_type == "GROUP VOICE":
+        return _static_tg_slot_for_peer(peer_row, destination, event_slot)
+    return event_slot
+
+
 def rts_update_impl(
     p: list[str],
     state: MonitorState,
@@ -163,8 +194,17 @@ def rts_update_impl(
                 state, ctable, system, time_slot, destination, source_peer, trx=trx
             )
         for peer in ctable["MASTERS"][system]["PEERS"]:
+            peer_row = ctable["MASTERS"][system]["PEERS"][peer]
+            display_slot = _peer_display_slot(
+                peer_row,
+                peer,
+                call_type=call_type,
+                source_peer=source_peer,
+                event_slot=time_slot,
+                destination=destination,
+            )
             crxstatus = "RX" if _peer_keys_equal(source_peer, peer) else "TX"
-            peer_ts = ctable["MASTERS"][system]["PEERS"][peer][time_slot]
+            peer_ts = peer_row[display_slot]
             if action == "START":
                 peer_ts["TIMEOUT"] = timeout
                 peer_ts["TS"] = True

@@ -2,6 +2,18 @@
 
 All notable changes to **adn-monitor** (monitor + dashboard) are documented here.
 
+## [2.0.0-rc.2] - 2026-06-16
+
+Pairs with **adn-server 2.0.0-rc.2**.
+
+### Fixed
+
+- **Linked Systems TS chips:** on GROUP VOICE events, receiving hotspots highlight the timeslot where that TG appears in peer OPTIONS (`TS1_STATIC` / `TS2_STATIC`), not only the wire timeslot from the server. The transmitting peer still uses the wire slot.
+
+### Compatibility
+
+- **Server:** adn-server **2.0.0-rc.2** (cross-slot static TG downlink eligibility).
+
 ## [2.0.0-rc.1] - 2026-06-12
 
 First v2 release candidate since **1.0.0** (~13 commits). Pairs with **adn-server 2.0.0-rc.1**.
