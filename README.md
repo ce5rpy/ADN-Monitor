@@ -1,8 +1,10 @@
 # ADN Systems Monitor
 
-**Version 1.0.0** — first stable release. Compatible with **adn-server 1.0.0**.
+**Version 2.0.0-rc.2** — pairs with **adn-server 2.0.0-rc.2** (report v2 slim wire + JSON HELLO).
 
 Dashboard for ADN networks: unified **FastAPI** process (REST + WebSocket + report ingest), React frontend, and optional MySQL for self-service and Last Heard.
+
+**v2 highlights:** PHP `backend/` and standalone `proxy/` were removed from this repo. Self-service, auth, and the dashboard API live in **`monitor/monitor.py`**. Hotspot UDP fan-in uses integrated **`PROXY`** in **adn-server**. The monitor ingests **report v2** `dashboard_state` from new-adn-server; legacy **adn-dmr-server** still works when HELLO is absent (pickle/CSV fallback).
 
 ---
 
@@ -13,10 +15,8 @@ Dashboard for ADN networks: unified **FastAPI** process (REST + WebSocket + repo
 | **Monitor** | `monitor/monitor.py` | FastAPI: `/api/*`, `/ws`, report ingest (TCP or MQTT). |
 | **Frontend** | `frontend/` | Web UI (React). Static files after `npm run build`. |
 
-Hotspot UDP proxy lives in **adn-server** (`PROXY` in `adn-server.yaml`), not in this repo.
-
 - Frontend can run without the monitor API (no live dashboard data).
-- In production you do not need Node running: it is only used to **build** the frontend; then serve `frontend/dist/` with Nginx or Apache.
+- In production you do not need Node running: it is only used to **build** the frontend; then serve `frontend/dist/` with Nginx or Apache (or let FastAPI serve static assets if configured).
 
 ---
 
@@ -35,11 +35,11 @@ Hotspot UDP proxy lives in **adn-server** (`PROXY` in `adn-server.yaml`), not in
 Dashboard and monitor behaviour are defined in YAML under the monitor folder:
 
 - **Typical path:** `monitor/adn-monitor.yaml`
-- Copy and adapt from `monitor/adn-monitor.yaml.example` (or create one). It configures:
+- Copy and adapt from `monitor/adn-monitor.yaml.example`. It configures:
   - **GLOBAL**: bridges, lastheard, TG count, optional **TIMEZONE** (IANA, e.g. `Europe/Madrid`) for logs/dashboard; **last_heard / lstheard_log** store **naive UTC** datetimes; **tg_count / user_count** use the **UTC calendar day** for the daily bucket (not `CURDATE()` in server TZ). The UI converts stored UTC to `TIMEZONE` when showing lastheard. If `TIMEZONE` is empty, lastheard uses the server’s local zone for display.
-  - **SELF_SERVICE**: MySQL credentials (monitor API + adn-server proxy).
+  - **SELF_SERVICE**: MySQL credentials (monitor API; same DB as adn-server self-service when enabled).
   - **MONITOR_APP**: `LISTEN_PORT` (REST `/api/*` + WebSocket `/ws` on the same port), `INGEST` (`tcp` or `mqtt`), optional MQTT block, `FREQUENCY` (background resync).
-  - **ADN_CONNECTION**: IP and port of the ADN report server; optional **HELLO_TIMEOUT_MS** (wait for opcode `0xFF` HELLO from `new-adn-server` before assuming legacy `adn-dmr-server`). Detected mode is **legacy** or **v2** (JSON field `mode` on WebSocket messages prefixed with `v`).
+  - **ADN_CONNECTION**: IP and port of the ADN report server; optional **HELLO_TIMEOUT_MS** (wait for opcode `0xFF` HELLO from **adn-server** before assuming legacy **adn-dmr-server**). Detected mode is **legacy** or **v2** (JSON field `mode` on WebSocket messages prefixed with `v`). With v2, the footer shows **Monitor** and **Server** versions from HELLO.
   - **ALIASES**: URLs and files for alias (peers, subscribers, talkgroups).
   - **LOGGER**, **DASHBOARD** (title, language, nav/footer/news marquee links).
 
@@ -67,7 +67,6 @@ Everything else (DB, aliases, ingest, timezone) lives in **`adn-monitor.yaml`**,
 - **Frontend (Vite)**: reads the same root `.env` (`VITE_*` only). Do not use `frontend/.env`.
 
 ---
-
 
 ## Running (development)
 
@@ -100,7 +99,7 @@ Vite proxies `/api` and `/ws` to port **8080** (same host as the monitor API).
 
 ### 1. Database (MySQL)
 
-Create a user and database for the monitor/backend (credentials go in `adn-monitor.yaml`, **SELF_SERVICE** section). Then create or update tables from the monitor:
+Create a user and database for the monitor (credentials go in `adn-monitor.yaml`, **SELF_SERVICE** section). Then create or update tables from the monitor:
 
 ```bash
 cd /opt/adn-monitor/monitor
@@ -164,6 +163,7 @@ sudo nginx -t && sudo systemctl reload nginx
 2. `adn-monitor.yaml` and `.env` configured; **ADN_CONFIG_PATH** set.
 3. `npm run build` in `frontend/`; Nginx serves `frontend/dist/`.
 4. `monitor.py` running (systemd); Nginx proxies `/api` and `/ws` to `LISTEN_PORT`.
+5. **adn-server** ≥ **2.0.0-rc.2** for report v2 slim wire (upgrade/restart server if the footer still shows an older server version).
 
 ---
 
@@ -209,8 +209,9 @@ This project is **GPL v3**. The **monitor** (Python) and **frontend** (React das
 
 ## Further reading
 
-- **Monitor (WebSocket, DB, ADN):** see `monitor/README.md`.
-- **YAML config:** options and sections in `monitor/adn-monitor.yaml` (comments in the file).
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md)
+- **YAML config:** options and sections in `monitor/adn-monitor.yaml.example`
+- **adn-server:** report v2 and monitoring — [ADN-DMR-Peer-Server docs](https://github.com/ce5rpy/ADN-DMR-Peer-Server)
 
 ---
 
