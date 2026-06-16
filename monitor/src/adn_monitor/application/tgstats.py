@@ -193,6 +193,65 @@ def _session_key(master_name: str, peer_id: int, slot: int) -> tuple[str, int, i
     return (master_name, peer_id, slot)
 
 
+def _active_tgid_from_peer_ts(peer_ts: dict) -> int | None:
+    """TG number from a live CTABLE timeslot row (DEST / TG fields)."""
+    if not peer_ts.get("TS"):
+        return None
+    raw = peer_ts.get("TG") or peer_ts.get("DEST") or ""
+    if isinstance(raw, int):
+        return raw
+    text = str(raw).replace("&nbsp;", " ")
+    match = re.search(r"\d+", text)
+    return int(match.group()) if match else None
+
+
+def clear_peer_voice_ts_slot(peer_ts: dict) -> None:
+    """Reset one CTABLE voice timeslot chip (same fields as BRDG END)."""
+    peer_ts["TS"] = False
+    peer_ts["TYPE"] = peer_ts["SUB"] = peer_ts["CALL"] = ""
+    peer_ts["SRC"] = peer_ts["DEST"] = peer_ts["TG"] = peer_ts["TRX"] = ""
+
+
+def clear_voice_ts_for_destination(peer_row: dict, destination: int) -> None:
+    """Clear every slot showing this TG (cross-slot START vs END safety)."""
+    for slot in (1, 2):
+        peer_ts = peer_row.get(slot)
+        if isinstance(peer_ts, dict) and _active_tgid_from_peer_ts(peer_ts) == destination:
+            clear_peer_voice_ts_slot(peer_ts)
+
+
+def prune_voice_ts_not_in_static(
+    state: MonitorState,
+    master_name: str,
+    peer_id: int,
+    peer_row: dict,
+) -> None:
+    """Drop live QSO chips for static TGs removed from peer OPTIONS (self-service)."""
+    allowed = {
+        str(x).strip()
+        for x in (peer_row.get("TS1_STATIC") or []) + (peer_row.get("TS2_STATIC") or [])
+        if str(x).strip()
+    }
+    multi = getattr(state, "UA_MULTI_TGS", None) or {}
+    owners = getattr(state, "UA_DYNAMIC_OWNERS", None) or {}
+    for slot in (1, 2):
+        peer_ts = peer_row.get(slot)
+        if not isinstance(peer_ts, dict) or not peer_ts.get("TS"):
+            continue
+        tgid = _active_tgid_from_peer_ts(peer_ts)
+        if tgid is None:
+            continue
+        tg_str = str(tgid)
+        if tg_str in allowed:
+            continue
+        key = _session_key(master_name, peer_id, slot)
+        if owners.get(key) == tgid:
+            continue
+        if tg_str in {str(x) for x in multi.get(key, set())}:
+            continue
+        clear_peer_voice_ts_slot(peer_ts)
+
+
 def _ensure_session_maps(state: MonitorState) -> tuple[dict, dict, dict]:
     owners = getattr(state, "UA_DYNAMIC_OWNERS", None)
     if owners is None:
@@ -464,6 +523,7 @@ def build_tgstats_impl(state: MonitorState, time_str_fn) -> None:
             ctable["MASTERS"][master_name]["PEERS"][peer]["SINGLE_MODE"] = _peer_single_mode(
                 state, master_name, peer
             )
+            prune_voice_ts_not_in_static(state, master_name, peer, peer_row)
     for master_name, peer_list in tmp_dict.items():
         peers = ctable["MASTERS"][master_name]["PEERS"]
         for peer in peer_list:

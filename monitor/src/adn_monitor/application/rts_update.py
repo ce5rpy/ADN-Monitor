@@ -34,6 +34,7 @@ from .tgstats import (
     _apply_multi_mode_chips,
     _peer_single_mode,
     clear_peer_ua_sessions,
+    clear_voice_ts_for_destination,
     lookup_ua_timeout_for_peer,
     register_ua_session,
 )
@@ -216,9 +217,7 @@ def rts_update_impl(
                 peer_ts["TG"] = tg_short
                 peer_ts["TRX"] = crxstatus
             elif action == "END":
-                peer_ts["TS"] = False
-                peer_ts["TYPE"] = peer_ts["SUB"] = peer_ts["CALL"] = ""
-                peer_ts["SRC"] = peer_ts["DEST"] = peer_ts["TG"] = peer_ts["TRX"] = ""
+                clear_voice_ts_for_destination(peer_row, destination)
 
     server_mode = getattr(state, "server_mode", ServerMode.LEGACY)
     if system in ctable.get("OPENBRIDGES", {}):
@@ -258,6 +257,4 @@ def rts_update_impl(
             peer_ts["TG"] = tg_short
             peer_ts["TRX"] = prxstatus
         elif action == "END":
-            peer_ts["TS"] = False
-            peer_ts["TYPE"] = peer_ts["SUB"] = peer_ts["CALL"] = ""
-            peer_ts["SRC"] = peer_ts["DEST"] = peer_ts["TG"] = peer_ts["TRX"] = ""
+            clear_voice_ts_for_destination(ctable["PEERS"][system], destination)
