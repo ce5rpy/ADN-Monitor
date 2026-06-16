@@ -1,0 +1,30 @@
+# ADN Systems Monitor – systemd unit (unified FastAPI: REST /api + WebSocket /ws)
+#
+# Copy:
+#   sudo cp /opt/adn-monitor/examples/systemd/adn-monitor.service /etc/systemd/system/
+# Edit paths / Python if needed, then:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now adn-monitor
+#
+# Requires root .env with ADN_CONFIG_PATH (see .env.example).
+# Nginx must proxy /api and /ws to MONITOR_APP.LISTEN_PORT (default 8080).
+
+[Unit]
+Description=ADN Systems Monitor (monitor.py)
+After=network-online.target mariadb.service mysql.service
+Wants=network-online.target
+
+[Service]
+User=root
+Type=simple
+Restart=always
+RestartSec=3
+SyslogIdentifier=adn-monitor
+EnvironmentFile=-/opt/adn-monitor/.env
+WorkingDirectory=/opt/adn-monitor/monitor
+# Config: ADN_CONFIG_PATH from .env (or default monitor/adn-monitor.yaml)
+# Override host/port: append --host 0.0.0.0 --port 8080
+ExecStart=/usr/bin/python3 /opt/adn-monitor/monitor/monitor.py
+
+[Install]
+WantedBy=multi-user.target

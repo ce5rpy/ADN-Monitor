@@ -1,24 +1,25 @@
 # ADN Monitor - Dashboard and backend for ADN Systems.
+#
 # Copyright (C) 2026  Rodrigo Pérez, CE5RPY <ce5rpy@qmd.cl>
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+###############################################################################
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 3 of the License, or
+#   (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software Foundation,
+#   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+###############################################################################
 #
-# Derived from: FDMR Monitor (OA4DOA, https://github.com/yuvelq/FDMR-Monitor);
-# HBMonv2 (SP2ONG, https://github.com/sp2ong/HBMonv2);
-# hbmonitor3 (KC1AWV, https://github.com/kc1awv/hbmonitor3);
-# HBmonitor (Cortney T. Buffington, N0MJS, Copyright (C) 2013-2018).
-# Original works and this derivative are under GPLv3.
+# Derived from FDMR Monitor (OA4DOA), HBMonv2 (SP2ONG), hbmonitor3 (KC1AWV),
+# and HBmonitor (Cortney T. Buffington, N0MJS). Original works under GPLv3.
 
 """Real-time timeslot update from GROUP VOICE / PRIVATE VOICE START/END (same CSV shape)."""
 
@@ -29,6 +30,78 @@ import time
 from ..domain.value_objects import ServerMode
 from .alias_service import AliasService
 from .monitor_controller import MonitorState
+from .tgstats import (
+    _apply_multi_mode_chips,
+    _peer_single_mode,
+    clear_peer_ua_sessions,
+    lookup_ua_timeout_for_peer,
+    register_ua_session,
+)
+from .time_utils import time_str
+
+
+def _peer_key_as_int(peer_key) -> int | None:
+    try:
+        return int(peer_key)
+    except (TypeError, ValueError):
+        return None
+
+
+def _peer_keys_equal(source_peer: int, peer_key) -> bool:
+    peer_int = _peer_key_as_int(peer_key)
+    return peer_int is not None and peer_int == int(source_peer)
+
+
+def _resolve_master_peer(
+    peers: dict,
+    source_peer: int,
+) -> tuple[int | None, dict | None]:
+    """Match voice event peer id to CTABLE peer key (int or bytes)."""
+    if source_peer in peers:
+        row = peers[source_peer]
+        return source_peer, row if isinstance(row, dict) else None
+    for peer_key, peer_row in peers.items():
+        try:
+            peer_int = int(peer_key)
+        except (TypeError, ValueError):
+            continue
+        if peer_int == source_peer and isinstance(peer_row, dict):
+            return peer_int, peer_row
+    return None, None
+
+
+def _apply_voice_single_ts(
+    state: MonitorState,
+    ctable: dict,
+    system: str,
+    time_slot: int,
+    destination: int,
+    source_peer: int,
+    *,
+    trx: str,
+) -> None:
+    """Track active SINGLE / UA TG on the transmitting peer (RX leg on MASTER)."""
+    if trx != "RX":
+        return
+    ts_key = f"SINGLE_TS{time_slot}"
+    peers = ctable.get("MASTERS", {}).get(system, {}).get("PEERS") or {}
+    if not peers:
+        return
+    peer_id, peer_row = _resolve_master_peer(peers, source_peer)
+    if peer_row is None:
+        return
+    if peer_id is not None:
+        register_ua_session(state, system, peer_id, time_slot, destination)
+    if peer_id is None:
+        return
+    if _peer_single_mode(state, system, peer_id):
+        existing = peer_row.get(ts_key) if isinstance(peer_row.get(ts_key), dict) else {}
+        to_str = lookup_ua_timeout_for_peer(state, system, peer_id, time_slot, destination, time_str)
+        if not to_str and isinstance(existing, dict):
+            to_str = existing.get("TO", "") if isinstance(existing.get("TO"), str) else ""
+        peer_row[ts_key] = {"TGID": destination, "TO": to_str}
+        return
+    _apply_multi_mode_chips(state, system, peer_id, peer_row)
 
 
 def rts_update_impl(
@@ -56,13 +129,41 @@ def rts_update_impl(
     tg_dest = f"TG {destination}&nbsp;&nbsp;&nbsp;&nbsp;{alias_svc.alias_tgid(destination)}"
     tg_short = f"TG&nbsp;{destination}"
 
-    # INGRESS = pre-loop debug only (adn-server); do not update CTABLE chips / Linked systems / Active QSO.
+    # INGRESS: register UA/SINGLE owner early; skip live TRX chips / Active QSO row.
     if call_type == "GROUP VOICE" and action == "INGRESS":
+        if system in ctable.get("MASTERS", {}):
+            if trx == "RX" and destination == 4000:
+                peer_id, _ = _resolve_master_peer(
+                    ctable.get("MASTERS", {}).get(system, {}).get("PEERS") or {},
+                    source_peer,
+                )
+                if peer_id is not None:
+                    clear_peer_ua_sessions(state, system, peer_id)
+            else:
+                _apply_voice_single_ts(
+                    state, ctable, system, time_slot, destination, source_peer, trx=trx
+                )
         return
 
     if system in ctable.get("MASTERS", {}):
+        if (
+            call_type == "GROUP VOICE"
+            and action == "START"
+            and trx == "RX"
+            and destination == 4000
+        ):
+            peer_id, _ = _resolve_master_peer(
+                ctable.get("MASTERS", {}).get(system, {}).get("PEERS") or {},
+                source_peer,
+            )
+            if peer_id is not None:
+                clear_peer_ua_sessions(state, system, peer_id)
+        if call_type == "GROUP VOICE" and action in ("START", "END"):
+            _apply_voice_single_ts(
+                state, ctable, system, time_slot, destination, source_peer, trx=trx
+            )
         for peer in ctable["MASTERS"][system]["PEERS"]:
-            crxstatus = "RX" if source_peer == peer else "TX"
+            crxstatus = "RX" if _peer_keys_equal(source_peer, peer) else "TX"
             peer_ts = ctable["MASTERS"][system]["PEERS"][peer][time_slot]
             if action == "START":
                 peer_ts["TIMEOUT"] = timeout

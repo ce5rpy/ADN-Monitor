@@ -1,36 +1,73 @@
 # ADN Monitor - Dashboard and backend for ADN Systems.
+#
 # Copyright (C) 2026  Rodrigo Pérez, CE5RPY <ce5rpy@qmd.cl>
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+###############################################################################
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 3 of the License, or
+#   (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software Foundation,
+#   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+###############################################################################
 #
-# Derived from: FDMR Monitor (OA4DOA, https://github.com/yuvelq/FDMR-Monitor);
-# HBMonv2 (SP2ONG, https://github.com/sp2ong/HBMonv2);
-# hbmonitor3 (KC1AWV, https://github.com/kc1awv/hbmonitor3);
-# HBmonitor (Cortney T. Buffington, N0MJS, Copyright (C) 2013-2018).
-# Original works and this derivative are under GPLv3.
+# Derived from FDMR Monitor (OA4DOA), HBMonv2 (SP2ONG), hbmonitor3 (KC1AWV),
+# and HBmonitor (Cortney T. Buffington, N0MJS). Original works under GPLv3.
 
-# Copyright (C) Rodrigo Pérez <ce5rpy@qmd.cl>
-# License: GPLv3
 """HBlink report client (Twisted NetstringReceiver)."""
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any, Callable
 
 from twisted.internet.protocol import ReconnectingClientFactory
 from twisted.protocols.basic import NetstringReceiver
+
+_CALL_FAMILY_TO_CSV = {
+    "GROUP": "GROUP VOICE",
+    "PRIVATE": "PRIVATE VOICE",
+    "UNIT": "UNIT DATA",
+}
+
+
+def _voice_event_brdg_meta(data: bytes) -> dict[str, str] | None:
+    """Build bridge-event metadata from v2 JSON or legacy CSV voice payloads."""
+    body = data[1:]
+    if not body:
+        return None
+    try:
+        payload = json.loads(body.decode("utf-8", errors="replace"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        payload = None
+    if isinstance(payload, dict) and payload.get("type") == "voice_event":
+        family = payload.get("call_family")
+        csv_family = _CALL_FAMILY_TO_CSV.get(family)
+        if csv_family is None:
+            return None
+        return {
+            "call_type": csv_family,
+            "action": str(payload.get("phase", "")),
+            "system": str(payload.get("system", "")),
+            "direction": str(payload.get("direction", "")),
+        }
+    parts = body.decode("utf-8", errors="replace").split(",")
+    if len(parts) < 4:
+        return None
+    return {
+        "call_type": parts[0],
+        "action": parts[1],
+        "system": parts[3],
+        "direction": parts[2] if len(parts) > 2 else "",
+    }
 
 from ...application.alias_service import AliasService
 from ...application.monitor_controller import MonitorState, process_message
@@ -90,11 +127,30 @@ class ReportProtocol(NetstringReceiver):
         self._hello_timer: Any = None  # IDelayedCall or None
         self._mode_signalled = False  # avoid double-firing on_server_mode_detected
 
+    def set_repositories(
+        self,
+        alias_svc: AliasService,
+        alias_repo: AliasRepository,
+        lastheard_repo: LastHeardRepository,
+        tgcount_repo: TgCountRepository,
+    ) -> None:
+        self._alias_svc = alias_svc
+        self._alias_repo = alias_repo
+        self._lastheard_repo = lastheard_repo
+        self._tgcount_repo = tgcount_repo
+
     def connectionMade(self) -> None:
         logger.info("(REPORT) Connection to report server established")
         self._monitor_state.server_mode = ServerMode.LEGACY
         self._monitor_state.server_info = {}
         self._monitor_state.server_mode_confirmed = False
+        self._monitor_state.report_protocol = None
+        self._monitor_state.topology_snapshot = None
+        self._monitor_state.routing_snapshot = None
+        self._monitor_state.topology_seq = 0
+        self._monitor_state.routing_seq = 0
+        self._monitor_state.slim_wire = False
+        self._monitor_state.dashboard_state_ts = 0.0
         self._mode_signalled = False
         from twisted.internet import reactor
 
@@ -149,10 +205,12 @@ class ReportProtocol(NetstringReceiver):
     def stringReceived(self, data: bytes) -> None:
         opcode = data[:1] if data else b""
         # Log report messages: CONFIG_SND=0x01, BRIDGE_SND=0x03; BRDG_EVENT=0x07 only at DEBUG (formatted line goes to INFO in controller)
-        if opcode in (b"\x01", b"\x03"):
+        if opcode in (b"\x01", b"\x03", Opcode.STATE_SND, Opcode.TOPOLOGY_SND, Opcode.ROUTING_TABLE_SND):
             logger.info("(REPORT) stringReceived: opcode=%s len=%d", opcode.hex(), len(data))
-        elif opcode == b"\x07":
-            logger.debug("(REPORT) stringReceived: BRDG_EVENT opcode=07 len=%d", len(data))
+        elif opcode in (b"\x07", Opcode.VOICE_EVENT_SND):
+            logger.debug("(REPORT) stringReceived: voice opcode=%s len=%d", opcode.hex(), len(data))
+        elif opcode == Opcode.DELTA_SND:
+            logger.info("(REPORT) stringReceived: DELTA_SND len=%d", len(data))
         elif opcode == Opcode.HELLO:
             logger.info("(REPORT) stringReceived: HELLO opcode=%s len=%d", opcode.hex(), len(data))
         else:
@@ -174,21 +232,24 @@ class ReportProtocol(NetstringReceiver):
             logger.warning("process_message error: %s", result.error)
         elif opcode == Opcode.HELLO:
             self._signal_mode_detected()
-        elif opcode == b"\x01" and self._on_config_applied:
+        elif opcode in (b"\x01", Opcode.STATE_SND, Opcode.TOPOLOGY_SND) and self._on_config_applied:
             self._on_config_applied()
-        elif opcode == b"\x03" and self._on_bridges_applied:
+        elif opcode in (Opcode.BRIDGE_SND, Opcode.ROUTING_TABLE_SND) and self._on_bridges_applied:
             self._on_bridges_applied()
-        elif opcode == b"\x07" and self._on_ctable_updated:
-            # GROUP VOICE + INGRESS does not change CTABLE (rts_update returns early); skip WS refresh.
-            msg = data.decode("utf-8", "ignore")
-            parts = msg[1:].split(",") if len(msg) > 1 else []
-            if len(parts) >= 2 and parts[0] == "GROUP VOICE" and parts[1] == "INGRESS":
+        elif opcode == Opcode.DELTA_SND and not is_fail(result):
+            patch_type = None
+            try:
+                payload = json.loads(data[1:].decode("utf-8", errors="replace") or "{}")
+                patch = payload.get("patch") if isinstance(payload, dict) else None
+                patch_type = patch.get("type") if isinstance(patch, dict) else None
+            except Exception:
                 pass
-            else:
-                brdg_meta = None
-                if len(parts) >= 4:
-                    brdg_meta = {"call_type": parts[0], "action": parts[1], "system": parts[3]}
-                self._on_ctable_updated(brdg_meta)
+            if patch_type == "topology" and self._on_config_applied:
+                self._on_config_applied()
+            elif patch_type == "routing_table" and self._on_bridges_applied:
+                self._on_bridges_applied()
+        elif opcode in (b"\x07", Opcode.VOICE_EVENT_SND) and self._on_ctable_updated:
+            self._on_ctable_updated(_voice_event_brdg_meta(data))
         logger.debug("(REPORT) process_message done for opcode=%r", opcode)
 
 
@@ -236,6 +297,21 @@ class ReportClientFactory(ReconnectingClientFactory):
         self._on_server_mode_detected = on_server_mode_detected
         self._hello_timeout_sec = hello_timeout_sec
 
+    def set_repositories(
+        self,
+        alias_svc: AliasService,
+        alias_repo: AliasRepository,
+        lastheard_repo: LastHeardRepository,
+        tgcount_repo: TgCountRepository,
+    ) -> None:
+        self._alias_svc = alias_svc
+        self._alias_repo = alias_repo
+        self._lastheard_repo = lastheard_repo
+        self._tgcount_repo = tgcount_repo
+        proto = getattr(self, "_report_protocol", None)
+        if proto is not None:
+            proto.set_repositories(alias_svc, alias_repo, lastheard_repo, tgcount_repo)
+
     def buildProtocol(self, addr: Any) -> ReportProtocol:
         self.resetDelay()
         proto = ReportProtocol(
@@ -258,7 +334,7 @@ class ReportClientFactory(ReconnectingClientFactory):
         return proto
 
     def request_refresh(self) -> bool:
-        """Request fresh CONFIG + BRIDGE from v2 adn-server only.
+        """Request fresh CONFIG + BRIDGE from adn-server only.
 
         Do not send CONFIG_REQ / BRIDGE_REQ to legacy adn-dmr-server: hblink report
         handles CONFIG_REQ with self.send_config() (missing on the protocol instance;
@@ -274,9 +350,13 @@ class ReportClientFactory(ReconnectingClientFactory):
         proto = getattr(self, "_report_protocol", None)
         if proto is None or proto.transport is None:
             return False
-        proto.sendString(Opcode.CONFIG_REQ)
-        proto.sendString(Opcode.BRIDGE_REQ)
-        logger.debug("(REPORT) CONFIG_REQ + BRIDGE_REQ sent (v2 server)")
+        if getattr(self._state, "slim_wire", False):
+            proto.sendString(Opcode.STATE_REQ)
+            logger.debug("(REPORT) STATE_REQ sent (slim v2 wire)")
+        else:
+            proto.sendString(Opcode.CONFIG_REQ)
+            proto.sendString(Opcode.BRIDGE_REQ)
+            logger.debug("(REPORT) CONFIG_REQ + BRIDGE_REQ sent (v2 interim wire)")
         return True
 
     def clientConnectionFailed(self, connector: Any, reason: Any) -> None:

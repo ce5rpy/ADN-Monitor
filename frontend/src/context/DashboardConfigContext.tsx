@@ -107,10 +107,10 @@ const getApiBase = (): string =>
 /**
  * Dashboard config flow:
  * 1. Frontend requests GET {apiBase}/api/config/dashboard
- * 2. Backend (PHP) reads monitor/adn-monitor.yaml (path from ADN_CONFIG_PATH env or .env)
- * 3. Backend returns JSON with title (DASHTITLE), language, footer1, footer2, etc.
- * 4. If the request fails (no backend, CORS, wrong VITE_API_BASE), defaultConfig is used.
- * Build: set VITE_API_BASE to '' for same-origin (nginx must proxy /api to PHP).
+ * 2. monitor.py reads adn-monitor.yaml (ADN_CONFIG_PATH or repo root .env)
+ * 3. API returns JSON with title (DASHTITLE), language, footer, nav_links, etc.
+ * 4. If the request fails (monitor down, CORS, wrong VITE_API_BASE), defaultConfig is used.
+ * Build: set VITE_API_BASE to '' for same-origin (nginx proxies /api to monitor.py).
  */
 export function DashboardConfigProvider({ children }: { children: React.ReactNode }) {
   const { i18n } = useTranslation();

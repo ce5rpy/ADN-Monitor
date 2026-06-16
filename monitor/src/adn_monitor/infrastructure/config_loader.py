@@ -1,24 +1,25 @@
 # ADN Monitor - Dashboard and backend for ADN Systems.
+#
 # Copyright (C) 2026  Rodrigo Pérez, CE5RPY <ce5rpy@qmd.cl>
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+###############################################################################
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 3 of the License, or
+#   (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software Foundation,
+#   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+###############################################################################
 #
-# Derived from: FDMR Monitor (OA4DOA, https://github.com/yuvelq/FDMR-Monitor);
-# HBMonv2 (SP2ONG, https://github.com/sp2ong/HBMonv2);
-# hbmonitor3 (KC1AWV, https://github.com/kc1awv/hbmonitor3);
-# HBmonitor (Cortney T. Buffington, N0MJS, Copyright (C) 2013-2018).
-# Original works and this derivative are under GPLv3.
+# Derived from FDMR Monitor (OA4DOA), HBMonv2 (SP2ONG), hbmonitor3 (KC1AWV),
+# and HBmonitor (Cortney T. Buffington, N0MJS). Original works under GPLv3.
 
 """Load monitor config from YAML (adn-monitor.yaml). Returns Result (Success/Failure)."""
 
@@ -26,6 +27,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from urllib.parse import urlparse
 
 import yaml
 
@@ -59,6 +61,15 @@ def _str(val: object) -> str:
     return str(val).strip()
 
 
+def _url_sibling(url: str, filename: str) -> str:
+    """Same origin and directory as *url*, with *filename* as the path tail."""
+    parsed = urlparse(url.strip())
+    if not parsed.scheme or not parsed.netloc:
+        return ""
+    dir_path = parsed.path.rsplit("/", 1)[0]
+    return f"{parsed.scheme}://{parsed.netloc}{dir_path}/{filename}"
+
+
 def load_config(cfg_file: str) -> Result[dict, ConfigError]:
     """
     Load config from YAML (adn-monitor.yaml).
@@ -87,6 +98,7 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
         "FILES": {"PATH": "./json"},
         "LOG": {},
         "WS": {},
+        "APP": {},
         "DASHBOARD": {},
     }
 
@@ -121,10 +133,8 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
 
     # ALIASES / FILES
     aliases = data.get("ALIASES") or {}
-    if isinstance(aliases, dict):
-        CONF["ALIASES"] = {k: _str(v) for k, v in aliases.items()}
-    else:
-        CONF["ALIASES"] = {}
+    if not isinstance(aliases, dict):
+        aliases = {}
     path_val = _str(aliases.get("PATH", "./json")).strip().rstrip("/") or "./json"
     path_val = path_val.rstrip("/") + "/"  # always end with / for downstream (e.g. try_download)
     reload_hours = 24
@@ -138,6 +148,18 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
     except (TypeError, ValueError):
         pass
     su = _str(aliases.get("SUBSCRIBER_URL", "https://adn.systems/files/subscriber_ids.json"))
+    tgid_url = _str(aliases.get("TGID_URL", "https://adn.systems/files/talkgroup_ids.json"))
+    server_id_url = _str(
+        aliases.get("SERVER_ID_URL")
+        or aliases.get("BRIDGE_LIST_URL")
+        or _url_sibling(tgid_url, "server_ids.tsv")
+    )
+    tg_list_url = _str(aliases.get("TG_LIST_URL", tgid_url))
+    bridge_list_url = _str(aliases.get("BRIDGE_LIST_URL", server_id_url))
+    CONF["ALIASES"] = {k: _str(v) for k, v in aliases.items()}
+    CONF["ALIASES"]["TG_LIST_URL"] = tg_list_url
+    CONF["ALIASES"]["BRIDGE_LIST_URL"] = bridge_list_url
+    CONF["ALIASES"]["SERVER_ID_URL"] = server_id_url
     CONF["FILES"] = {
         "PATH": path_val,
         "SUBS": _str(aliases.get("SUBSCRIBER_FILE", "subscriber_ids.json")),
@@ -151,9 +173,12 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
         "PEER_URL": _str(aliases.get("PEER_URL", "https://adn.systems/files/peer_ids.json")),
         "SUBS_URL": su,
         "SUBSCRIBER_URL": su,
-        "TGID_URL": _str(aliases.get("TGID_URL", "https://adn.systems/files/talkgroup_ids.json")),
+        "TGID_URL": tgid_url,
+        "SERVER_ID_URL": server_id_url,
         "CHECKSUM_URL": _str(aliases.get("CHECKSUM_URL", "https://adn.systems/files/file_checksums.json")),
         "CHECKSUM_FILE": _str(aliases.get("CHECKSUM_FILE", "file_checksums.json")),
+        "TG_LIST_URL": tg_list_url,
+        "BRIDGE_LIST_URL": bridge_list_url,
     }
 
     # LOGGER
@@ -170,22 +195,52 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
         "LOG_HANDLERS": [] if not enabled else ["console", "file"],
     }
 
-    # WEBSOCKET_SERVER
-    ws = data.get("WEBSOCKET_SERVER") or {}
-    ssl_path = _str(ws.get("SSL_PATH", "./ssl"))
-    listen_interface = _str(ws.get("LISTEN_INTERFACE", "")).strip()
+    # MONITOR_APP — unified FastAPI (REST + WebSocket + ingest)
+    app_block = data.get("MONITOR_APP") or {}
+    ws_legacy = data.get("WEBSOCKET_SERVER") or {}
+    resync_sec = _int(app_block.get("FREQUENCY"), _int(ws_legacy.get("FREQUENCY"), 1))
+    client_timeout = _int(app_block.get("CLIENT_TIMEOUT"), _int(ws_legacy.get("CLIENT_TIMEOUT"), 0))
+    ingest = _str(app_block.get("INGEST", "tcp")).lower() or "tcp"
+    if ingest not in ("tcp", "mqtt"):
+        return Failure(ConfigError(f"MONITOR_APP.INGEST must be 'tcp' or 'mqtt', got {ingest!r}"))
+    mqtt_block = app_block.get("MQTT") if isinstance(app_block.get("MQTT"), dict) else {}
+    mqtt_url = _str(mqtt_block.get("URL", "")).strip()
+    mqtt_prefix = _str(mqtt_block.get("TOPIC_PREFIX", "")).strip()
+    if ingest == "mqtt":
+        if not mqtt_url:
+            return Failure(ConfigError("MONITOR_APP.MQTT.URL is required when INGEST=mqtt"))
+        if not mqtt_prefix:
+            return Failure(ConfigError("MONITOR_APP.MQTT.TOPIC_PREFIX is required when INGEST=mqtt"))
+    CONF["APP"] = {
+        "LISTEN_HOST": _str(app_block.get("LISTEN_HOST", "")),
+        "LISTEN_PORT": _int(app_block.get("LISTEN_PORT"), 8080),
+        "INGEST": ingest,
+        "FREQUENCY": resync_sec,
+        "CLIENT_TIMEOUT": client_timeout,
+        "CORS_ORIGINS": _str(app_block.get("CORS_ORIGINS", "")),
+        "MQTT": {
+            "URL": mqtt_url,
+            "TOPIC_PREFIX": mqtt_prefix.rstrip("/"),
+            "QOS": _int(mqtt_block.get("QOS"), 0),
+        },
+    }
+    if ingest == "tcp" and (mqtt_url or mqtt_prefix):
+        CONF["APP"]["MQTT_IGNORED"] = True
+
+    # Legacy WEBSOCKET_SERVER YAML (Twisted stack); ignored by monitor.py (FastAPI)
+    ssl_path = _str(ws_legacy.get("SSL_PATH", "./ssl"))
+    listen_interface = _str(ws_legacy.get("LISTEN_INTERFACE", "")).strip()
     CONF["WS"] = {
-        "WS_PORT": _int(ws.get("WEBSOCKET_PORT"), 9000),
+        "WS_PORT": _int(ws_legacy.get("WEBSOCKET_PORT"), 9000),
         "LISTEN_INTERFACE": listen_interface if listen_interface else "",
-        "USE_SSL": _bool(ws.get("USE_SSL", False)),
+        "USE_SSL": _bool(ws_legacy.get("USE_SSL", False)),
         "SSL_PATH": ssl_path,
-        "SSL_CERT": _str(ws.get("SSL_CERTIFICATE", "cert.pem")),
-        "P2F_CERT": Path(ssl_path, _str(ws.get("SSL_CERTIFICATE", "cert.pem"))),
-        "SSL_PKEY": _str(ws.get("SSL_PRIVATEKEY", "key.pem")),
-        "P2F_PKEY": Path(ssl_path, _str(ws.get("SSL_PRIVATEKEY", "key.pem"))),
-        # Seconds between periodic full resync (last_heard, lstheard_log, slim ctable); primary updates are event-driven.
-        "FREQUENCY": _int(ws.get("FREQUENCY"), 1),
-        "CLT_TO": _int(ws.get("CLIENT_TIMEOUT"), 0),
+        "SSL_CERT": _str(ws_legacy.get("SSL_CERTIFICATE", "cert.pem")),
+        "P2F_CERT": Path(ssl_path, _str(ws_legacy.get("SSL_CERTIFICATE", "cert.pem"))),
+        "SSL_PKEY": _str(ws_legacy.get("SSL_PRIVATEKEY", "key.pem")),
+        "P2F_PKEY": Path(ssl_path, _str(ws_legacy.get("SSL_PRIVATEKEY", "key.pem"))),
+        "FREQUENCY": resync_sec,
+        "CLT_TO": client_timeout,
     }
 
     # SELF_SERVICE (DB)
@@ -197,12 +252,15 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
             "PASSWD": _str(db.get("DB_PASSWORD", "")),
             "NAME": _str(db.get("DB_NAME", "")),
             "PORT": _int(db.get("DB_PORT"), 3306),
+            "PBKDF2_SALT": _str(db.get("PBKDF2_SALT", "ADN")),
+            "PBKDF2_ITERATIONS": _int(db.get("PBKDF2_ITERATIONS"), 2000),
+            "USE_SELFSERVICE": _bool(db.get("USE_SELFSERVICE", True)),
         }
 
-    # DASHBOARD
+    # DASHBOARD (preserve nested nav_links/footer/news for REST /api/config/dashboard)
     dash = data.get("DASHBOARD") or {}
     if isinstance(dash, dict):
-        CONF["DASHBOARD"] = {k: _str(v) for k, v in dash.items()}
+        CONF["DASHBOARD"] = dict(dash)
         CONF["DASHBOARD"]["MIN_DURATION"] = _int(dash.get("MIN_DURATION"), 3)
     else:
         CONF["DASHBOARD"] = {}

@@ -1,27 +1,26 @@
 # ADN Monitor - Dashboard and backend for ADN Systems.
+#
 # Copyright (C) 2026  Rodrigo Pérez, CE5RPY <ce5rpy@qmd.cl>
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+###############################################################################
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 3 of the License, or
+#   (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software Foundation,
+#   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+###############################################################################
 #
-# Derived from: FDMR Monitor (OA4DOA, https://github.com/yuvelq/FDMR-Monitor);
-# HBMonv2 (SP2ONG, https://github.com/sp2ong/HBMonv2);
-# hbmonitor3 (KC1AWV, https://github.com/kc1awv/hbmonitor3);
-# HBmonitor (Cortney T. Buffington, N0MJS, Copyright (C) 2013-2018).
-# Original works and this derivative are under GPLv3.
+# Derived from FDMR Monitor (OA4DOA), HBMonv2 (SP2ONG), hbmonitor3 (KC1AWV),
+# and HBmonitor (Cortney T. Buffington, N0MJS). Original works under GPLv3.
 
-# Copyright (C) Rodrigo Pérez <ce5rpy@qmd.cl>
-# License: GPLv3
 """
 Database connection pool and schema bootstrap.
 
@@ -90,95 +89,27 @@ def test_db(pool: adbapi.ConnectionPool) -> Result[None, RepositoryError]:
 
 @inlineCallbacks
 def create_tables(pool: adbapi.ConnectionPool) -> Result[None, RepositoryError]:
-    """Create monitor tables if they do not exist (bootstrap). Returns Success(None) or Failure(RepositoryError)."""
-    try:
-        def run(txn: Any) -> None:
-            txn.execute(
-                """CREATE TABLE IF NOT EXISTS Clients(
-                    int_id INT UNIQUE PRIMARY KEY NOT NULL,
-                    dmr_id TINYBLOB NOT NULL,
-                    callsign VARCHAR(10) NOT NULL,
-                    host VARCHAR(15),
-                    options VARCHAR(300),
-                    opt_rcvd TINYINT(1) DEFAULT False NOT NULL,
-                    mode TINYINT(1) DEFAULT 4 NOT NULL,
-                    logged_in TINYINT(1) DEFAULT False NOT NULL,
-                    modified TINYINT(1) DEFAULT False NOT NULL,
-                    psswd BLOB(256),
-                    last_seen INT NOT NULL) DEFAULT CHARSET=utf8mb4"""
-            )
-            txn.execute(
-                """CREATE TABLE IF NOT EXISTS talkgroup_ids (
-                    id INT PRIMARY KEY UNIQUE NOT NULL,
-                    callsign VARCHAR(255) NOT NULL) DEFAULT CHARSET=utf8mb4"""
-            )
-            txn.execute(
-                """CREATE TABLE IF NOT EXISTS subscriber_ids (
-                    id INT PRIMARY KEY UNIQUE NOT NULL,
-                    callsign VARCHAR(255) NOT NULL,
-                    name VARCHAR(255) NOT NULL) DEFAULT CHARSET=utf8mb4"""
-            )
-            txn.execute(
-                """CREATE TABLE IF NOT EXISTS peer_ids (
-                    id INT PRIMARY KEY UNIQUE NOT NULL,
-                    callsign VARCHAR(255) NOT NULL) DEFAULT CHARSET=utf8mb4"""
-            )
-            txn.execute(
-                """CREATE TABLE IF NOT EXISTS last_heard (
-                    date_time DATETIME NOT NULL,
-                    qso_time DECIMAL(5,2),
-                    qso_type VARCHAR(20) NOT NULL,
-                    system VARCHAR(50) NOT NULL,
-                    tg_num INT NOT NULL,
-                    dmr_id INT PRIMARY KEY UNIQUE NOT NULL) DEFAULT CHARSET=utf8mb4"""
-            )
-            txn.execute(
-                """CREATE TABLE IF NOT EXISTS lstheard_log (
-                    date_time DATETIME NOT NULL,
-                    qso_time DECIMAL(5,2),
-                    qso_type VARCHAR(20) NOT NULL,
-                    system VARCHAR(50) NOT NULL,
-                    tg_num INT NOT NULL,
-                    dmr_id INT NOT NULL) DEFAULT CHARSET=utf8mb4"""
-            )
-            txn.execute(
-                """CREATE TABLE IF NOT EXISTS tg_count (
-                    date DATETIME NOT NULL,
-                    tg_num INT PRIMARY KEY NOT NULL,
-                    qso_count INT NOT NULL,
-                    qso_time DECIMAL(7,2) NOT NULL) DEFAULT CHARSET=utf8mb4"""
-            )
-            txn.execute(
-                """CREATE TABLE IF NOT EXISTS user_count (
-                    date DATETIME NOT NULL,
-                    tg_num INT NOT NULL,
-                    dmr_id INT NOT NULL,
-                    qso_time DECIMAL(7,2) NOT NULL,
-                    UNIQUE(tg_num, dmr_id)) DEFAULT CHARSET=utf8mb4"""
-            )
-
-        yield pool.runInteraction(run)
-        logger.info("Tables created successfully.")
-        returnValue(Success(None))
-    except Exception as err:
-        logger.error("create_tables: %s", err)
-        returnValue(Failure(RepositoryError(str(err))))
+    """Ensure monitor schema (idempotent; safe if tables already exist)."""
+    return (yield _ensure_schema_twisted(pool))
 
 
 @inlineCallbacks
 def updt_table(pool: adbapi.ConnectionPool) -> Result[None, RepositoryError]:
-    """Apply schema migrations (e.g. add column if missing). Returns Success(None) or Failure(RepositoryError)."""
+    """Apply pending migrations on an existing DB (same as --create, idempotent)."""
+    return (yield _ensure_schema_twisted(pool))
+
+
+@inlineCallbacks
+def _ensure_schema_twisted(pool: adbapi.ConnectionPool) -> Result[None, RepositoryError]:
+    from .schema import ensure_schema_on_cursor
+
     try:
         def run(txn: Any) -> None:
-            txn.execute(
-                """ALTER TABLE Clients ADD COLUMN IF NOT EXISTS callsign VARCHAR(10)
-                DEFAULT 'NOCALL' NOT NULL AFTER dmr_id"""
-            )
-            txn.execute("ALTER TABLE Clients MODIFY COLUMN options VARCHAR(300)")
+            ensure_schema_on_cursor(txn)
 
         yield pool.runInteraction(run)
-        logger.info("Tables updated successfully.")
+        logger.info("Schema ensure completed.")
         returnValue(Success(None))
     except Exception as err:
-        logger.error("updt_table: %s", err)
+        logger.error("ensure_schema: %s", err)
         returnValue(Failure(RepositoryError(str(err))))

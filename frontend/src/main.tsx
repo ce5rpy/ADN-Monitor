@@ -29,6 +29,9 @@ import App from './App';
 import { DashboardConfigProvider } from './context/DashboardConfigContext';
 import './i18n';
 import './index.css';
+import { initUiZoom } from './utils/uiZoom';
+
+initUiZoom();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -27,7 +27,24 @@ import { useTranslation } from 'react-i18next';
 import { useDashboardConfig } from '../context/DashboardConfigContext';
 import { useServerInfo } from '../hooks/useWebSocket';
 
+import type { TFunction } from 'i18next';
+
 const currentYear = new Date().getFullYear();
+
+function buildVersionLine(
+  dashboardVersion: string | null,
+  serverVersion: string | null,
+  t: TFunction,
+): string | null {
+  const segments: string[] = [];
+  if (dashboardVersion) {
+    segments.push(`${t('footer_version_monitor', 'Monitor')}: ${dashboardVersion}`);
+  }
+  if (serverVersion) {
+    segments.push(`${t('footer_version_server', 'Server')}: ${serverVersion}`);
+  }
+  return segments.length > 0 ? segments.join(' / ') : null;
+}
 
 export default function Footer() {
   const { t } = useTranslation();
@@ -35,6 +52,25 @@ export default function Footer() {
   const brand = title || t('footer_brand', 'ADN Systems');
   const serverInfo = useServerInfo();
   const isV2 = serverInfo?.mode === 'v2';
+
+  const dashboardVersion =
+    typeof __APP_VERSION__ !== 'undefined' && String(__APP_VERSION__).trim()
+      ? String(__APP_VERSION__).trim()
+      : null;
+
+  // Server version only from v2 HELLO (report_protocol 2); legacy → omit server segment.
+  const serverVersionRaw = serverInfo?.info?.version;
+  const reportProtocol = Number(serverInfo?.info?.report_protocol);
+  const serverVersion =
+    isV2 &&
+    reportProtocol === 2 &&
+    typeof serverVersionRaw === 'string' &&
+    serverVersionRaw.trim()
+      ? serverVersionRaw.trim()
+      : null;
+
+  // Dashboard alone is fine; server segment is optional (joined with " / " only when both exist).
+  const versionLine = buildVersionLine(dashboardVersion, serverVersion, t);
 
   return (
     <Box
@@ -81,7 +117,7 @@ export default function Footer() {
         <span id="footer-report-sep">{isV2 ? ' ✦  ' : ' · '}</span>
         {t('footer_copyright', { year: currentYear, defaultValue: 'Copyright {{year}} - All rights reserved.' })}{' '}
         <Link href="https://adn.systems" target="_blank" rel="noopener" color="primary.main" underline="hover">
-          {t('footer_app', 'ADN Systems Monitor')}
+          {t('footer_app', 'ADN Systems')}
         </Link>
       </Typography>
       <Typography variant="body2" color="text.secondary" component="div" sx={{ mt: 1 }}>
@@ -90,6 +126,11 @@ export default function Footer() {
           CE5RPY
         </Link>
       </Typography>
+      {versionLine ? (
+        <Typography variant="body2" color="text.secondary" component="div" sx={{ mt: 0.75 }}>
+          {versionLine}
+        </Typography>
+      ) : null}
     </Box>
   );
 }
