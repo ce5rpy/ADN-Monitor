@@ -26,6 +26,7 @@ from unittest.mock import MagicMock
 
 from adn_monitor.application.monitor_controller import MonitorState
 from adn_monitor.application.rts_update import rts_update_impl
+from adn_monitor.application.tgstats import prune_voice_ts_not_in_static
 
 
 def _state_with_peer(
@@ -101,3 +102,40 @@ def test_transmitter_rx_uses_wire_slot_not_options() -> None:
     peer = state.CTABLE["MASTERS"]["SYSTEM"]["PEERS"][730002]
     assert peer[2]["TS"] is True
     assert peer[2]["TRX"] == "RX"
+
+
+def test_end_clears_cross_slot_when_static_tg_removed() -> None:
+    """END must clear the slot lit at START even if OPTIONS no longer map the TG there."""
+    state = _state_with_peer(peer_id=730001, ts1_static=["52090"], ts2_static=[])
+    rts_update_impl(
+        "GROUP VOICE,START,TX,SYSTEM,1,730002,5200386,2,52090".split(","),
+        state,
+        _alias(),
+        lambda: "12:00",
+    )
+    peer = state.CTABLE["MASTERS"]["SYSTEM"]["PEERS"][730001]
+    assert peer[1]["TS"] is True
+    peer["TS1_STATIC"] = []
+    peer["TS2_STATIC"] = []
+    rts_update_impl(
+        "GROUP VOICE,END,TX,SYSTEM,99,730002,5200386,2,52090".split(","),
+        state,
+        _alias(),
+        lambda: "12:00",
+    )
+    assert peer[1]["TS"] is False
+    assert peer[2]["TS"] is False
+
+
+def test_build_tgstats_clears_active_static_tg_removed_from_options() -> None:
+    state = _state_with_peer(peer_id=5200386, ts1_static=["52090"], ts2_static=[])
+    peer = state.CTABLE["MASTERS"]["SYSTEM"]["PEERS"][5200386]
+    peer[1]["TS"] = True
+    peer[1]["TRX"] = "TX"
+    peer[1]["TG"] = "TG&nbsp;52090"
+    peer[1]["DEST"] = "TG 52090"
+    peer["TS1_STATIC"] = []
+    peer["TS2_STATIC"] = []
+    prune_voice_ts_not_in_static(state, "SYSTEM", 5200386, peer)
+    assert peer[1]["TS"] is False
+    assert peer[1]["TRX"] == ""

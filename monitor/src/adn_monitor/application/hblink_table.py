@@ -29,6 +29,7 @@ import time
 from typing import Any, Callable
 
 from ..domain.value_objects import decode_utf8_field
+from .tgstats import clear_peer_voice_ts_slot
 
 
 def _decode_freq(freq: Any) -> str:
@@ -229,21 +230,21 @@ def clean_te(stats_table: dict) -> None:
         for peer in list(stats_table["MASTERS"][system].get("PEERS", {})):
             for ts in (1, 2):
                 ent = stats_table["MASTERS"][system]["PEERS"][peer][ts]
-                if ent.get("TS"):
-                    ts_val = ent.get("TIMEOUT", 0)
-                    td = abs(ts_val - timeout) / 60
-                    if td > 3:
-                        ent["TS"] = False
-                        ent["TYPE"] = ent["SUB"] = ent["SRC"] = ent["DEST"] = ""
-    for system in list(stats_table.get("PEERS", {})):
-        for ts in (1, 2):
-            ent = stats_table["PEERS"][system][ts]
-            if ent.get("TS"):
+                if not ent.get("TS") and not ent.get("TRX"):
+                    continue
                 ts_val = ent.get("TIMEOUT", 0)
                 td = abs(ts_val - timeout) / 60
                 if td > 3:
-                    ent["TS"] = False
-                    ent["TYPE"] = ent["SUB"] = ent["SRC"] = ent["DEST"] = ""
+                    clear_peer_voice_ts_slot(ent)
+    for system in list(stats_table.get("PEERS", {})):
+        for ts in (1, 2):
+            ent = stats_table["PEERS"][system][ts]
+            if not ent.get("TS") and not ent.get("TRX"):
+                continue
+            ts_val = ent.get("TIMEOUT", 0)
+            td = abs(ts_val - timeout) / 60
+            if td > 3:
+                clear_peer_voice_ts_slot(ent)
     for system in list(stats_table.get("OPENBRIDGES", {})):
         streams = stats_table["OPENBRIDGES"][system].get("STREAMS", {})
         for stream_id in list(streams):

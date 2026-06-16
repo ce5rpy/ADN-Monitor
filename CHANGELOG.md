@@ -2,6 +2,20 @@
 
 All notable changes to **adn-monitor** (monitor + dashboard) are documented here.
 
+## [2.0.0-rc.3] - 2026-06-16
+
+Pairs with **adn-server 2.0.0-rc.2**.
+
+### Fixed
+
+- **Static TG + live QSO:** removing a static TG via self-service (OPTIONS / `dashboard_state`) clears active voice chips on the peer row instead of leaving the slot green.
+- **Voice END cross-slot:** END clears every timeslot showing the call TG, not only the slot derived from current OPTIONS (fixes stuck chips after static TG removal mid-QSO).
+- **`clean_te` timeout:** stale cleanup now resets `TRX` as well as source/destination fields so TS1/TS2 slot chips return to idle after ~3 minutes.
+
+### Compatibility
+
+- **Server:** adn-server **2.0.0-rc.2** or newer (report v2 slim wire).
+
 ## [2.0.0-rc.2] - 2026-06-16
 
 Pairs with **adn-server 2.0.0-rc.2**.
