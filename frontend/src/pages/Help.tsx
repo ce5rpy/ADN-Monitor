@@ -34,6 +34,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 const SELFCARE_GUIDE_URL = 'https://adn.systems/how-to-selfcare/';
@@ -51,6 +52,40 @@ const IMG_FAQ = {
 } as const;
 
 type FaqImageKey = keyof typeof IMG_FAQ;
+
+function FaqBulletList({ keys }: { keys: readonly string[] }) {
+  const { t } = useTranslation();
+  return (
+    <Box component="ul" sx={{ pl: 2.5, my: 1, '& li': { mb: 0.5 } }}>
+      {keys.map((key) => (
+        <li key={key}>
+          <Typography variant="body2">{t(key)}</Typography>
+        </li>
+      ))}
+    </Box>
+  );
+}
+
+function FaqCode({ textKey }: { textKey: string }) {
+  const { t } = useTranslation();
+  return (
+    <Box
+      component="pre"
+      sx={{
+        p: 1.5,
+        my: 1.5,
+        bgcolor: 'action.hover',
+        borderRadius: 1,
+        fontSize: '0.8rem',
+        overflow: 'auto',
+        border: 1,
+        borderColor: 'divider',
+      }}
+    >
+      {t(textKey)}
+    </Box>
+  );
+}
 
 function FaqImage({ name, alt }: { name: FaqImageKey; alt: string }) {
   return (
@@ -83,7 +118,7 @@ export default function Help() {
           {t('help_title', { defaultValue: 'Help' })}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {t('help_subtitle', { defaultValue: 'ADN SelfCare – Frequently asked questions and setup guide.' })}
+          {t('help_subtitle', { defaultValue: 'SelfCare, talkgroups, OPTIONS, Talker Alias, and hotspot setup — frequently asked questions.' })}
         </Typography>
       </Paper>
 
@@ -125,10 +160,10 @@ export default function Help() {
       </Paper>
 
       <Typography variant="subtitle2" fontWeight={600} color="text.primary" sx={{ mb: 1.5 }}>
-        {t('help_faq', { defaultValue: 'FAQ' })}
+        {t('help_faq_selfcare_section', { defaultValue: 'SelfCare & password' })}
       </Typography>
 
-      <Accordion defaultExpanded>
+      <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography fontWeight={500}>{t('help_faq0_q', { defaultValue: 'What is ADN SelfCare?' })}</Typography>
         </AccordionSummary>
@@ -139,7 +174,7 @@ export default function Help() {
         </AccordionDetails>
       </Accordion>
 
-      <Accordion defaultExpanded>
+      <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography fontWeight={500}>{t('help_faq_step_title', { defaultValue: 'Step by step' })}</Typography>
         </AccordionSummary>
@@ -260,6 +295,271 @@ export default function Help() {
           <Typography variant="body2" paragraph>
             {t('help_faq6_a1', { defaultValue: 'Many programs do not yet have a dedicated field for the DMR-ID secure password. There are workarounds to enter it in most of them. Efforts are underway so that in the near future this option is visible in the main clients.' })}
           </Typography>
+        </AccordionDetails>
+      </Accordion>
+
+      <Typography variant="subtitle2" fontWeight={600} color="text.primary" sx={{ mt: 3, mb: 1.5 }}>
+        {t('help_faq_tg_section', { defaultValue: 'Talkgroups & hotspot options' })}
+      </Typography>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_ss_options_q', { defaultValue: 'Self Service and the OPTIONS line' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_ss_options_a1', {
+              defaultValue:
+                'If your network enables it, the Self Service page lets you log in and edit your hotspot preferences without asking a sysop. Changes are stored as an OPTIONS line and pushed to the ADN server, which updates your hotspot registration.',
+            })}
+          </Typography>
+          <Typography variant="body2" paragraph>
+            {t('help_ss_options_a2', {
+              defaultValue:
+                'The OPTIONS line is a semicolon-separated list of KEY=value pairs (Homebrew format). Common keys:',
+            })}
+          </Typography>
+          <FaqBulletList
+            keys={[
+              'help_ss_options_li1',
+              'help_ss_options_li2',
+              'help_ss_options_li3',
+              'help_ss_options_li4',
+            ]}
+          />
+          <Typography variant="body2" fontWeight={600}>
+            {t('help_ss_options_example_label', { defaultValue: 'Example' })}
+          </Typography>
+          <FaqCode textKey="help_ss_options_example" />
+          <Typography variant="body2" paragraph>
+            {t('help_ss_options_calc', {
+              defaultValue:
+                'Use the Options Calculator in the menu to build the line, then paste it into Self Service. The line must end with a semicolon (;).',
+            })}
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            <Button component={Link} to="/self-service" variant="outlined" size="small">
+              {t('self_service', { defaultValue: 'Self Service' })}
+            </Button>
+            <Button component={Link} to="/calc" variant="outlined" size="small">
+              {t('nav_calc', { defaultValue: 'Options Calculator' })}
+            </Button>
+          </Box>
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_static_dynamic_q', { defaultValue: 'Static vs dynamic talkgroups' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" fontWeight={600} gutterBottom>
+            {t('help_static_dynamic_static_title', { defaultValue: 'Static talkgroups' })}
+          </Typography>
+          <Typography variant="body2" paragraph>
+            {t('help_static_dynamic_static_body', {
+              defaultValue:
+                'Listed in your OPTIONS as TS1= or TS2= (comma-separated TG numbers). They are always available on your hotspot and appear as fixed chips on the dashboard. Configure them in Self Service or in your hotspot OPTIONS field.',
+            })}
+          </Typography>
+          <Typography variant="body2" fontWeight={600} gutterBottom>
+            {t('help_static_dynamic_dynamic_title', { defaultValue: 'Dynamic (user-activated) talkgroups' })}
+          </Typography>
+          <Typography variant="body2" paragraph>
+            {t('help_static_dynamic_dynamic_body', {
+              defaultValue:
+                'When you transmit to a talkgroup that is not in your static lists, the server opens a temporary bridge for your hotspot. These show as indigo chips on the dashboard. Since ADN server version 2.0.0, they can survive a hotspot reconnect.',
+            })}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {t('help_static_dynamic_note', {
+              defaultValue:
+                'Network ACLs may block some TGs. Static lists define what your hotspot advertises; dynamic TGs are created when you actually key them.',
+            })}
+          </Typography>
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_options_manual_q', { defaultValue: 'Configuring OPTIONS without Self Service' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_options_manual_a1', {
+              defaultValue:
+                'Not every user has dashboard login. The same OPTIONS format can still be applied in other ways:',
+            })}
+          </Typography>
+          <FaqBulletList
+            keys={[
+              'help_options_manual_li1',
+              'help_options_manual_li2',
+            ]}
+          />
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_single_timer_q', { defaultValue: 'SINGLE=1 and TIMER (timeout)' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" fontWeight={600} gutterBottom>
+            {t('help_single_timer_single1_title', { defaultValue: 'SINGLE=1 (single dynamic TG per slot)' })}
+          </Typography>
+          <Typography variant="body2" paragraph>
+            {t('help_single_timer_single1_body', {
+              defaultValue:
+                'Only one talkgroup per timeslot is selected for receive at a time. While you are not transmitting, you can hear traffic from all static TGs (in OPTIONS) and any dynamic TGs. When you transmit on one TG, that becomes the only TG you receive on that slot until the TIMER expires, you key TG 4000, or you transmit on a different TG.',
+            })}
+          </Typography>
+          <Typography variant="body2" fontWeight={600} gutterBottom>
+            {t('help_single_timer_single0_title', { defaultValue: 'SINGLE=0 (no receive exclusivity)' })}
+          </Typography>
+          <Typography variant="body2" paragraph>
+            {t('help_single_timer_single0_body', {
+              defaultValue:
+                'There is no receive exclusivity: when the hotspot is idle (not transmitting), it receives traffic from all configured static and dynamic TGs. Several dynamic talkgroups can coexist on the same slot; the dashboard may show multiple indigo chips until you clear them with TG 4000.',
+            })}
+          </Typography>
+          <Typography variant="body2" fontWeight={600} gutterBottom>
+            {t('help_single_timer_timer_title', { defaultValue: 'TIMER (minutes)' })}
+          </Typography>
+          <Typography variant="body2" paragraph>
+            {t('help_single_timer_timer_body', {
+              defaultValue:
+                'With SINGLE=1, how many minutes the selected dynamic TG stays active before the server removes it. In the Options Calculator, leave the timeout at 0 to omit TIMER and use the master default (DEFAULT_UA_TIMER). Do not write TIMER=0 in the OPTIONS line — the server treats that as no expiry, not the default.',
+            })}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {t('help_single_timer_defaults', {
+              defaultValue:
+                'In the Options Calculator, “Server default” leaves SINGLE and TIMER to whatever your sysop configured on the master.',
+            })}
+          </Typography>
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_tg4000_q', { defaultValue: 'TG 4000 — clear dynamic talkgroups' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_tg4000_a1', {
+              defaultValue:
+                'TG 4000 is not a talkgroup for normal QSOs. It is a reset command for your hotspot: key TG 4000 briefly to clear all dynamic (user-activated) bridges on all timeslots.',
+            })}
+          </Typography>
+          <FaqBulletList keys={['help_tg4000_li1', 'help_tg4000_li2', 'help_tg4000_li3']} />
+        </AccordionDetails>
+      </Accordion>
+
+      <Typography variant="subtitle2" fontWeight={600} color="text.primary" sx={{ mt: 3, mb: 1.5 }}>
+        {t('help_faq_display_section', { defaultValue: 'Radio display' })}
+      </Typography>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_ta_q', { defaultValue: 'Talker Alias (DMR)' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_ta_a1', {
+              defaultValue:
+                'Talker Alias is a short text label (callsign, name, etc.) that some DMR radios can show on the display during a group call. It is carried inside the voice stream — not a talkgroup or service you dial.',
+            })}
+          </Typography>
+          <Typography variant="body2" paragraph>
+            {t('help_ta_a2', {
+              defaultValue:
+                'This is not the same as the name on the ADN Monitor dashboard or Last Heard log. Those come from the subscriber database. Talker Alias is meant for your radio screen (OLED, MD380tools, some Hytera models).',
+            })}
+          </Typography>
+          <FaqBulletList keys={['help_ta_li1', 'help_ta_li2', 'help_ta_li3']} />
+          <Typography variant="body2" color="text.secondary">
+            {t('help_ta_note', {
+              defaultValue:
+                'Whether Talker Alias appears on bridged calls depends on your network operator. It is not configured from Self Service or the Options line — contact your sysop if you use a compatible radio and never see it.',
+            })}
+          </Typography>
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_daprs_q', { defaultValue: 'D-APRS' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_daprs_a1', {
+              defaultValue:
+                'D-APRS is the APRS gateway on the ADN network (position reports, messages, and related data over DMR). Your radio or DMR client must be set up to send APRS over DMR to the D-APRS talkgroup — not via the OPTIONS line on the server.',
+            })}
+          </Typography>
+          <Typography variant="body2" paragraph>
+            {t('help_daprs_a2', {
+              defaultValue:
+                'The default D-APRS talkgroup is 900999, unless your network administrator has configured a different TG in the server bridges.',
+            })}
+          </Typography>
+          <Typography variant="body2" paragraph color="text.secondary">
+            {t('help_daprs_a3', {
+              defaultValue:
+                'D-APRS is optional: each ADN server may have it enabled or not. Some networks do not offer the service — if yours does not, you will not see a D-APRS entry under Linked Systems → Bridges (IP).',
+            })}
+          </Typography>
+          <FaqBulletList keys={['help_daprs_li1', 'help_daprs_li2']} />
+          <Button component={Link} to="/systems" variant="outlined" size="small" sx={{ mt: 1 }}>
+            {t('nav_lnksys', { defaultValue: 'Linked Systems' })}
+          </Button>
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_echo_q', { defaultValue: 'Echo (parrot / playback)' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_echo_a1', {
+              defaultValue:
+                'Echo records your group voice transmission and plays it back to you — useful to test audio, levels, and connectivity. Transmit on the echo talkgroup and you should hear your own recording shortly after.',
+            })}
+          </Typography>
+          <Typography variant="body2" paragraph>
+            {t('help_echo_a2', {
+              defaultValue:
+                'The default echo talkgroup is 9990, unless your network administrator has configured a different TG in the server bridges.',
+            })}
+          </Typography>
+          <Typography variant="body2" paragraph color="text.secondary">
+            {t('help_echo_a3', {
+              defaultValue:
+                'Echo is optional: each ADN server may have it enabled or not. Some networks do not offer the service — if yours does not, you will not see an ECHO entry under Linked Systems → Bridges (IP).',
+            })}
+          </Typography>
+          <FaqBulletList keys={['help_echo_li1', 'help_echo_li2']} />
+          <Button component={Link} to="/systems" variant="outlined" size="small" sx={{ mt: 1 }}>
+            {t('nav_lnksys', { defaultValue: 'Linked Systems' })}
+          </Button>
         </AccordionDetails>
       </Accordion>
     </Box>

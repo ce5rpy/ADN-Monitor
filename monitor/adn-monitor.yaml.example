@@ -143,6 +143,8 @@ DASHBOARD:
     items:
       - name: "ADN Systems"
         url: "https://adn.systems"
+      - name: "ADN Live"
+        url: "https://listen.adn.systems/"
 
   # Footer links: same structure as nav_links — list of { name, url }
   footer:
