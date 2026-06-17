@@ -2,6 +2,22 @@
 
 All notable changes to **adn-monitor** (monitor + dashboard) are documented here.
 
+## [2.0.0-rc.4] - 2026-06-17
+
+Pairs with **adn-server 2.0.0-rc.3**.
+
+### Added
+
+- **Schema migration `004_peer_dynamic_tgs`** — MariaDB table for server-side dynamic TG persistence (shared with adn-server).
+
+### Fixed
+
+- **TG 4000** — never shown as a dynamic UA chip; `START,RX` dest 4000 clears peer UA state without re-registering 4000 (pairs with server `INGRESS` BRDG_EVENT).
+
+### Compatibility
+
+- **Server:** adn-server **2.0.0-rc.3** or newer (dynamic TG persistence + TG 4000 monitor events).
+
 ## [2.0.0-rc.3] - 2026-06-16
 
 Pairs with **adn-server 2.0.0-rc.2**.

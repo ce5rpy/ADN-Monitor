@@ -1,6 +1,6 @@
 # ADN Systems Monitor
 
-**Version 2.0.0-rc.3** — pairs with **adn-server 2.0.0-rc.2** (report v2 slim wire + JSON HELLO).
+**Version 2.0.0-rc.4** — pairs with **adn-server 2.0.0-rc.3** (report v2 slim wire + JSON HELLO).
 
 Dashboard for ADN networks: unified **FastAPI** process (REST + WebSocket + report ingest), React frontend, and optional MySQL for self-service and Last Heard.
 
@@ -163,7 +163,7 @@ sudo nginx -t && sudo systemctl reload nginx
 2. `adn-monitor.yaml` and `.env` configured; **ADN_CONFIG_PATH** set.
 3. `npm run build` in `frontend/`; Nginx serves `frontend/dist/`.
 4. `monitor.py` running (systemd); Nginx proxies `/api` and `/ws` to `LISTEN_PORT`.
-5. **adn-server** ≥ **2.0.0-rc.2** for report v2 slim wire (upgrade/restart server if the footer still shows an older server version).
+5. **adn-server** ≥ **2.0.0-rc.3** for dynamic TG persistence and report v2 slim wire (upgrade/restart server if the footer still shows an older server version).
 
 ---
 
