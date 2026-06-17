@@ -152,6 +152,24 @@ def apply_migrations(cursor: Any) -> None:
         _verify_alias_primary_keys(cursor)
         _mark_migration(cursor, "003_alias_pk_only")
 
+    if not _migration_applied(cursor, "004_peer_dynamic_tgs"):
+        cursor.execute(
+            """CREATE TABLE IF NOT EXISTS peer_dynamic_tgs (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                int_id INT NOT NULL,
+                system_name VARCHAR(50) NOT NULL,
+                slot TINYINT NOT NULL,
+                tgid INT NOT NULL,
+                single_mode TINYINT(1) NOT NULL,
+                expires_at INT NULL,
+                updated_at INT NOT NULL,
+                UNIQUE KEY uq_peer_dynamic (int_id, system_name, slot, tgid),
+                KEY idx_peer_system (int_id, system_name),
+                KEY idx_expires (expires_at)
+            ) DEFAULT CHARSET=utf8mb4"""
+        )
+        _mark_migration(cursor, "004_peer_dynamic_tgs")
+
     cleanup_staging_tables(cursor)
 
 

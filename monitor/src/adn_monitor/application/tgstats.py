@@ -294,6 +294,8 @@ def register_ua_session(
     tgid: int,
 ) -> None:
     """Track which TG this peer keyed; SINGLE=1 uses per-peer OPTIONS TIMER."""
+    if int(tgid) == 4000:
+        return
     owners, expires, multi = _ensure_session_maps(state)
     key = _session_key(master_name, peer_id, slot)
     if _peer_single_mode(state, master_name, peer_id):
@@ -400,7 +402,7 @@ def _apply_multi_mode_chips(
         tgs = sorted(multi.get(key, set()))
         entries = []
         for tgid in tgs:
-            if _is_static_tg(state, master_name, peer_id, slot, tgid):
+            if tgid == 4000 or _is_static_tg(state, master_name, peer_id, slot, tgid):
                 continue
             entries.append({"TGID": str(tgid), "TO": ""})
         peer_row[f"UA_MULTI_TS{slot}"] = entries

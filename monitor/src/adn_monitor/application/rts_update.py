@@ -190,10 +190,11 @@ def rts_update_impl(
             )
             if peer_id is not None:
                 clear_peer_ua_sessions(state, system, peer_id)
-        if call_type == "GROUP VOICE" and action in ("START", "END"):
-            _apply_voice_single_ts(
-                state, ctable, system, time_slot, destination, source_peer, trx=trx
-            )
+        elif call_type == "GROUP VOICE" and action in ("START", "END"):
+            if not (action == "START" and trx == "RX" and destination == 4000):
+                _apply_voice_single_ts(
+                    state, ctable, system, time_slot, destination, source_peer, trx=trx
+                )
         for peer in ctable["MASTERS"][system]["PEERS"]:
             peer_row = ctable["MASTERS"][system]["PEERS"][peer]
             display_slot = _peer_display_slot(
