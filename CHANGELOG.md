@@ -2,6 +2,22 @@
 
 All notable changes to **adn-monitor** (monitor + dashboard) are documented here.
 
+## [2.0.0-rc.5] - 2026-06-18
+
+Pairs with **adn-server 2.0.0-rc.4**.
+
+### Added
+
+- **Help page** — expanded FAQ and synced i18n strings across all dashboard locales.
+
+### Fixed
+
+- **Echo TG 9990** — no dynamic UA chip; live RX/TX chips preserved during `build_tgstats` prune; ECHO master bridge TX activity uses wire timeslot for slot chips.
+
+### Compatibility
+
+- **Server:** adn-server **2.0.0-rc.4** or newer (echo monitor events + inject-only remap).
+
 ## [2.0.0-rc.4] - 2026-06-17
 
 Pairs with **adn-server 2.0.0-rc.3**.
