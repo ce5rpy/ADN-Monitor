@@ -32,6 +32,8 @@ from .alias_service import AliasService
 from .monitor_controller import MonitorState
 from .tgstats import (
     _apply_multi_mode_chips,
+    _is_echo_service_live_tgid,
+    _is_service_voice_tgid,
     _peer_single_mode,
     clear_peer_ua_sessions,
     clear_voice_ts_for_destination,
@@ -82,7 +84,7 @@ def _apply_voice_single_ts(
     trx: str,
 ) -> None:
     """Track active SINGLE / UA TG on the transmitting peer (RX leg on MASTER)."""
-    if trx != "RX":
+    if trx != "RX" or _is_service_voice_tgid(destination):
         return
     ts_key = f"SINGLE_TS{time_slot}"
     peers = ctable.get("MASTERS", {}).get(system, {}).get("PEERS") or {}
@@ -127,9 +129,17 @@ def _peer_display_slot(
     source_peer: int,
     event_slot: int,
     destination: int,
+    trx: str = "",
 ) -> int:
     """Timeslot index for CTABLE peer chips (1 or 2)."""
     if _peer_keys_equal(source_peer, peer_key):
+        return event_slot
+    if (
+        call_type == "GROUP VOICE"
+        and trx == "TX"
+        and _is_echo_service_live_tgid(destination)
+    ):
+        # Echo/service downlink (bridge TX leg): use wire slot, not OPTIONS static map.
         return event_slot
     if call_type == "GROUP VOICE":
         return _static_tg_slot_for_peer(peer_row, destination, event_slot)
@@ -204,6 +214,7 @@ def rts_update_impl(
                 source_peer=source_peer,
                 event_slot=time_slot,
                 destination=destination,
+                trx=trx,
             )
             crxstatus = "RX" if _peer_keys_equal(source_peer, peer) else "TX"
             peer_ts = peer_row[display_slot]
