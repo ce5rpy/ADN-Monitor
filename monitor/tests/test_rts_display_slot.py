@@ -139,3 +139,109 @@ def test_build_tgstats_clears_active_static_tg_removed_from_options() -> None:
     prune_voice_ts_not_in_static(state, "SYSTEM", 5200386, peer)
     assert peer[1]["TS"] is False
     assert peer[1]["TRX"] == ""
+
+
+def test_prune_preserves_echo_9990_live_trx_chip() -> None:
+    """Echo TG is not UA dynamic; live RX/TX chips must not be cleared on build_tgstats."""
+    state = _state_with_peer(peer_id=730039101, ts1_static=[], ts2_static=[])
+    peer = state.CTABLE["MASTERS"]["SYSTEM"]["PEERS"][730039101]
+    peer[2]["TS"] = True
+    peer[2]["TRX"] = "RX"
+    peer[2]["TG"] = "TG&nbsp;9990"
+    peer[2]["DEST"] = "TG 9990"
+    prune_voice_ts_not_in_static(state, "SYSTEM", 730039101, peer)
+    assert peer[2]["TS"] is True
+    assert peer[2]["TRX"] == "RX"
+
+
+def test_echo_9990_rx_tx_live_chips() -> None:
+    state = _state_with_peer(peer_id=730039101, ts1_static=[], ts2_static=[])
+    alias = _alias()
+    rts_update_impl(
+        "GROUP VOICE,START,RX,SYSTEM,1,730039101,730039101,2,9990".split(","),
+        state,
+        alias,
+        lambda: "12:00",
+    )
+    peer = state.CTABLE["MASTERS"]["SYSTEM"]["PEERS"][730039101]
+    assert peer[2]["TS"] is True
+    assert peer[2]["TRX"] == "RX"
+    rts_update_impl(
+        "GROUP VOICE,START,TX,SYSTEM,2,9990,730039101,2,9990".split(","),
+        state,
+        alias,
+        lambda: "12:00",
+    )
+    assert peer[2]["TS"] is True
+    assert peer[2]["TRX"] == "TX"
+
+
+def _state_with_echo_peer(
+    *,
+    echo_peer_id: int = 9990,
+    ts2_static: list[str] | None = None,
+) -> MonitorState:
+    state = MonitorState()
+    state.CTABLE = {
+        "MASTERS": {
+            "ECHO": {
+                "PEERS": {
+                    echo_peer_id: {
+                        "TS1_STATIC": [],
+                        "TS2_STATIC": ts2_static if ts2_static is not None else ["9990"],
+                        1: {"TS": False, "TRX": ""},
+                        2: {"TS": False, "TRX": ""},
+                    }
+                }
+            }
+        },
+        "PEERS": {},
+        "OPENBRIDGES": {},
+    }
+    return state
+
+
+def test_echo_master_tx_downlink_shows_receiving_chip() -> None:
+    """Bridge TX leg to ECHO (recording): service peer shows green/TX on wire slot."""
+    state = _state_with_echo_peer()
+    alias = _alias()
+    rts_update_impl(
+        "GROUP VOICE,START,TX,ECHO,1,730039101,730039101,2,9990".split(","),
+        state,
+        alias,
+        lambda: "12:00",
+    )
+    peer = state.CTABLE["MASTERS"]["ECHO"]["PEERS"][9990]
+    assert peer[2]["TS"] is True
+    assert peer[2]["TRX"] == "TX"
+
+
+def test_echo_master_rx_playback_shows_transmitting_chip() -> None:
+    """Echo PEER playback on ECHO master: service peer shows red/RX on wire slot."""
+    state = _state_with_echo_peer()
+    alias = _alias()
+    rts_update_impl(
+        "GROUP VOICE,START,RX,ECHO,2,9990,730039101,2,9990".split(","),
+        state,
+        alias,
+        lambda: "12:00",
+    )
+    peer = state.CTABLE["MASTERS"]["ECHO"]["PEERS"][9990]
+    assert peer[2]["TS"] is True
+    assert peer[2]["TRX"] == "RX"
+
+
+def test_echo_tx_downlink_uses_wire_slot_not_static_map() -> None:
+    """9990 only in TS2_STATIC must not move a TS1 bridge TX chip to slot 2."""
+    state = _state_with_echo_peer(ts2_static=["9990"])
+    alias = _alias()
+    rts_update_impl(
+        "GROUP VOICE,START,TX,ECHO,1,730039101,730039101,1,9990".split(","),
+        state,
+        alias,
+        lambda: "12:00",
+    )
+    peer = state.CTABLE["MASTERS"]["ECHO"]["PEERS"][9990]
+    assert peer[1]["TS"] is True
+    assert peer[1]["TRX"] == "TX"
+    assert peer[2]["TS"] is False

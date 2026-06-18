@@ -31,6 +31,12 @@ import time
 from .monitor_controller import MonitorState
 
 
+def _is_service_voice_tgid(tgid: int) -> bool:
+    """TG 4000 (reset) and 9990–9999 (echo/service) are not UA dynamic sessions."""
+    t = int(tgid)
+    return t == 4000 or (9990 <= t <= 9999)
+
+
 def _static_tg_list(value) -> list[str]:
     if value is None:
         return []
@@ -220,6 +226,12 @@ def clear_voice_ts_for_destination(peer_row: dict, destination: int) -> None:
             clear_peer_voice_ts_slot(peer_ts)
 
 
+def _is_echo_service_live_tgid(tgid: int) -> bool:
+    """Echo/on-demand 9990–9999: live TRX chips must survive build_tgstats prune."""
+    t = int(tgid)
+    return 9990 <= t <= 9999
+
+
 def prune_voice_ts_not_in_static(
     state: MonitorState,
     master_name: str,
@@ -242,6 +254,8 @@ def prune_voice_ts_not_in_static(
         if tgid is None:
             continue
         tg_str = str(tgid)
+        if _is_echo_service_live_tgid(tgid):
+            continue
         if tg_str in allowed:
             continue
         key = _session_key(master_name, peer_id, slot)
@@ -294,7 +308,7 @@ def register_ua_session(
     tgid: int,
 ) -> None:
     """Track which TG this peer keyed; SINGLE=1 uses per-peer OPTIONS TIMER."""
-    if int(tgid) == 4000:
+    if _is_service_voice_tgid(tgid):
         return
     owners, expires, multi = _ensure_session_maps(state)
     key = _session_key(master_name, peer_id, slot)
@@ -402,7 +416,7 @@ def _apply_multi_mode_chips(
         tgs = sorted(multi.get(key, set()))
         entries = []
         for tgid in tgs:
-            if tgid == 4000 or _is_static_tg(state, master_name, peer_id, slot, tgid):
+            if _is_service_voice_tgid(tgid) or _is_static_tg(state, master_name, peer_id, slot, tgid):
                 continue
             entries.append({"TGID": str(tgid), "TO": ""})
         peer_row[f"UA_MULTI_TS{slot}"] = entries
@@ -441,7 +455,7 @@ def _apply_server_ua_sessions_from_config(
             continue
         tgid = int(sess.get("tgid", 0) or 0)
         exp = float(sess.get("expires_at", 0) or 0)
-        if tgid <= 0 or exp <= now:
+        if tgid <= 0 or _is_service_voice_tgid(tgid) or exp <= now:
             continue
         key = _session_key(master_name, peer_id, slot)
         owners[key] = tgid
