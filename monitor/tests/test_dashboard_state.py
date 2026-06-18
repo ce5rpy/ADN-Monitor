@@ -972,3 +972,17 @@ def test_register_ua_session_uses_peer_timer_minutes() -> None:
     entry = state.UA_SESSION_EXPIRES[("SYSTEM-2", 730039101, 2)]
     assert entry[0] == 730444
     assert entry[1] >= before + 5 * 60 - 1
+
+
+def test_register_ua_session_ignores_echo_9990() -> None:
+    from adn_monitor.application.tgstats import register_ua_session
+
+    state = MonitorState()
+    state.CONFIG = _config_with_peer_options(
+        (730039101, "1", 5.0),
+        yaml_single=True,
+        yaml_timer=60,
+    )
+    register_ua_session(state, "SYSTEM-2", 730039101, 2, 9990)
+    assert ("SYSTEM-2", 730039101, 2) not in getattr(state, "UA_SESSION_EXPIRES", {})
+    assert ("SYSTEM-2", 730039101, 2) not in getattr(state, "UA_DYNAMIC_OWNERS", {})
