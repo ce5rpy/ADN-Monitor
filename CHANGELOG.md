@@ -2,6 +2,18 @@
 
 All notable changes to **adn-monitor** (monitor + dashboard) are documented here.
 
+## [2.0.0-rc.6] - 2026-06-19
+
+Pairs with **adn-server 2.0.0-rc.4**.
+
+### Fixed
+
+- **Linked Systems** — show repeater/hotspot/bridge summary cards with zero counts when the lnksys WebSocket delivers an empty CTABLE instead of "Waiting for server info...".
+
+### Compatibility
+
+- **Server:** adn-server **2.0.0-rc.4** or newer.
+
 ## [2.0.0-rc.5] - 2026-06-18
 
 Pairs with **adn-server 2.0.0-rc.4**.
