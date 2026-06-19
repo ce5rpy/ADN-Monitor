@@ -2,7 +2,7 @@
 #
 # Flow:
 #   push to master (after merging feature PRs) → opens/updates Release PR against master
-#   merge Release PR → tag vX.Y.Z-rc.N when vars.RELEASE_PLEASE_PUBLISH=true
+#   merge Release PR → tag vX.Y.Z-rc.N + GitHub Release (prerelease)
 #
 # Squash merge: Release Please reads commit messages on master. Use a PR title
 # like fix: / feat: — that becomes the squash commit message.
@@ -46,7 +46,6 @@ jobs:
           target-branch: master
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-          skip-github-release: ${{ vars.RELEASE_PLEASE_PUBLISH != 'true' }}
 
   sync-develop:
     needs: release-please
@@ -63,5 +62,5 @@ jobs:
         run: |
           git fetch origin master develop
           git checkout develop
-          git merge origin/master -m "chore: sync develop from master (${{ needs.release-please.outputs.tag_name }})"
-          git push origin develop
+          git reset --hard origin/master
+          git push --force-with-lease origin develop
