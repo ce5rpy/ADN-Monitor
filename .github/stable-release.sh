@@ -8,6 +8,9 @@ cd "$ROOT"
 git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+git fetch origin master
+git reset --hard origin/master
+
 read_version() {
   grep -E '^version\s*=' pyproject.toml | sed -E 's/.*"([^"]+)".*/\1/'
 }
