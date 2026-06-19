@@ -1,6 +1,6 @@
 # ADN Monitor
 # GPL v3. Derived from FDMR Monitor / HBMonv2 / hbmonitor3 / HBmonitor.
-# Version: bumped by .github/workflows/release.yml on merge to develop.
+# Version: bumped automatically by python-semantic-release (.github/workflows/release.yml).
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]
@@ -37,3 +37,35 @@ where = ["monitor/src"]
 [tool.pytest.ini_options]
 pythonpath = ["monitor/src"]
 testpaths = ["monitor/tests"]
+
+[tool.semantic_release]
+build_command = ""
+tag_format = "v{version}"
+commit_message = "chore(release): {version}\n\n{changelog}"
+version_toml = ["pyproject.toml:project.version"]
+version_variables = ["frontend/package.json:version"]
+
+[tool.semantic_release.branches.develop]
+match = "develop"
+prerelease = true
+prerelease_token = "rc"
+
+[tool.semantic_release.branches.master]
+match = "master"
+prerelease = false
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "style", "refactor", "test"]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
+
+[tool.semantic_release.changelog]
+changelog_file = "CHANGELOG.md"
+
+[tool.semantic_release.remote]
+name = "origin"
+type = "github"
+ignore_token_for_push = false
+
+[tool.semantic_release.remote.token]
+env = "GH_TOKEN"

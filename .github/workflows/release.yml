@@ -1,9 +1,13 @@
-# Release — one merge to develop, fully automatic.
+# Release with python-semantic-release (standard tool for pyproject.toml projects).
 #
-#   1. Merge PR to develop with squash title: fix: … or feat: …
-#   2. This workflow bumps version, updates CHANGELOG, tags, GitHub Release, syncs master
+#   merge PR → develop  (squash title: fix: / feat:)
+#        ↓
+#   bump version + CHANGELOG + tag + GitHub Release
+#        ↓
+#   master fast-forwarded to develop
 #
-# No Release Please. No Release PR. No labels.
+# Stable 2.0.0 later: merge develop → master and run this workflow on master
+# (master branch config has prerelease = false).
 
 name: release
 
@@ -17,7 +21,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.repository }}
+  group: release-${{ github.repository }}-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -27,11 +31,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.ref_name }}
 
-      - name: Run release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: bash .github/release.sh
+      - name: Reset to workflow SHA
+        run: git reset --hard ${{ github.sha }}
+
+      - name: Semantic Release
+        id: semantic
+        uses: python-semantic-release/python-semantic-release@v10.5.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          git_committer_name: github-actions[bot]
+          git_committer_email: 41898282+github-actions[bot]@users.noreply.github.com
+
+      - name: Sync master to develop
+        if: steps.semantic.outputs.released == 'true'
+        run: |
+          git fetch origin develop
+          git push origin origin/develop:refs/heads/master
