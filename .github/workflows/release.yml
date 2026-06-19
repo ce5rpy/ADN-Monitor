@@ -1,9 +1,7 @@
-# Release with python-semantic-release (standard tool for pyproject.toml projects).
+# Release workflow
 #
-#   RC (develop): merge fix:/feat: PR → bump rc.N + tag + GitHub Release → sync master
-#   Stable (master): workflow_dispatch on master → 2.0.0 + tag + GitHub Release → sync develop
-#
-# master branch config has prerelease = false in pyproject.toml.
+#   RC (develop): python-semantic-release on push → rc.N + tag + GitHub Release → sync master
+#   Stable (master): workflow_dispatch → promote rc.N to N.N.N + tag + GitHub Release → sync develop
 
 name: release
 
@@ -33,7 +31,15 @@ jobs:
       - name: Reset to workflow SHA
         run: git reset --hard ${{ github.sha }}
 
-      - name: Semantic Release
+      - name: Stable release (master)
+        if: github.ref_name == 'master'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash .github/stable-release.sh
+
+      - name: Semantic Release (develop)
+        if: github.ref_name != 'master'
         id: semantic
         uses: python-semantic-release/python-semantic-release@v10.5.3
         with:
@@ -43,7 +49,7 @@ jobs:
           vcs_release: "false"
 
       - name: Create GitHub Release
-        if: steps.semantic.outputs.released == 'true' && steps.semantic.outputs.tag != ''
+        if: github.ref_name != 'master' && steps.semantic.outputs.released == 'true' && steps.semantic.outputs.tag != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.semantic.outputs.tag }}
@@ -71,19 +77,20 @@ jobs:
           rm -f "$NOTES_FILE"
 
       - name: Verify GitHub Release
-        if: steps.semantic.outputs.released == 'true' && steps.semantic.outputs.tag != ''
+        if: github.ref_name != 'master' && steps.semantic.outputs.released == 'true' && steps.semantic.outputs.tag != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.semantic.outputs.tag }}
         run: gh release view "$TAG"
 
-      - name: Sync branches
-        if: steps.semantic.outputs.released == 'true'
+      - name: Sync develop from master
+        if: github.ref_name == 'master'
         run: |
-          if [[ "${{ github.ref_name }}" == "master" ]]; then
-            git fetch origin master
-            git push origin origin/master:refs/heads/develop
-          else
-            git fetch origin develop
-            git push origin origin/develop:refs/heads/master
-          fi
+          git fetch origin master
+          git push origin origin/master:refs/heads/develop
+
+      - name: Sync master from develop
+        if: github.ref_name != 'master' && steps.semantic.outputs.released == 'true'
+        run: |
+          git fetch origin develop
+          git push origin origin/develop:refs/heads/master
