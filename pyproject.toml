@@ -41,7 +41,7 @@ testpaths = ["monitor/tests"]
 [tool.semantic_release]
 build_command = ""
 tag_format = "v{version}"
-commit_message = "chore(release): {version}\n\n{changelog}"
+commit_message = "chore(release): {version}"
 version_toml = ["pyproject.toml:project.version"]
 version_variables = ["frontend/package.json:version"]
 
@@ -59,7 +59,8 @@ allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "style", 
 minor_tags = ["feat"]
 patch_tags = ["fix", "perf"]
 
-[tool.semantic_release.changelog]
+[tool.semantic_release.changelog.default_templates]
+mode = "update"
 changelog_file = "CHANGELOG.md"
 
 [tool.semantic_release.remote]

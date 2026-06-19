@@ -43,6 +43,27 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           git_committer_name: github-actions[bot]
           git_committer_email: 41898282+github-actions[bot]@users.noreply.github.com
+          vcs_release: "true"
+
+      - name: Ensure GitHub Release exists
+        if: steps.semantic.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.semantic.outputs.tag }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists: ${{ steps.semantic.outputs.link }}"
+            exit 0
+          fi
+          PRERELEASE=""
+          if [[ "${{ steps.semantic.outputs.is_prerelease }}" == "true" ]]; then
+            PRERELEASE="--prerelease"
+          fi
+          NOTES="${{ steps.semantic.outputs.release_notes }}"
+          if [[ -z "$NOTES" ]]; then
+            NOTES="Release ${TAG#v}"
+          fi
+          gh release create "$TAG" --title "${TAG#v}" $PRERELEASE --notes "$NOTES"
 
       - name: Sync master to develop
         if: steps.semantic.outputs.released == 'true'

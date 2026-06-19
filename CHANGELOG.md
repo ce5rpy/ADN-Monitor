@@ -2,6 +2,8 @@
 
 All notable changes to **adn-monitor** (monitor + dashboard) are documented here.
 
+<!-- version list -->
+
 ## [2.0.0-rc.11](https://github.com/ce5rpy/ADN-Monitor/compare/v2.0.0-rc.10...v2.0.0-rc.11) (2026-06-19)
 
 
