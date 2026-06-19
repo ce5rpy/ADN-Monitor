@@ -1,4 +1,4 @@
-# Release Please — one human step on develop.
+# Release Please
 #
 # Flow:
 #   1. Merge fix:/feat: PR → develop (squash title = conventional commit)
@@ -69,9 +69,11 @@ jobs:
           fi
           NUMBER=$(echo "$PR" | jq -r '.number')
           TITLE=$(echo "$PR" | jq -r '.title')
-          if [[ ! "$TITLE" =~ ^Release\  ]]; then
-            echo "Refusing to auto-merge PR #${NUMBER} — title must start with 'Release ': ${TITLE}"
-            exit 1
+          HAS_LABEL=$(gh pr view "$NUMBER" --repo "${{ github.repository }}" \
+            --json labels --jq '[.labels[].name] | index("autorelease: pending") != null')
+          if [ "$HAS_LABEL" != "true" ]; then
+            echo "PR #${NUMBER} missing autorelease: pending label — skipping."
+            exit 0
           fi
           echo "Auto-merging Release PR #${NUMBER}: ${TITLE}"
           gh pr merge "$NUMBER" --repo "${{ github.repository }}" --merge

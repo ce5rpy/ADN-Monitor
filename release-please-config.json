@@ -17,6 +17,7 @@
   "include-v-in-tag": true,
   "separate-pull-requests": false,
   "pull-request-title-pattern": "Release ${version}",
+  "group-pull-request-title-pattern": "Release ${version}",
   "changelog-sections": [
     { "type": "feat", "section": "Added", "hidden": false },
     { "type": "fix", "section": "Fixed", "hidden": false },
