@@ -151,7 +151,6 @@ export default function Systems() {
     }
   }
 
-  const hasMasters = Object.keys(masters).length > 0;
   const showEmptyMasters = emaster;
 
   const renderMasterPeerRows = (
@@ -282,40 +281,32 @@ export default function Systems() {
         {t('lnksys_title', { defaultValue: 'Linked systems' })}
       </Typography>
 
-      {!hasMasters && Object.keys(peers).length === 0 && (
-        <Typography color="text.secondary">
-          {t('lnksys_no_data', { defaultValue: 'Waiting for server info...' })}
-        </Typography>
-      )}
-
-      {hasMasters && (
-        <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={12} sm={4}>
-            <Card sx={{ bgcolor: 'success.main', color: 'success.contrastText' }}>
-              <CardContent sx={summaryCardContentSx}>
-                <Typography variant="h4">{countRepeaters}</Typography>
-                <Typography variant="body2">{t('lnksys_repeaters', { defaultValue: 'Repeaters' })}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card sx={{ bgcolor: 'warning.main', color: 'warning.contrastText' }}>
-              <CardContent sx={summaryCardContentSx}>
-                <Typography variant="h4">{countHotspots}</Typography>
-                <Typography variant="body2">{t('lnksys_hotspots', { defaultValue: 'Hotspots' })}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card sx={{ bgcolor: 'error.main', color: 'error.contrastText' }}>
-              <CardContent sx={summaryCardContentSx}>
-                <Typography variant="h4">{countBridges}</Typography>
-                <Typography variant="body2">{t('lnksys_bridges', { defaultValue: 'Bridges' })}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ bgcolor: 'success.main', color: 'success.contrastText' }}>
+            <CardContent sx={summaryCardContentSx}>
+              <Typography variant="h4">{countRepeaters}</Typography>
+              <Typography variant="body2">{t('lnksys_repeaters', { defaultValue: 'Repeaters' })}</Typography>
+            </CardContent>
+          </Card>
         </Grid>
-      )}
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ bgcolor: 'warning.main', color: 'warning.contrastText' }}>
+            <CardContent sx={summaryCardContentSx}>
+              <Typography variant="h4">{countHotspots}</Typography>
+              <Typography variant="body2">{t('lnksys_hotspots', { defaultValue: 'Hotspots' })}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ bgcolor: 'error.main', color: 'error.contrastText' }}>
+            <CardContent sx={summaryCardContentSx}>
+              <Typography variant="h4">{countBridges}</Typography>
+              <Typography variant="body2">{t('lnksys_bridges', { defaultValue: 'Bridges (IP)' })}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
       {countRepeaters > 0 && (
         <Paper sx={tablePaperSx}>
