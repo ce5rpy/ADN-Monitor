@@ -1,0 +1,48 @@
+# Release Please — dry run only (no PR, no tag, no GitHub Release).
+#
+# Manual trigger from GitHub Actions UI to validate versioning before enabling
+# the production workflow.
+#
+# Secrets: uses GITHUB_TOKEN (read-only enough for dry-run API calls).
+
+name: release-please-dry-run
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: Branch Release Please compares against (default develop)
+        required: false
+        default: develop
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Release Please dry-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx --yes release-please@latest release-pr \
+            --repo-url="${{ github.repository }}" \
+            --target-branch="${{ inputs.target_branch }}" \
+            --config-file=release-please-config.json \
+            --manifest-file=.release-please-manifest.json \
+            --local \
+            --local-path="${{ github.workspace }}" \
+            --dry-run \
+            --debug
