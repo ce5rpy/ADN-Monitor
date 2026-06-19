@@ -51,8 +51,7 @@ version_variables = [
 
 [tool.semantic_release.branches.develop]
 match = "develop"
-prerelease = true
-prerelease_token = "rc"
+prerelease = false
 
 [tool.semantic_release.branches.master]
 match = "master"
