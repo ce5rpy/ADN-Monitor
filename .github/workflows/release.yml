@@ -1,0 +1,37 @@
+# Release — one merge to develop, fully automatic.
+#
+#   1. Merge PR to develop with squash title: fix: … or feat: …
+#   2. This workflow bumps version, updates CHANGELOG, tags, GitHub Release, syncs master
+#
+# No Release Please. No Release PR. No labels.
+
+name: release
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash .github/release.sh
