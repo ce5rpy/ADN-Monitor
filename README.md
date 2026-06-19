@@ -2,7 +2,7 @@
 
 **Version 2.0.0** — pairs with **adn-server 2.0.0** (report v2 slim wire + JSON HELLO).
 
-Releases are cut automatically from **`develop`** (merge a `fix:` / `feat:` PR → tag + GitHub Release).
+Releases are cut from **`master`** (merge `develop` → `master` when ready; semver from commit history since last tag).
 
 Dashboard for ADN networks: unified **FastAPI** process (REST + WebSocket + report ingest), React frontend, and optional MySQL for self-service and Last Heard.
 
