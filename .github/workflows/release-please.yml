@@ -1,14 +1,11 @@
-# Release Please
+# Release Please — one human step on develop.
 #
 # Flow:
 #   1. Merge fix:/feat: PR → develop (squash title = conventional commit)
-#   2. This workflow opens/updates the Release PR on develop
-#   3. auto-merge-release merges that Release PR (title must be "Release X.Y.Z-rc.N")
+#   2. Release Please opens/updates the Release PR on develop
+#   3. auto-merge-release merges that Release PR (merge commit)
 #   4. Second push → tag v* + GitHub Release (prerelease)
 #   5. sync-master fast-forwards master to match develop
-#
-# Do NOT merge Release PRs manually with the wrong title (e.g. "chore: release master").
-# Do NOT merge develop → master by hand for releases.
 
 name: release-please
 
@@ -16,6 +13,7 @@ on:
   push:
     branches:
       - develop
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -36,6 +34,23 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Clear stale autorelease labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh pr list --repo "${{ github.repository }}" --state merged \
+            --label "autorelease: pending" --json number,mergeCommit \
+            --jq '.[] | "\(.number) \(.mergeCommit.oid)"' | while read -r num sha; do
+            if git merge-base --is-ancestor "$sha" HEAD 2>/dev/null \
+              && git tag --points-at "$sha" | grep -q .; then
+              echo "Removing stale autorelease: pending from PR #${num} (tagged at ${sha})"
+              gh api -X DELETE \
+                "repos/${{ github.repository }}/issues/${num}/labels/autorelease:%20pending" \
+                || true
+            fi
+          done
 
       - name: Release Please
         id: release
