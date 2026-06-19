@@ -1,13 +1,9 @@
 # Release with python-semantic-release (standard tool for pyproject.toml projects).
 #
-#   merge PR → develop  (squash title: fix: / feat:)
-#        ↓
-#   bump version + CHANGELOG + tag + GitHub Release
-#        ↓
-#   master fast-forwarded to develop
+#   RC (develop): merge fix:/feat: PR → bump rc.N + tag + GitHub Release → sync master
+#   Stable (master): workflow_dispatch on master → 2.0.0 + tag + GitHub Release → sync develop
 #
-# Stable 2.0.0 later: merge develop → master and run this workflow on master
-# (master branch config has prerelease = false).
+# master branch config has prerelease = false in pyproject.toml.
 
 name: release
 
@@ -32,6 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
+          fetch-depth: 0
 
       - name: Reset to workflow SHA
         run: git reset --hard ${{ github.sha }}
@@ -43,30 +40,51 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           git_committer_name: github-actions[bot]
           git_committer_email: 41898282+github-actions[bot]@users.noreply.github.com
-          vcs_release: "true"
+          vcs_release: "false"
+          force: ${{ github.ref_name == 'master' && 'patch' || '' }}
 
-      - name: Ensure GitHub Release exists
-        if: steps.semantic.outputs.released == 'true'
+      - name: Create GitHub Release
+        if: steps.semantic.outputs.released == 'true' && steps.semantic.outputs.tag != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.semantic.outputs.tag }}
+          VERSION: ${{ steps.semantic.outputs.version }}
+          IS_PRERELEASE: ${{ steps.semantic.outputs.is_prerelease }}
+          RELEASE_NOTES: ${{ steps.semantic.outputs.release_notes }}
         run: |
-          TAG="${{ steps.semantic.outputs.tag }}"
+          set -euo pipefail
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists: ${{ steps.semantic.outputs.link }}"
+            echo "Release already exists for $TAG"
+            gh release view "$TAG" --json url -q .url
             exit 0
           fi
-          PRERELEASE=""
-          if [[ "${{ steps.semantic.outputs.is_prerelease }}" == "true" ]]; then
-            PRERELEASE="--prerelease"
+          PRERELEASE_FLAG=()
+          if [[ "$IS_PRERELEASE" == "true" ]]; then
+            PRERELEASE_FLAG=(--prerelease)
           fi
-          NOTES="${{ steps.semantic.outputs.release_notes }}"
-          if [[ -z "$NOTES" ]]; then
-            NOTES="Release ${TAG#v}"
+          NOTES_FILE="$(mktemp)"
+          if [[ -n "$RELEASE_NOTES" ]]; then
+            printf '%s\n' "$RELEASE_NOTES" > "$NOTES_FILE"
+          else
+            printf 'Release %s\n' "$VERSION" > "$NOTES_FILE"
           fi
-          gh release create "$TAG" --title "${TAG#v}" $PRERELEASE --notes "$NOTES"
+          gh release create "$TAG" --title "$VERSION" "${PRERELEASE_FLAG[@]}" --notes-file "$NOTES_FILE"
+          rm -f "$NOTES_FILE"
 
-      - name: Sync master to develop
+      - name: Verify GitHub Release
+        if: steps.semantic.outputs.released == 'true' && steps.semantic.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.semantic.outputs.tag }}
+        run: gh release view "$TAG"
+
+      - name: Sync branches
         if: steps.semantic.outputs.released == 'true'
         run: |
-          git fetch origin develop
-          git push origin origin/develop:refs/heads/master
+          if [[ "${{ github.ref_name }}" == "master" ]]; then
+            git fetch origin master
+            git push origin origin/master:refs/heads/develop
+          else
+            git fetch origin develop
+            git push origin origin/develop:refs/heads/master
+          fi
