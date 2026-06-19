@@ -4,6 +4,19 @@ All notable changes to **adn-monitor** (monitor + dashboard) are documented here
 
 <!-- version list -->
 
+## v2.0.0-rc.12 (2026-06-19)
+
+### Bug Fixes
+
+- Correct PSR commit_message and ensure GitHub Release is created
+  ([#34](https://github.com/ce5rpy/ADN-Monitor/pull/34),
+  [`ca1ddc8`](https://github.com/ce5rpy/ADN-Monitor/commit/ca1ddc84a0a87e37e7088bd2f98e67b907ff64ce))
+
+- Replace custom release script with python-semantic-release
+  ([#33](https://github.com/ce5rpy/ADN-Monitor/pull/33),
+  [`e1a8730`](https://github.com/ce5rpy/ADN-Monitor/commit/e1a873063585ec9944058a0ad146d1de80de277f))
+
+
 ## [2.0.0-rc.11](https://github.com/ce5rpy/ADN-Monitor/compare/v2.0.0-rc.10...v2.0.0-rc.11) (2026-06-19)
 
 
