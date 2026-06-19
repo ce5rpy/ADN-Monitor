@@ -2,6 +2,12 @@
 
 All notable changes to **adn-monitor** (monitor + dashboard) are documented here.
 
+## [2.0.0-rc.9](https://github.com/ce5rpy/ADN-Monitor/compare/v2.0.0-rc.8...v2.0.0-rc.9) (2026-06-19)
+
+### Fixed
+
+* **ci:** always publish GitHub releases from release-please; hard-sync develop after release
+
 ## [2.0.0-rc.8](https://github.com/ce5rpy/ADN-Monitor/compare/v2.0.0-rc.7...v2.0.0-rc.8) (2026-06-19)
 
 
