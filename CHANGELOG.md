@@ -10,6 +10,10 @@ Pairs with **adn-server 2.0.0-rc.4**.
 
 - **Linked Systems** — show repeater/hotspot/bridge summary cards with zero counts when the lnksys WebSocket delivers an empty CTABLE instead of "Waiting for server info...".
 
+### Changed
+
+- **Dependencies** — declare `itsdangerous>=2.1` in `monitor/requirements.txt` for FastAPI `SessionMiddleware` (self-service auth cookies).
+
 ### Compatibility
 
 - **Server:** adn-server **2.0.0-rc.4** or newer.
