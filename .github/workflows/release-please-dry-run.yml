@@ -11,9 +11,9 @@ on:
   workflow_dispatch:
     inputs:
       target_branch:
-        description: Branch Release Please compares against (default master)
+        description: Branch Release Please compares against (default develop)
         required: false
-        default: master
+        default: develop
         type: string
 
 permissions:
