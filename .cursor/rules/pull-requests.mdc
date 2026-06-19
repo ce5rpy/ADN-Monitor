@@ -1,0 +1,50 @@
+---
+description: Pull request creation — English, no test plan, confirm before push
+alwaysApply: true
+---
+# Pull requests
+
+- Write PR **title** and **body** in **English**.
+- Use conventional prefixes in the title when helpful: `feat:`, `fix:`, `chore:`.
+- Base branch: **`develop`** unless the user specifies otherwise.
+
+## Body format
+
+Use a **Summary** section only (1–3 bullet points). Do **not** add a Test plan, checklist, or testing section unless the user explicitly asks for one.
+
+Example body:
+
+```markdown
+## Summary
+- Brief description of what changed and why.
+- Second bullet only if needed.
+```
+
+## Workflow
+
+1. Inspect `git status`, `git diff`, and commits vs base before drafting.
+2. **Show** the planned `git push` and `gh pr create` commands to the user **before** running them.
+3. Run push/PR only after the user confirms (e.g. "sí", "yes", "adelante").
+4. Return the PR URL when created.
+
+## What NOT to include in PRs
+
+- No Test plan / test checklist by default.
+- No secrets, production config, or `.cursor/` paths in the description.
+
+## Release version bump
+
+On monitor releases, **Release Please** bumps **`pyproject.toml`** `project.version`, **`.release-please-manifest.json`**, **`CHANGELOG.md`**, and **`frontend/package.json`**.
+
+Enable GitHub Release/tag with repository variable `vars.RELEASE_PLEASE_PUBLISH=true`.
+
+### Squash merge and PR titles
+
+Release Please reads **commit messages on `master`** (not `develop`). With **squash merge**, the squash commit message is the **PR title** (plus optional body).
+
+- Use **`fix:`** / **`feat:`** in the PR title when the change should bump the release (patch / minor).
+- Use **`chore:`** only for infra with **no** version bump expected.
+- Do **not** mix a user-facing `fix` with bootstrap `chore` in one PR if you squash with a `chore:` title — the fix will not count.
+- **Merge commit** (no squash) preserves each commit message if you need multiple types in one PR.
+
+PRs to **`master`** for release: title must reflect the highest semver impact you want counted.

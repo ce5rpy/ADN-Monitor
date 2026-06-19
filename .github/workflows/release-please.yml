@@ -1,17 +1,14 @@
 # Release Please — automated semver + Release PRs.
 #
-# Rollout (enable step by step):
-#   1. Run workflow "release-please-dry-run" manually; confirm next version in logs.
-#   2. Set env RELEASE_PLEASE_PUBLISH=false (default): opens/updates Release PR only.
-#   3. When ready: set repository variable RELEASE_PLEASE_PUBLISH=true to tag + GitHub Release on merge to master.
-#
 # Flow:
-#   push develop → Release PR against master (CHANGELOG + pyproject.toml bump)
-#   merge Release PR → tag vX.Y.Z-rc.N (+ GitHub pre-release when publish enabled)
+#   push to master (after merging feature PRs) → opens/updates Release PR against master
+#   merge Release PR → tag vX.Y.Z-rc.N when vars.RELEASE_PLEASE_PUBLISH=true
+#
+# Squash merge: Release Please reads commit messages on master. Use a PR title
+# like fix: / feat: — that becomes the squash commit message.
 #
 # Commits (conventional): fix→patch, feat→minor, BREAKING CHANGE→major.
 # RC phase: prerelease-type rc (2.0.0-rc.6 → 2.0.0-rc.7).
-# First stable: merge a Release PR with release-as 2.0.0 and prerelease false in config.
 
 name: release-please
 
@@ -20,12 +17,6 @@ on:
     branches:
       - develop
       - master
-  workflow_dispatch:
-    inputs:
-      dry_run:
-        description: Dry run (log only, no PR/release)
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -47,23 +38,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Dry-run (workflow_dispatch)
-        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npx --yes release-please@latest release-pr \
-            --repo-url="${{ github.repository }}" \
-            --target-branch=master \
-            --config-file=release-please-config.json \
-            --manifest-file=.release-please-manifest.json \
-            --local \
-            --local-path="${{ github.workspace }}" \
-            --dry-run \
-            --debug
-
       - name: Release Please
-        if: github.event_name != 'workflow_dispatch' || !inputs.dry_run
         id: release
         uses: googleapis/release-please-action@v4
         with:
