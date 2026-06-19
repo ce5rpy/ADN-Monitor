@@ -5,7 +5,10 @@
       "release-type": "python",
       "component": "adn-monitor",
       "changelog-path": "CHANGELOG.md",
-      "include-component-in-tag": false
+      "include-component-in-tag": false,
+      "extra-files": [
+        "frontend/package.json"
+      ]
     }
   },
   "prerelease": true,
