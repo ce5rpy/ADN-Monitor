@@ -34,6 +34,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
+from adn_monitor import read_version
+
 from .composition import build_monitor_api
 from .runtime import MonitorRuntime
 from .routes.aliases_proxy import router as aliases_router
@@ -71,7 +73,7 @@ def create_app(config: dict[str, Any]) -> FastAPI:
 
     app = FastAPI(
         title=str(title),
-        version="2.0.0-rc.6",
+        version=read_version(),
         lifespan=_lifespan,
     )
     app.state.monitor_config = config

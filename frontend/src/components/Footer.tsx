@@ -48,15 +48,16 @@ function buildVersionLine(
 
 export default function Footer() {
   const { t } = useTranslation();
-  const { title, footer } = useDashboardConfig();
+  const { title, footer, monitorVersion: configMonitorVersion } = useDashboardConfig();
   const brand = title || t('footer_brand', 'ADN Systems');
   const serverInfo = useServerInfo();
   const isV2 = serverInfo?.mode === 'v2';
 
-  const dashboardVersion =
-    typeof __APP_VERSION__ !== 'undefined' && String(__APP_VERSION__).trim()
+  const buildVersion =
+    configMonitorVersion ||
+    (typeof __APP_VERSION__ !== 'undefined' && String(__APP_VERSION__).trim()
       ? String(__APP_VERSION__).trim()
-      : null;
+      : null);
 
   // Server version only from v2 HELLO (report_protocol 2); legacy → omit server segment.
   const serverVersionRaw = serverInfo?.info?.version;
@@ -70,7 +71,7 @@ export default function Footer() {
       : null;
 
   // Dashboard alone is fine; server segment is optional (joined with " / " only when both exist).
-  const versionLine = buildVersionLine(dashboardVersion, serverVersion, t);
+  const versionLine = buildVersionLine(buildVersion, serverVersion, t);
 
   return (
     <Box

@@ -27,6 +27,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..version import read_version
+
 
 def _bool(val: object) -> bool:
     if isinstance(val, bool):
@@ -104,6 +106,7 @@ def build_dashboard_config(config: dict[str, Any]) -> dict[str, Any]:
     title = dashboard.get("DASHTITLE") or dashboard.get("dashtitle") or "ADN Systems Dashboard"
     return {
         "title": str(title),
+        "monitorVersion": read_version(),
         "language": str(dashboard.get("LANGUAGE") or dashboard.get("language") or "en"),
         "background": _bool(dashboard.get("BACKGROUND") if "BACKGROUND" in dashboard else dashboard.get("background", False)),
         "selfService": _bool(
