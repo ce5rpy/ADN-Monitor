@@ -4,6 +4,23 @@ All notable changes to **adn-monitor** (monitor + dashboard) are documented here
 
 <!-- version list -->
 
+## v2.0.0-rc.14 (2026-06-19)
+
+### Bug Fixes
+
+- Drop force patch on master stable release
+  ([`0c8b94e`](https://github.com/ce5rpy/ADN-Monitor/commit/0c8b94ecd327275d66fdfb432caae794fe7d8951))
+
+- Use explicit stable-release script on master
+  ([`00cb588`](https://github.com/ce5rpy/ADN-Monitor/commit/00cb588964e3d8745396b67009648f3b3967099d))
+
+### Chores
+
+- Prepare stable 2.0.0 release and README server pairing
+  ([#36](https://github.com/ce5rpy/ADN-Monitor/pull/36),
+  [`4f6878f`](https://github.com/ce5rpy/ADN-Monitor/commit/4f6878fb9df88546cb7b0c20d57e06f8fa2302a3))
+
+
 ## v2.0.0-rc.13 (2026-06-19)
 
 ### Bug Fixes
