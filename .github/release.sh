@@ -140,7 +140,8 @@ sync_master() {
 }
 
 publish_release() {
-  local ver="$1" tag="v${ver}"
+  local ver="$1"
+  local tag="v${ver}"
   local prerelease_flag=()
   if [[ "$ver" == *"-rc"* ]]; then
     prerelease_flag=(--prerelease)
@@ -153,12 +154,11 @@ publish_release() {
     git push origin "$tag"
     local notes_file
     notes_file="$(mktemp)"
-    awk -v ver="$ver" '
-      $0 ~ "^## \\[" ver "\\]" { found=1; print; next }
-      found && /^## \[/ { exit }
-      found { print }
-    ' CHANGELOG.md > "$notes_file" || echo "Release ${ver}" > "$notes_file"
-    gh release create "$tag" --title "$ver" "${prerelease_flag[@]}" --notes-file "$notes_file"
+    sed -n "/^## \\[${ver}\\]/,/^## \\[/p" CHANGELOG.md | sed '$d' > "$notes_file" || true
+    if [[ ! -s "$notes_file" ]]; then
+      echo "Release ${ver}" > "$notes_file"
+    fi
+    gh release create "$tag" --title "$ver" ${prerelease_flag[@]+"${prerelease_flag[@]}"} --notes-file "$notes_file"
     rm -f "$notes_file"
     echo "Published GitHub Release ${ver}"
   fi
