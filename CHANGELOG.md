@@ -4,6 +4,15 @@ All notable changes to **adn-monitor** (monitor + dashboard) are documented here
 
 <!-- version list -->
 
+## v2.0.0-rc.13 (2026-06-19)
+
+### Bug Fixes
+
+- Show monitor version from pyproject at runtime
+  ([#35](https://github.com/ce5rpy/ADN-Monitor/pull/35),
+  [`3ae1449`](https://github.com/ce5rpy/ADN-Monitor/commit/3ae1449d0cfe41565d40049ea94938fcf19aa900))
+
+
 ## v2.0.0-rc.12 (2026-06-19)
 
 ### Bug Fixes
