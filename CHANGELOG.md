@@ -2,6 +2,13 @@
 
 All notable changes to **adn-monitor** (monitor + dashboard) are documented here.
 
+## [2.0.0-rc.10](https://github.com/ce5rpy/ADN-Monitor/compare/v2.0.0-rc.9...v2.0.0-rc.10) (2026-06-19)
+
+
+### Fixed
+
+* simplify release flow to develop-only with auto-merge ([#25](https://github.com/ce5rpy/ADN-Monitor/issues/25)) ([c229ffa](https://github.com/ce5rpy/ADN-Monitor/commit/c229ffa9cae62236c7c1da630823d8d4e2fcce63))
+
 ## [2.0.0-rc.9](https://github.com/ce5rpy/ADN-Monitor/compare/v2.0.0-rc.8...v2.0.0-rc.9) (2026-06-19)
 
 ### Fixed
