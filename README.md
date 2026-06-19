@@ -1,6 +1,8 @@
 # ADN Systems Monitor
 
-**Version 2.0.0-rc.6** — pairs with **adn-server 2.0.0-rc.4** (report v2 slim wire + JSON HELLO).
+**Version 2.0.0-rc.10** — pairs with **adn-server 2.0.0-rc.4** (report v2 slim wire + JSON HELLO).
+
+Releases are cut automatically from **`develop`** (merge a `fix:` / `feat:` PR → tag + GitHub Release).
 
 Dashboard for ADN networks: unified **FastAPI** process (REST + WebSocket + report ingest), React frontend, and optional MySQL for self-service and Last Heard.
 
