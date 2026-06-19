@@ -1,0 +1,92 @@
+# Release Please — automated semver + Release PRs.
+#
+# Rollout (enable step by step):
+#   1. Run workflow "release-please-dry-run" manually; confirm next version in logs.
+#   2. Set env RELEASE_PLEASE_PUBLISH=false (default): opens/updates Release PR only.
+#   3. When ready: set repository variable RELEASE_PLEASE_PUBLISH=true to tag + GitHub Release on merge to master.
+#
+# Flow:
+#   push develop → Release PR against master (CHANGELOG + pyproject.toml bump)
+#   merge Release PR → tag vX.Y.Z-rc.N (+ GitHub pre-release when publish enabled)
+#
+# Commits (conventional): fix→patch, feat→minor, BREAKING CHANGE→major.
+# RC phase: prerelease-type rc (2.0.0-rc.6 → 2.0.0-rc.7).
+# First stable: merge a Release PR with release-as 2.0.0 and prerelease false in config.
+
+name: release-please
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Dry run (log only, no PR/release)
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-please-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Dry-run (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx --yes release-please@latest release-pr \
+            --repo-url="${{ github.repository }}" \
+            --target-branch=master \
+            --config-file=release-please-config.json \
+            --manifest-file=.release-please-manifest.json \
+            --local \
+            --local-path="${{ github.workspace }}" \
+            --dry-run \
+            --debug
+
+      - name: Release Please
+        if: github.event_name != 'workflow_dispatch' || !inputs.dry_run
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          target-branch: master
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          skip-github-release: ${{ vars.RELEASE_PLEASE_PUBLISH != 'true' }}
+
+  sync-develop:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync develop from master
+        run: |
+          git fetch origin master develop
+          git checkout develop
+          git merge origin/master -m "chore: sync develop from master (${{ needs.release-please.outputs.tag_name }})"
+          git push origin develop

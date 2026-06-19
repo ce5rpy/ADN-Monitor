@@ -28,9 +28,12 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 const projectRoot = path.resolve(__dirname, '..');
-const appVersion = JSON.parse(
-  readFileSync(path.join(__dirname, 'package.json'), 'utf8'),
-).version as string;
+const pyproject = readFileSync(path.join(projectRoot, 'pyproject.toml'), 'utf8');
+const versionMatch = pyproject.match(/^version\s*=\s*"([^"]+)"/m);
+if (!versionMatch) {
+  throw new Error('project.version missing in pyproject.toml');
+}
+const appVersion = versionMatch[1];
 
 export default defineConfig({
   plugins: [react()],
