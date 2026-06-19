@@ -2,6 +2,14 @@
 
 All notable changes to **adn-monitor** (monitor + dashboard) are documented here.
 
+## [2.0.0-rc.7](https://github.com/ce5rpy/ADN-Monitor/compare/v2.0.0-rc.6...v2.0.0-rc.7) (2026-06-19)
+
+
+### Fixed
+
+* read dashboard version from pyproject.toml ([#19](https://github.com/ce5rpy/ADN-Monitor/issues/19)) ([d3bf164](https://github.com/ce5rpy/ADN-Monitor/commit/d3bf16422448e8ac9147feb0fcebf7e068395ea4))
+* use Release Please `prerelease` versioning so RC bumps increment `rc.N` (not `2.0.0-rc.6` → `2.0.1-rc.6`)
+
 ## [2.0.0-rc.6] - 2026-06-19
 
 Pairs with **adn-server 2.0.0-rc.4**.

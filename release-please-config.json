@@ -11,6 +11,7 @@
       ]
     }
   },
+  "versioning": "prerelease",
   "prerelease": true,
   "prerelease-type": "rc",
   "include-v-in-tag": true,
