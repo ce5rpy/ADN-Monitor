@@ -2,6 +2,15 @@
 
 All notable changes to **adn-monitor** (monitor + dashboard) are documented here.
 
+## [2.0.0-rc.11](https://github.com/ce5rpy/ADN-Monitor/compare/v2.0.0-rc.10...v2.0.0-rc.11) (2026-06-19)
+
+
+### Fixed
+
+* clear stale autorelease labels and fix Release PR title pattern ([#29](https://github.com/ce5rpy/ADN-Monitor/issues/29)) ([daa6f45](https://github.com/ce5rpy/ADN-Monitor/commit/daa6f45efce625ecfb629656e0ccfcdc0c1f0068))
+* set group-pull-request-title-pattern for Release Please ([#27](https://github.com/ce5rpy/ADN-Monitor/issues/27)) ([da065cd](https://github.com/ce5rpy/ADN-Monitor/commit/da065cdcfc2df5935d33d9d03889929a4d59e093))
+* update README version and release workflow notes ([#28](https://github.com/ce5rpy/ADN-Monitor/issues/28)) ([9896db3](https://github.com/ce5rpy/ADN-Monitor/commit/9896db32fa9e3e85457d7944d742469bfba3a187))
+
 ## [2.0.0-rc.10](https://github.com/ce5rpy/ADN-Monitor/compare/v2.0.0-rc.9...v2.0.0-rc.10) (2026-06-19)
 
 
