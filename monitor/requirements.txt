@@ -4,6 +4,7 @@ twisted>=22.0
 autobahn>=23.0
 mysqlclient>=2.2.0
 fastapi>=0.110
+itsdangerous>=2.1
 uvicorn[standard]>=0.27
 httpx>=0.27
 # Optional: only when MONITOR_APP.INGEST=mqtt
