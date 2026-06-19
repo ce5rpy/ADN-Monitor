@@ -1,6 +1,6 @@
 # ADN Monitor
 # GPL v3. Derived from FDMR Monitor / HBMonv2 / hbmonitor3 / HBmonitor.
-# Version: bumped by Release Please (Release PR → master → tag v*).
+# Version: bumped by .github/workflows/release.yml on merge to develop.
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]
