@@ -70,6 +70,7 @@ def test_dashboard_config_endpoint():
     assert resp.status_code == 200
     body = resp.json()
     assert body["title"] == "Test"
+    assert body["monitorVersion"]
     assert body["language"] == "es"
     assert body["selfService"] is True
     assert body["navLinks"]["items"][0]["name"] == "ADN"

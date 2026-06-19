@@ -61,6 +61,8 @@ export type NavLinkItem = { name: string; url: string };
 
 type DashboardConfig = {
   title: string;
+  /** Monitor release version from pyproject.toml (runtime, no frontend rebuild needed). */
+  monitorVersion: string | null;
   language: string;
   background: boolean;
   /** Show/hide local Self-service nav item only. SelfCare link is always in header (hardcoded). */
@@ -78,6 +80,7 @@ type DashboardConfig = {
 
 const defaultConfig: DashboardConfig = {
   title: 'ADN Systems Dashboard',
+  monitorVersion: null,
   language: getDefaultLanguage(),
   background: false,
   selfService: false,
@@ -130,6 +133,7 @@ export function DashboardConfigProvider({ children }: { children: React.ReactNod
       })
       .then((data: {
           title?: string;
+          monitorVersion?: string;
           language?: string;
           background?: boolean;
           selfService?: boolean;
@@ -148,8 +152,13 @@ export function DashboardConfigProvider({ children }: { children: React.ReactNod
           ? data.news.filter((e): e is NavLinkItem => e && typeof e === 'object' && 'name' in e)
           : [];
         const title = data.title ?? defaultConfig.title;
+        const monitorVersion =
+          typeof data.monitorVersion === 'string' && data.monitorVersion.trim()
+            ? data.monitorVersion.trim()
+            : null;
         setConfig({
           title,
+          monitorVersion,
           language: resolvedLang,
           background: Boolean(data.background),
           selfService: Boolean(data.selfService),
