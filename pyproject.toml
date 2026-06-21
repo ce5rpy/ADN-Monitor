@@ -49,11 +49,6 @@ version_variables = [
   "README_es.md:**Versión",
 ]
 
-[tool.semantic_release.branches.develop]
-match = "develop"
-prerelease = true
-prerelease_token = "rc"
-
 [tool.semantic_release.branches.master]
 match = "master"
 prerelease = false

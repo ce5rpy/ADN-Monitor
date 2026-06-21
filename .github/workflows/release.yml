@@ -1,14 +1,13 @@
 # Release workflow
 #
-#   RC (develop): python-semantic-release on push → rc.N + tag + GitHub Release → sync master
-#   Stable (master): workflow_dispatch → promote rc.N to N.N.N + tag + GitHub Release → sync develop
+#   master: python-semantic-release on push → semver tag + GitHub Release → sync develop
 
 name: release
 
 on:
   push:
     branches:
-      - develop
+      - master
   workflow_dispatch:
 
 permissions:
@@ -31,15 +30,7 @@ jobs:
       - name: Reset to workflow SHA
         run: git reset --hard ${{ github.sha }}
 
-      - name: Stable release (master)
-        if: github.ref_name == 'master'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: bash .github/stable-release.sh
-
-      - name: Semantic Release (develop)
-        if: github.ref_name != 'master'
+      - name: Semantic Release
         id: semantic
         uses: python-semantic-release/python-semantic-release@v10.5.3
         with:
@@ -49,12 +40,11 @@ jobs:
           vcs_release: "false"
 
       - name: Create GitHub Release
-        if: github.ref_name != 'master' && steps.semantic.outputs.released == 'true' && steps.semantic.outputs.tag != ''
+        if: steps.semantic.outputs.released == 'true' && steps.semantic.outputs.tag != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.semantic.outputs.tag }}
           VERSION: ${{ steps.semantic.outputs.version }}
-          IS_PRERELEASE: ${{ steps.semantic.outputs.is_prerelease }}
           RELEASE_NOTES: ${{ steps.semantic.outputs.release_notes }}
         run: |
           set -euo pipefail
@@ -63,34 +53,37 @@ jobs:
             gh release view "$TAG" --json url -q .url
             exit 0
           fi
-          PRERELEASE_FLAG=()
-          if [[ "$IS_PRERELEASE" == "true" ]]; then
-            PRERELEASE_FLAG=(--prerelease)
-          fi
           NOTES_FILE="$(mktemp)"
           if [[ -n "$RELEASE_NOTES" ]]; then
             printf '%s\n' "$RELEASE_NOTES" > "$NOTES_FILE"
           else
             printf 'Release %s\n' "$VERSION" > "$NOTES_FILE"
           fi
-          gh release create "$TAG" --title "$VERSION" "${PRERELEASE_FLAG[@]}" --notes-file "$NOTES_FILE"
+          gh release create "$TAG" --title "$VERSION" --notes-file "$NOTES_FILE"
           rm -f "$NOTES_FILE"
 
       - name: Verify GitHub Release
-        if: github.ref_name != 'master' && steps.semantic.outputs.released == 'true' && steps.semantic.outputs.tag != ''
+        if: steps.semantic.outputs.released == 'true' && steps.semantic.outputs.tag != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.semantic.outputs.tag }}
         run: gh release view "$TAG"
 
       - name: Sync develop from master
-        if: github.ref_name == 'master'
+        if: steps.semantic.outputs.released == 'true'
+        env:
+          VERSION: ${{ steps.semantic.outputs.version }}
         run: |
-          git fetch origin master
-          git push origin origin/master:refs/heads/develop
-
-      - name: Sync master from develop
-        if: github.ref_name != 'master' && steps.semantic.outputs.released == 'true'
-        run: |
-          git fetch origin develop
-          git push origin origin/develop:refs/heads/master
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin master develop
+          git checkout -B develop origin/develop
+          # Merge (no force-push): keeps old develop as ancestor so local checkouts can pull/ff.
+          if git merge origin/master --ff-only; then
+            echo "Fast-forward develop to master"
+          else
+            git merge origin/master --no-edit \
+              -m "chore: sync develop from master after release ${VERSION}"
+          fi
+          git push origin develop
