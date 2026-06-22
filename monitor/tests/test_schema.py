@@ -38,6 +38,31 @@ def test_migration_adds_callsign_only_when_missing():
     assert len(alters) == 1
 
 
+def test_migration_005_normalizes_infinite_single_expires_at():
+    cur = MagicMock()
+    seq = iter(
+        [
+            (1,),  # 001 applied
+            (1,),  # 002 applied
+            (1,),  # 003 applied
+            (1,),  # 004 applied
+            None,  # 005 not applied
+            (1,),  # peer_dynamic_tgs exists
+        ]
+        + [None] * 20
+    )
+    cur.fetchone.side_effect = lambda: next(seq, None)
+    apply_migrations(cur)
+    updates = [
+        c[0][0]
+        for c in cur.execute.call_args_list
+        if "UPDATE peer_dynamic_tgs" in c[0][0]
+    ]
+    assert len(updates) == 1
+    assert "expires_at = NULL" in updates[0]
+    assert "single_mode = 1 AND expires_at = 0" in updates[0]
+
+
 def test_cleanup_drops_staging():
     cur = MagicMock()
     cur.fetchone.side_effect = [(1,), None, None, None, None, None, None, None]

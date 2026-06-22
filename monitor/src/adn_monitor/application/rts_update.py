@@ -219,6 +219,14 @@ def rts_update_impl(
             crxstatus = "RX" if _peer_keys_equal(source_peer, peer) else "TX"
             peer_ts = peer_row[display_slot]
             if action == "START":
+                # Local PTT (TRX=RX / red): do not replace with another peer's downlink (TRX=TX / green).
+                if (
+                    peer_ts.get("TS")
+                    and peer_ts.get("TRX") == "RX"
+                    and not _peer_keys_equal(source_peer, peer)
+                    and not _is_echo_service_live_tgid(destination)
+                ):
+                    continue
                 peer_ts["TIMEOUT"] = timeout
                 peer_ts["TS"] = True
                 peer_ts["TYPE"] = call_type

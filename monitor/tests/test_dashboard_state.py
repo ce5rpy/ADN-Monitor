@@ -840,6 +840,46 @@ def test_dashboard_state_empty_ua_sessions_preserves_single_zero_multi() -> None
     assert multi == {7304, 7306}
 
 
+def test_dashboard_state_restores_ua_multi_from_server_config() -> None:
+    """SINGLE=0: CONFIG_SND ``UA_MULTI_TGS`` repopulates chips after server restart."""
+    from adn_monitor.application.tgstats import sync_server_ua_sessions_from_config
+
+    state = MonitorState()
+    peer_a = 714002301
+    state.CTABLE = {
+        "MASTERS": {
+            "SYSTEM": {
+                "PEERS": {
+                    peer_a: {
+                        "TS1": {"TS": "1", "TGID": "", "TO": ""},
+                        "TS2": {"TS": "2", "TGID": "", "TO": ""},
+                    }
+                }
+            }
+        }
+    }
+    config = {
+        "SYSTEM": {
+            "MODE": "MASTER",
+            "SINGLE_MODE": False,
+            "PEERS": {
+                peer_a: {
+                    "SINGLE_MODE": False,
+                    "UA_MULTI_TGS": {"1": [7144], "2": [730444]},
+                }
+            },
+        }
+    }
+    state.CONFIG = config
+    sync_server_ua_sessions_from_config(state, config)
+    build_tgstats(state)
+    assert state.UA_MULTI_TGS[("SYSTEM", peer_a, 1)] == {7144}
+    assert state.UA_MULTI_TGS[("SYSTEM", peer_a, 2)] == {730444}
+    peer = state.CTABLE["MASTERS"]["SYSTEM"]["PEERS"][peer_a]
+    assert {int(e["TGID"]) for e in peer["UA_MULTI_TS1"]} == {7144}
+    assert {int(e["TGID"]) for e in peer["UA_MULTI_TS2"]} == {730444}
+
+
 def test_yaml_defaults_when_peer_options_omit_single_and_timer() -> None:
     """Without SINGLE/TIMER in OPTIONS, YAML SYSTEM config applies (any values)."""
     from adn_monitor.application.tgstats import _resolve_peer_single_and_timer
@@ -972,6 +1012,88 @@ def test_register_ua_session_uses_peer_timer_minutes() -> None:
     entry = state.UA_SESSION_EXPIRES[("SYSTEM-2", 730039101, 2)]
     assert entry[0] == 730444
     assert entry[1] >= before + 5 * 60 - 1
+
+
+def test_build_tgstats_omits_to_for_infinite_ua_timer() -> None:
+    """TIMER=0 (legacy no-expiry) must not show ~24855d on the indigo chip."""
+    import time as _time
+
+    from adn_monitor.application.tgstats import build_tgstats_impl, register_ua_session
+    from adn_monitor.application.time_utils import time_str
+
+    peer_a = 730039101
+    state = MonitorState()
+    state.server_mode = ServerMode.V2
+    state.CONFIG = _config_with_peer_options((peer_a, "1", 0.0), yaml_single=True, yaml_timer=60)
+    state.CTABLE = {
+        "MASTERS": {
+            "SYSTEM-2": {
+                "PEERS": {
+                    peer_a: {
+                        "TS1_STATIC": [],
+                        "TS2_STATIC": ["730"],
+                        1: {},
+                        2: {},
+                    }
+                }
+            }
+        },
+        "PEERS": {},
+        "OPENBRIDGES": {},
+    }
+    register_ua_session(state, "SYSTEM-2", peer_a, 2, 730444)
+    build_tgstats_impl(state, time_str)
+    peer = state.CTABLE["MASTERS"]["SYSTEM-2"]["PEERS"][peer_a]
+    assert peer["SINGLE_TS2"]["TGID"] == 730444
+    assert peer["SINGLE_TS2"]["TO"] == ""
+
+
+def test_register_ua_session_infinite_timer_static_tg_no_absurd_to() -> None:
+    """SINGLE=1 + TIMER=0 on static TG: chip shows TG without ~24855d countdown."""
+    from adn_monitor.application.rts_update import rts_update_impl
+
+    state = MonitorState()
+    state.CTABLE = {
+        "MASTERS": {
+            "SYSTEM-0": {
+                "PEERS": {
+                    730001: {
+                        "TS1_STATIC": [],
+                        "TS2_STATIC": ["7144", "730444"],
+                        1: {"TS": False, "TRX": ""},
+                        2: {"TS": False, "TRX": ""},
+                    }
+                }
+            }
+        },
+        "PEERS": {},
+        "OPENBRIDGES": {},
+    }
+    state.CONFIG = {
+        "SYSTEM": {
+            "MODE": "MASTER",
+            "SINGLE_MODE": True,
+            "DEFAULT_UA_TIMER": 60,
+            "PEERS": {
+                (730001).to_bytes(4, "big"): {
+                    "OPTIONS": b"TS2=7144,730444;SINGLE=1;TIMER=0;",
+                }
+            },
+        }
+    }
+    alias = MagicMock()
+    alias.alias_short.return_value = "HS"
+    alias.alias_call.return_value = "HS"
+    alias.alias_tgid.return_value = "TG"
+    rts_update_impl(
+        "GROUP VOICE,START,RX,SYSTEM-0,1,730001,730001,2,7144".split(","),
+        state,
+        alias,
+        lambda: "12:00",
+    )
+    peer = state.CTABLE["MASTERS"]["SYSTEM-0"]["PEERS"][730001]
+    assert peer["SINGLE_TS2"]["TGID"] == 7144
+    assert peer["SINGLE_TS2"]["TO"] == ""
 
 
 def test_register_ua_session_ignores_echo_9990() -> None:
