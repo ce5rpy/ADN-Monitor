@@ -514,6 +514,40 @@ def _apply_server_ua_sessions_from_config(
         expires[key] = (tgid, exp)
 
 
+def _apply_server_ua_multi_from_config(
+    state: MonitorState,
+    master_name: str,
+    peer_id: int,
+    peer_cfg: dict,
+) -> None:
+    """Sync SINGLE=0 multi-dynamic chips from server ``UA_MULTI_TGS`` (after DB restore)."""
+    if _peer_single_mode(state, master_name, peer_id):
+        return
+    if "UA_MULTI_TGS" not in peer_cfg:
+        return
+    raw = peer_cfg.get("UA_MULTI_TGS")
+    if not isinstance(raw, dict):
+        return
+    _, _, multi = _ensure_session_maps(state)
+    for slot_key, tgids in raw.items():
+        try:
+            slot = int(slot_key)
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(tgids, (list, tuple, set)):
+            continue
+        tset = {
+            int(t)
+            for t in tgids
+            if int(t) > 0 and not _is_service_voice_tgid(int(t))
+        }
+        key = _session_key(master_name, peer_id, slot)
+        if tset:
+            multi[key] = tset
+        else:
+            multi.pop(key, None)
+
+
 def sync_server_ua_sessions_from_config(state: MonitorState, config_dict: dict) -> None:
     """Apply server UA snapshot only when CONFIG/dashboard_state arrives (not on voice)."""
     for master_name, sys_cfg in config_dict.items():
@@ -530,6 +564,7 @@ def sync_server_ua_sessions_from_config(state: MonitorState, config_dict: dict) 
             else:
                 pid = int(peer_key)
             _apply_server_ua_sessions_from_config(state, master_name, pid, peer_cfg)
+            _apply_server_ua_multi_from_config(state, master_name, pid, peer_cfg)
 
 
 def build_tgstats_impl(state: MonitorState, time_str_fn) -> None:

@@ -840,6 +840,46 @@ def test_dashboard_state_empty_ua_sessions_preserves_single_zero_multi() -> None
     assert multi == {7304, 7306}
 
 
+def test_dashboard_state_restores_ua_multi_from_server_config() -> None:
+    """SINGLE=0: CONFIG_SND ``UA_MULTI_TGS`` repopulates chips after server restart."""
+    from adn_monitor.application.tgstats import sync_server_ua_sessions_from_config
+
+    state = MonitorState()
+    peer_a = 714002301
+    state.CTABLE = {
+        "MASTERS": {
+            "SYSTEM": {
+                "PEERS": {
+                    peer_a: {
+                        "TS1": {"TS": "1", "TGID": "", "TO": ""},
+                        "TS2": {"TS": "2", "TGID": "", "TO": ""},
+                    }
+                }
+            }
+        }
+    }
+    config = {
+        "SYSTEM": {
+            "MODE": "MASTER",
+            "SINGLE_MODE": False,
+            "PEERS": {
+                peer_a: {
+                    "SINGLE_MODE": False,
+                    "UA_MULTI_TGS": {"1": [7144], "2": [730444]},
+                }
+            },
+        }
+    }
+    state.CONFIG = config
+    sync_server_ua_sessions_from_config(state, config)
+    build_tgstats(state)
+    assert state.UA_MULTI_TGS[("SYSTEM", peer_a, 1)] == {7144}
+    assert state.UA_MULTI_TGS[("SYSTEM", peer_a, 2)] == {730444}
+    peer = state.CTABLE["MASTERS"]["SYSTEM"]["PEERS"][peer_a]
+    assert {int(e["TGID"]) for e in peer["UA_MULTI_TS1"]} == {7144}
+    assert {int(e["TGID"]) for e in peer["UA_MULTI_TS2"]} == {730444}
+
+
 def test_yaml_defaults_when_peer_options_omit_single_and_timer() -> None:
     """Without SINGLE/TIMER in OPTIONS, YAML SYSTEM config applies (any values)."""
     from adn_monitor.application.tgstats import _resolve_peer_single_and_timer
