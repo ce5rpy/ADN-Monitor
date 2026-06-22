@@ -640,10 +640,13 @@ def _handle_brdg_event_parts(
             log_message = _format_log_message_unknown_end(_now, parts, alias_svc)
         else:
             log_message = f"{_now[10:19]} Unknown voice bridge log message ({parts[0]})."
-        state.LOGBUF.append(log_message)
-        logger.info("(VOICE) %s", log_message)
-        if broadcast:
-            broadcast.broadcast("l" + log_message, "log")
+        from .rts_update import voice_event_skip_master_downlink_log
+
+        if not voice_event_skip_master_downlink_log(parts, state.CTABLE):
+            state.LOGBUF.append(log_message)
+            logger.info("(VOICE) %s", log_message)
+            if broadcast:
+                broadcast.broadcast("l" + log_message, "log")
     elif parts[0] == "UNIT DATA HEADER" and parts[2] != "TX" and parts[5] not in config_global.get("OPB_FILTER", []):
         _u_ts = time.time()
         _u_utc = format_utc_naive_datetime(_u_ts)
