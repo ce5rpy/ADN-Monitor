@@ -283,3 +283,41 @@ def test_companion_tx_does_not_replace_own_active_qso_on_other_tg() -> None:
     assert peer[2]["TS"] is True
     assert peer[2]["TRX"] == "RX"
     assert "7144" in peer[2]["TG"]
+
+
+def test_companion_tx_same_static_tg_does_not_flip_local_tx_to_green() -> None:
+    """Another user keying the same static TG must not turn local TX (red) into RX (green)."""
+    state = MonitorState()
+    state.CTABLE = {
+        "MASTERS": {
+            "SYSTEM-0": {
+                "PEERS": {
+                    730001: {
+                        "TS1_STATIC": [],
+                        "TS2_STATIC": ["7144", "730444"],
+                        1: {"TS": False, "TRX": ""},
+                        2: {"TS": False, "TRX": ""},
+                    }
+                }
+            }
+        },
+        "PEERS": {},
+        "OPENBRIDGES": {},
+    }
+    alias = _alias()
+    rts_update_impl(
+        "GROUP VOICE,START,RX,SYSTEM-0,1,730001,730001,2,7144".split(","),
+        state,
+        alias,
+        lambda: "12:00",
+    )
+    rts_update_impl(
+        "GROUP VOICE,START,TX,SYSTEM-0,2,730002,730002,2,7144".split(","),
+        state,
+        alias,
+        lambda: "12:01",
+    )
+    peer = state.CTABLE["MASTERS"]["SYSTEM-0"]["PEERS"][730001]
+    assert peer[2]["TRX"] == "RX"
+    assert "7144" in peer[2]["TG"]
+    assert peer[2]["SUB"].startswith("HS")
