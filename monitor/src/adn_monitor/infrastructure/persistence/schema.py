@@ -170,6 +170,14 @@ def apply_migrations(cursor: Any) -> None:
         )
         _mark_migration(cursor, "004_peer_dynamic_tgs")
 
+    if not _migration_applied(cursor, "005_peer_dynamic_tgs_expires_null"):
+        if _table_exists(cursor, "peer_dynamic_tgs"):
+            cursor.execute(
+                "UPDATE peer_dynamic_tgs SET expires_at = NULL "
+                "WHERE single_mode = 1 AND expires_at = 0"
+            )
+        _mark_migration(cursor, "005_peer_dynamic_tgs_expires_null")
+
     cleanup_staging_tables(cursor)
 
 

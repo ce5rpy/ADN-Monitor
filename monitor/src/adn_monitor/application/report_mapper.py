@@ -169,6 +169,8 @@ def dashboard_state_to_config(doc: dict[str, Any], *, ts: float | None = None) -
                     pass
             if "ua_sessions" in peer:
                 peer_conf["UA_SESSIONS"] = peer.get("ua_sessions") or {}
+            if "ua_multi_tgs" in peer:
+                peer_conf["UA_MULTI_TGS"] = peer.get("ua_multi_tgs") or {}
             peers[_bytes_4(pid)] = peer_conf
         entry["PEERS"] = peers
         config[str(name)] = entry
@@ -290,6 +292,8 @@ def topology_to_config(topology: dict[str, Any], *, ts: float | None = None) -> 
                     pass
             if "ua_sessions" in peer:
                 peer_conf["UA_SESSIONS"] = peer.get("ua_sessions") or {}
+            if "ua_multi_tgs" in peer:
+                peer_conf["UA_MULTI_TGS"] = peer.get("ua_multi_tgs") or {}
             peers[_bytes_4(pid)] = peer_conf
         entry["PEERS"] = peers
         config[str(name)] = entry
