@@ -245,3 +245,41 @@ def test_echo_tx_downlink_uses_wire_slot_not_static_map() -> None:
     assert peer[1]["TS"] is True
     assert peer[1]["TRX"] == "TX"
     assert peer[2]["TS"] is False
+
+
+def test_companion_tx_does_not_replace_own_active_qso_on_other_tg() -> None:
+    """While TX on TG 7144 (RX chip), companion TX for another TG must not overwrite the slot."""
+    state = MonitorState()
+    state.CTABLE = {
+        "MASTERS": {
+            "SYSTEM-0": {
+                "PEERS": {
+                    730001: {
+                        "TS1_STATIC": [],
+                        "TS2_STATIC": ["7144", "730444"],
+                        1: {"TS": False, "TRX": ""},
+                        2: {"TS": False, "TRX": ""},
+                    }
+                }
+            }
+        },
+        "PEERS": {},
+        "OPENBRIDGES": {},
+    }
+    alias = _alias()
+    rts_update_impl(
+        "GROUP VOICE,START,RX,SYSTEM-0,1,730001,730001,2,7144".split(","),
+        state,
+        alias,
+        lambda: "12:00",
+    )
+    rts_update_impl(
+        "GROUP VOICE,START,TX,SYSTEM-0,2,730002,730002,2,730444".split(","),
+        state,
+        alias,
+        lambda: "12:01",
+    )
+    peer = state.CTABLE["MASTERS"]["SYSTEM-0"]["PEERS"][730001]
+    assert peer[2]["TS"] is True
+    assert peer[2]["TRX"] == "RX"
+    assert "7144" in peer[2]["TG"]

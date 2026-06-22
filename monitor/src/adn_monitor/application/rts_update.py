@@ -31,6 +31,7 @@ from ..domain.value_objects import ServerMode
 from .alias_service import AliasService
 from .monitor_controller import MonitorState
 from .tgstats import (
+    _active_tgid_from_peer_ts,
     _apply_multi_mode_chips,
     _is_echo_service_live_tgid,
     _is_service_voice_tgid,
@@ -219,6 +220,12 @@ def rts_update_impl(
             crxstatus = "RX" if _peer_keys_equal(source_peer, peer) else "TX"
             peer_ts = peer_row[display_slot]
             if action == "START":
+                active_tgid = _active_tgid_from_peer_ts(peer_ts)
+                if active_tgid is not None and active_tgid != destination:
+                    if peer_ts.get("TRX") == "RX" and _peer_keys_equal(source_peer, peer):
+                        continue
+                    if trx == "TX" and not _peer_keys_equal(source_peer, peer):
+                        continue
                 peer_ts["TIMEOUT"] = timeout
                 peer_ts["TS"] = True
                 peer_ts["TYPE"] = call_type

@@ -28,6 +28,14 @@ from __future__ import annotations
 import re
 import time
 
+from adn_monitor.domain.ua_timer import (
+    UA_SESSION_NEVER_EXPIRES_AT,
+    normalize_ua_timer_minutes,
+    ua_session_expires_is_infinite,
+    ua_session_never_expires,
+    ua_timer_is_infinite,
+)
+
 from .monitor_controller import MonitorState
 
 
@@ -138,7 +146,13 @@ def _merged_peer_option_fields(state: MonitorState, master_name: str, peer_id: i
     if "SINGLE_MODE" in peer_cfg and "SINGLE" not in merged:
         merged["SINGLE"] = "1" if peer_cfg["SINGLE_MODE"] else "0"
     if "UA_TIMER_MIN" in peer_cfg and "TIMER" not in merged:
-        merged["TIMER"] = peer_cfg["UA_TIMER_MIN"]
+        try:
+            timer = float(peer_cfg["UA_TIMER_MIN"])
+        except (TypeError, ValueError):
+            pass
+        else:
+            if not ua_timer_is_infinite(timer):
+                merged["TIMER"] = timer
     return merged
 
 
@@ -156,13 +170,20 @@ def _resolve_peer_single_and_timer(
         single = bool(yaml_cfg.get("SINGLE_MODE", False))
     if "TIMER" in fields:
         try:
-            timer = float(fields["TIMER"])
+            timer = normalize_ua_timer_minutes(
+                float(fields["TIMER"]),
+                default_minutes=float(yaml_cfg.get("DEFAULT_UA_TIMER", 10)),
+            )
         except (TypeError, ValueError):
-            timer = float(yaml_cfg.get("DEFAULT_UA_TIMER", 10))
+            timer = normalize_ua_timer_minutes(
+                float(yaml_cfg.get("DEFAULT_UA_TIMER", 10)),
+                default_minutes=10.0,
+            )
     else:
-        timer = float(yaml_cfg.get("DEFAULT_UA_TIMER", 10))
-    if timer <= 0:
-        timer = 35_791_394.0
+        timer = normalize_ua_timer_minutes(
+            float(yaml_cfg.get("DEFAULT_UA_TIMER", 10)),
+            default_minutes=10.0,
+        )
     return single, timer
 
 
@@ -314,8 +335,11 @@ def register_ua_session(
     key = _session_key(master_name, peer_id, slot)
     if _peer_single_mode(state, master_name, peer_id):
         owners[key] = tgid
-        tm_sec = _peer_timer_minutes(state, master_name, peer_id) * 60.0
-        expires[key] = (tgid, time.time() + tm_sec)
+        timer_min = _peer_timer_minutes(state, master_name, peer_id)
+        if ua_timer_is_infinite(timer_min):
+            expires[key] = (tgid, UA_SESSION_NEVER_EXPIRES_AT)
+        else:
+            expires[key] = (tgid, time.time() + timer_min * 60.0)
         multi.pop(key, None)
         return
     multi.setdefault(key, set()).add(tgid)
@@ -339,6 +363,8 @@ def _session_active(
     owned, expires_at = entry
     if owned != tgid:
         return False, None
+    if ua_session_never_expires(expires_at):
+        return True, None
     if time.time() >= expires_at:
         return False, None
     return True, expires_at
@@ -348,11 +374,31 @@ def _prune_expired_single_sessions(state: MonitorState) -> None:
     owners, expires, _ = _ensure_session_maps(state)
     now = time.time()
     for key, entry in list(expires.items()):
-        if len(key) != 3 or now < entry[1]:
+        if len(key) != 3:
+            continue
+        if ua_session_never_expires(entry[1]):
+            continue
+        if now < entry[1]:
             continue
         expires.pop(key, None)
         if owners.get(key) == entry[0]:
             owners.pop(key, None)
+
+
+def _format_ua_timeout_to(
+    state: MonitorState,
+    master_name: str,
+    peer_id: int,
+    expires_at: float | None,
+    time_str_fn,
+) -> str:
+    """Human countdown for UA chip; omit when TIMER=0 (legacy no-expiry sentinel)."""
+    if expires_at is None or ua_session_never_expires(expires_at):
+        return ""
+    timer_min = _peer_timer_minutes(state, master_name, peer_id)
+    if ua_timer_is_infinite(timer_min) or ua_session_expires_is_infinite(expires_at):
+        return ""
+    return time_str_fn(expires_at, "to")
 
 
 def lookup_ua_timeout_for_peer(
@@ -365,7 +411,9 @@ def lookup_ua_timeout_for_peer(
 ) -> str:
     active, expires_at = _session_active(state, master_name, peer_id, slot, tgid)
     if active and expires_at is not None:
-        return time_str_fn(expires_at, "to")
+        return _format_ua_timeout_to(
+            state, master_name, peer_id, expires_at, time_str_fn,
+        )
     return ""
 
 
@@ -400,7 +448,9 @@ def _apply_single_mode_chips(
             continue
         peer_row[f"SINGLE_TS{slot}"] = {
             "TGID": tgid,
-            "TO": time_str_fn(expires_at, "to") if expires_at else "",
+            "TO": _format_ua_timeout_to(
+                state, master_name, peer_id, expires_at, time_str_fn,
+            ),
         }
 
 
@@ -455,7 +505,9 @@ def _apply_server_ua_sessions_from_config(
             continue
         tgid = int(sess.get("tgid", 0) or 0)
         exp = float(sess.get("expires_at", 0) or 0)
-        if tgid <= 0 or _is_service_voice_tgid(tgid) or exp <= now:
+        if tgid <= 0 or _is_service_voice_tgid(tgid):
+            continue
+        if exp > 0 and exp <= now:
             continue
         key = _session_key(master_name, peer_id, slot)
         owners[key] = tgid
