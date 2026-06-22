@@ -31,6 +31,7 @@ from ..domain.value_objects import ServerMode
 from .alias_service import AliasService
 from .monitor_controller import MonitorState
 from .tgstats import (
+    _active_tgid_from_peer_ts,
     _apply_multi_mode_chips,
     _is_echo_service_live_tgid,
     _is_service_voice_tgid,
@@ -121,6 +122,130 @@ def _static_tg_slot_for_peer(peer_row: dict, destination: int, event_slot: int) 
     return event_slot
 
 
+def _is_master_peer_row(system: str) -> bool:
+    """Inject-proxy CTABLE row (``SYSTEM-3``): one hotspot radio per upstream slot."""
+    if "-" not in system:
+        return False
+    base, suffix = system.rsplit("-", 1)
+    return bool(base) and suffix.isdigit()
+
+
+def voice_event_skip_master_downlink_log(parts: list[str], ctable: dict) -> bool:
+    """True when a MASTER downlink leg should update chips only (no duplicate log line).
+
+    The server announces one call; remapped ``SYSTEM-N`` TX fan-out must not emit
+    one log row per connected hotspot.
+    """
+    if len(parts) < 4 or parts[1] not in ("START", "END") or parts[2] != "TX":
+        return False
+    system = parts[3]
+    if system in ctable.get("OPENBRIDGES", {}):
+        return False
+    if _is_master_peer_row(system):
+        return True
+    return system in ctable.get("MASTERS", {})
+
+
+def _peer_static_lists_include_tg(peer_row: dict, destination: int) -> bool:
+    tg = str(destination)
+    ts1 = [str(x).strip() for x in (peer_row.get("TS1_STATIC") or []) if str(x).strip()]
+    ts2 = [str(x).strip() for x in (peer_row.get("TS2_STATIC") or []) if str(x).strip()]
+    return tg in ts1 or tg in ts2
+
+
+def _peer_slot_busy_other_tg(peer_ts: dict, destination: int) -> bool:
+    active = _active_tgid_from_peer_ts(peer_ts)
+    return active is not None and int(active) != int(destination)
+
+
+def _peer_row_shows_destination(peer_row: dict, destination: int) -> bool:
+    for slot in (1, 2):
+        peer_ts = peer_row.get(slot)
+        if isinstance(peer_ts, dict) and _active_tgid_from_peer_ts(peer_ts) == destination:
+            return True
+    return False
+
+
+def _voice_event_target_peers(
+    system: str,
+    peers: dict,
+    *,
+    action: str,
+    trx: str,
+    source_peer: int,
+    source_sub: int,
+    call_type: str,
+    event_slot: int,
+    destination: int,
+) -> list[tuple[int | bytes, dict]]:
+    """Peers whose CTABLE chips this voice event should touch."""
+    if action == "END":
+        if trx == "RX":
+            peer_id, peer_row = _resolve_master_peer(peers, source_peer)
+            if peer_row is not None and peer_id is not None:
+                return [(peer_id, peer_row)]
+            return []
+        if _is_master_peer_row(system):
+            return [
+                (peer_key, peer_row)
+                for peer_key, peer_row in peers.items()
+                if isinstance(peer_row, dict) and _peer_row_shows_destination(peer_row, destination)
+            ]
+        if _is_echo_service_live_tgid(destination):
+            svc_id, svc_row = _resolve_master_peer(peers, destination)
+            if svc_row is not None and svc_id is not None:
+                return [(svc_id, svc_row)]
+            sub_id, sub_row = _resolve_master_peer(peers, source_sub)
+            if sub_row is not None and sub_id is not None:
+                return [(sub_id, sub_row)]
+            return []
+        return [
+            (peer_key, peer_row)
+            for peer_key, peer_row in peers.items()
+            if isinstance(peer_row, dict)
+            and (
+                _peer_row_shows_destination(peer_row, destination)
+                or (
+                    not _peer_keys_equal(source_peer, peer_key)
+                    and _peer_static_lists_include_tg(peer_row, destination)
+                )
+            )
+        ]
+
+    if trx == "RX":
+        peer_id, peer_row = _resolve_master_peer(peers, source_peer)
+        if peer_row is not None and peer_id is not None:
+            return [(peer_id, peer_row)]
+        return []
+
+    if _is_master_peer_row(system):
+        return [
+            (peer_key, peer_row)
+            for peer_key, peer_row in peers.items()
+            if isinstance(peer_row, dict)
+        ]
+
+    if _is_echo_service_live_tgid(destination):
+        svc_id, svc_row = _resolve_master_peer(peers, destination)
+        if svc_row is not None and svc_id is not None:
+            return [(svc_id, svc_row)]
+        sub_id, sub_row = _resolve_master_peer(peers, source_sub)
+        if sub_row is not None and sub_id is not None:
+            return [(sub_id, sub_row)]
+        return []
+
+    targets: list[tuple[int | bytes, dict]] = []
+    for peer_key, peer_row in peers.items():
+        if not isinstance(peer_row, dict):
+            continue
+        if _peer_keys_equal(source_peer, peer_key):
+            continue
+        if not _peer_static_lists_include_tg(peer_row, destination):
+            continue
+        targets.append((peer_key, peer_row))
+    return targets
+
+
 def _peer_display_slot(
     peer_row: dict,
     peer_key,
@@ -205,8 +330,17 @@ def rts_update_impl(
                 _apply_voice_single_ts(
                     state, ctable, system, time_slot, destination, source_peer, trx=trx
                 )
-        for peer in ctable["MASTERS"][system]["PEERS"]:
-            peer_row = ctable["MASTERS"][system]["PEERS"][peer]
+        for peer, peer_row in _voice_event_target_peers(
+            system,
+            ctable["MASTERS"][system]["PEERS"],
+            action=action,
+            trx=trx,
+            source_peer=source_peer,
+            source_sub=source_sub,
+            call_type=call_type,
+            event_slot=time_slot,
+            destination=destination,
+        ):
             display_slot = _peer_display_slot(
                 peer_row,
                 peer,
@@ -219,6 +353,12 @@ def rts_update_impl(
             crxstatus = "RX" if _peer_keys_equal(source_peer, peer) else "TX"
             peer_ts = peer_row[display_slot]
             if action == "START":
+                if (
+                    peer_ts.get("TS")
+                    and not _is_echo_service_live_tgid(destination)
+                    and _peer_slot_busy_other_tg(peer_ts, destination)
+                ):
+                    continue
                 # Local PTT (TRX=RX / red): do not replace with another peer's downlink (TRX=TX / green).
                 if (
                     peer_ts.get("TS")
