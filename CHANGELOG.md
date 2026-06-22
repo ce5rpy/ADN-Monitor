@@ -4,6 +4,14 @@ All notable changes to **adn-monitor** (monitor + dashboard) are documented here
 
 <!-- version list -->
 
+## v2.1.1 (2026-06-22)
+
+### Bug Fixes
+
+- Target voice CTABLE chips per hotspot and dedupe downlink logs
+  ([`4ca07c1`](https://github.com/ce5rpy/ADN-Monitor/commit/4ca07c18c23a04c347fbc2b261564f405ca3bffa))
+
+
 ## v2.1.0 (2026-06-22)
 
 ### Bug Fixes
