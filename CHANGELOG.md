@@ -4,6 +4,61 @@ All notable changes to **adn-monitor** (monitor + dashboard) are documented here
 
 <!-- version list -->
 
+## v2.1.0 (2026-06-22)
+
+### Bug Fixes
+
+- Preserve local TX chip when another peer keys a static TG
+  ([#43](https://github.com/ce5rpy/ADN-Monitor/pull/43),
+  [`1440bb6`](https://github.com/ce5rpy/ADN-Monitor/commit/1440bb66e493babbbef3f877b0930bdb417fcc0d))
+
+- Preserve local TX chip when another peer keys a static TG
+  ([#42](https://github.com/ce5rpy/ADN-Monitor/pull/42),
+  [`328b938`](https://github.com/ce5rpy/ADN-Monitor/commit/328b938cc3d2ebd4cca07ffe77b520cf4f8118cb))
+
+- SINGLE chip timeout and cross-TG monitor display
+  ([#43](https://github.com/ce5rpy/ADN-Monitor/pull/43),
+  [`1440bb6`](https://github.com/ce5rpy/ADN-Monitor/commit/1440bb66e493babbbef3f877b0930bdb417fcc0d))
+
+- SINGLE chip timeout and cross-TG monitor display
+  ([#42](https://github.com/ce5rpy/ADN-Monitor/pull/42),
+  [`328b938`](https://github.com/ce5rpy/ADN-Monitor/commit/328b938cc3d2ebd4cca07ffe77b520cf4f8118cb))
+
+- UA timer chips, local TX display, and dynamic TG restore
+  ([#43](https://github.com/ce5rpy/ADN-Monitor/pull/43),
+  [`1440bb6`](https://github.com/ce5rpy/ADN-Monitor/commit/1440bb66e493babbbef3f877b0930bdb417fcc0d))
+
+- UA timer display and CTABLE chip parity ([#42](https://github.com/ce5rpy/ADN-Monitor/pull/42),
+  [`328b938`](https://github.com/ce5rpy/ADN-Monitor/commit/328b938cc3d2ebd4cca07ffe77b520cf4f8118cb))
+
+- **ci**: Force-with-lease when syncing develop after release
+  ([`e13daa9`](https://github.com/ce5rpy/ADN-Monitor/commit/e13daa909e377b2e56d3079e6b14d19d79a0db20))
+
+### Chores
+
+- Drop RC releases, use semver on develop
+  ([`108da62`](https://github.com/ce5rpy/ADN-Monitor/commit/108da62cf9764bd37a50b2998ffa8c96288fbd38))
+
+- Run releases on master only, not develop
+  ([`c24917d`](https://github.com/ce5rpy/ADN-Monitor/commit/c24917d5db173ae86fcb66b5f71f52dfffd04d3e))
+
+- **ci**: Merge-commit release PRs and ff develop sync
+  ([#41](https://github.com/ce5rpy/ADN-Monitor/pull/41),
+  [`3d2451c`](https://github.com/ce5rpy/ADN-Monitor/commit/3d2451c2f01ca4b03618b66cf7d68992977dd7ad))
+
+- **ci**: Sync develop via merge after release
+  ([`c98857a`](https://github.com/ce5rpy/ADN-Monitor/commit/c98857a9869b2f4917c330af62d6b34861954cd7))
+
+- **ci**: Sync develop via merge instead of force-push
+  ([`3e41504`](https://github.com/ce5rpy/ADN-Monitor/commit/3e41504a49e33b2142a4a2739373e8d4b84c536c))
+
+### Features
+
+- Restore UA multi-dynamic chips and migrate infinite expires_at
+  ([#43](https://github.com/ce5rpy/ADN-Monitor/pull/43),
+  [`1440bb6`](https://github.com/ce5rpy/ADN-Monitor/commit/1440bb66e493babbbef3f877b0930bdb417fcc0d))
+
+
 ## v2.0.0-rc.14 (2026-06-19)
 
 ### Bug Fixes
