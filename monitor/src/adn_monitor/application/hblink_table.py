@@ -111,6 +111,8 @@ def add_hb_peer(
     _apply_connected_since(peer, peer_conf, include=include_connected_since)
     peer["IP"] = peer_conf.get("IP", "")
     peer["PORT"] = peer_conf.get("PORT", "")
+    if peer_conf.get("RF_MODE") in ("simplex", "duplex"):
+        peer["RF_MODE"] = str(peer_conf["RF_MODE"])
     for ts in (1, 2):
         peer[ts] = {
             "TS": "",
@@ -315,6 +317,8 @@ def update_hblink_table_impl(
                 ent["CONNECTION"] = peer_conf.get("CONNECTION", "")
                 ent["CONNECTED"] = time_str_fn(peer_conf.get("CONNECTED", 0), "since")
                 _apply_connected_since(ent, peer_conf, include=include_connected_since)
+                if peer_conf.get("RF_MODE") in ("simplex", "duplex"):
+                    ent["RF_MODE"] = str(peer_conf["RF_MODE"])
     for name in stats_table.get("PEERS", {}):
         if stats_table["PEERS"][name].get("MODE") == "XLXPEER":
             xlx = config.get(name, {}).get("XLXSTATS", {})

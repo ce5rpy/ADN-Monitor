@@ -94,6 +94,38 @@ def test_topology_to_config_maps_peer_display_fields():
     assert peer["TX_FREQ"] == b"145625000"
 
 
+def test_topology_to_config_maps_rf_mode_and_ua_multi():
+    topology = {
+        "type": "topology",
+        "seq": 1,
+        "ts": 1.0,
+        "systems": [{
+            "name": "SYS-1",
+            "mode": "MASTER",
+            "enabled": True,
+            "peers": [{
+                "id": 3120001,
+                "connected": True,
+                "rf_mode": "simplex",
+                "ua_multi_tgs": {"2": [730444]},
+            }],
+        }],
+    }
+    config = topology_to_config(topology, ts=1.0)
+    peer = config["SYS-1"]["PEERS"][(3120001).to_bytes(4, "big")]
+    assert peer["RF_MODE"] == "simplex"
+    assert peer["UA_MULTI_TGS"] == {"2": [730444]}
+
+
+def test_routing_table_to_bridges_accepts_legacy_bridge_key():
+    routing = {
+        "type": "routing_table",
+        "seq": 1,
+        "routes": [{"bridge_key": "99", "legs": [{"system": "S", "ts": 2, "tgid": 99, "active": True, "to_type": "ON"}]}],
+    }
+    assert "99" in routing_table_to_bridges(routing)
+
+
 def test_topology_to_config_maps_peer_options_static():
     topology = {
         "type": "topology",
@@ -228,7 +260,7 @@ def test_merge_routing_delta():
     full = _load_example("routing_table.json")
     patch = _load_example("delta.json")["patch"]
     merged = merge_routing_delta(full, patch)
-    route = next(r for r in merged["routes"] if r["bridge_key"] == "52090")
+    route = next(r for r in merged["routes"] if r.get("relay_table_key") == "52090")
     assert route["legs"][0]["active"] is False
 
 

@@ -74,6 +74,28 @@ _PEER_JSON_TO_LEGACY: tuple[tuple[str, str], ...] = (
 _BYTE_PEER_FIELDS = frozenset({"RX_FREQ", "TX_FREQ", "SLOTS"})
 
 
+def _route_table_key(route: dict[str, Any]) -> str:
+    """Routing table row key (``relay_table_key`` on wire; legacy ``bridge_key`` fallback)."""
+    key = route.get("relay_table_key") or route.get("bridge_key")
+    return str(key).strip() if key is not None else ""
+
+
+def _apply_peer_topology_fields(peer_conf: dict[str, Any], peer: dict[str, Any]) -> None:
+    if "single_mode" in peer:
+        peer_conf["SINGLE_MODE"] = bool(peer["single_mode"])
+    if peer.get("ua_timer_min") is not None:
+        try:
+            peer_conf["UA_TIMER_MIN"] = float(peer["ua_timer_min"])
+        except (TypeError, ValueError):
+            pass
+    if "ua_sessions" in peer:
+        peer_conf["UA_SESSIONS"] = peer.get("ua_sessions") or {}
+    if "ua_multi_tgs" in peer:
+        peer_conf["UA_MULTI_TGS"] = peer.get("ua_multi_tgs") or {}
+    if peer.get("rf_mode") in ("simplex", "duplex"):
+        peer_conf["RF_MODE"] = str(peer["rf_mode"])
+
+
 def _legacy_peer_field(legacy_key: str, value: Any) -> Any:
     if legacy_key in _BYTE_PEER_FIELDS:
         if isinstance(value, bytes):
@@ -160,17 +182,7 @@ def dashboard_state_to_config(doc: dict[str, Any], *, ts: float | None = None) -
             options = peer.get("options")
             if isinstance(options, str) and options.strip():
                 peer_conf["OPTIONS"] = options.encode("utf-8")
-            if "single_mode" in peer:
-                peer_conf["SINGLE_MODE"] = bool(peer["single_mode"])
-            if peer.get("ua_timer_min") is not None:
-                try:
-                    peer_conf["UA_TIMER_MIN"] = float(peer["ua_timer_min"])
-                except (TypeError, ValueError):
-                    pass
-            if "ua_sessions" in peer:
-                peer_conf["UA_SESSIONS"] = peer.get("ua_sessions") or {}
-            if "ua_multi_tgs" in peer:
-                peer_conf["UA_MULTI_TGS"] = peer.get("ua_multi_tgs") or {}
+            _apply_peer_topology_fields(peer_conf, peer)
             peers[_bytes_4(pid)] = peer_conf
         entry["PEERS"] = peers
         config[str(name)] = entry
@@ -283,17 +295,7 @@ def topology_to_config(topology: dict[str, Any], *, ts: float | None = None) -> 
             options = peer.get("options")
             if isinstance(options, str) and options.strip():
                 peer_conf["OPTIONS"] = options.encode("utf-8")
-            if "single_mode" in peer:
-                peer_conf["SINGLE_MODE"] = bool(peer["single_mode"])
-            if peer.get("ua_timer_min") is not None:
-                try:
-                    peer_conf["UA_TIMER_MIN"] = float(peer["ua_timer_min"])
-                except (TypeError, ValueError):
-                    pass
-            if "ua_sessions" in peer:
-                peer_conf["UA_SESSIONS"] = peer.get("ua_sessions") or {}
-            if "ua_multi_tgs" in peer:
-                peer_conf["UA_MULTI_TGS"] = peer.get("ua_multi_tgs") or {}
+            _apply_peer_topology_fields(peer_conf, peer)
             peers[_bytes_4(pid)] = peer_conf
         entry["PEERS"] = peers
         config[str(name)] = entry
@@ -306,7 +308,7 @@ def routing_table_to_bridges(routing: dict[str, Any]) -> dict[str, Any]:
     for route in routing.get("routes", []):
         if not isinstance(route, dict):
             continue
-        key = str(route.get("bridge_key", ""))
+        key = _route_table_key(route)
         if not key:
             continue
         legs: list[dict[str, Any]] = []
@@ -375,14 +377,19 @@ def merge_topology_delta(previous: dict[str, Any], patch: dict[str, Any]) -> dic
 def merge_routing_delta(previous: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
     """Merge a routing_table delta patch into the last full snapshot."""
     merged = dict(previous)
-    prev_routes = {
-        r["bridge_key"]: r
-        for r in previous.get("routes", [])
-        if isinstance(r, dict) and r.get("bridge_key")
-    }
+    prev_routes: dict[str, dict[str, Any]] = {}
+    for r in previous.get("routes", []):
+        if not isinstance(r, dict):
+            continue
+        key = _route_table_key(r)
+        if key:
+            prev_routes[key] = r
     for route in patch.get("routes", []):
-        if isinstance(route, dict) and route.get("bridge_key"):
-            prev_routes[route["bridge_key"]] = route
+        if not isinstance(route, dict):
+            continue
+        key = _route_table_key(route)
+        if key:
+            prev_routes[key] = route
     merged["type"] = "routing_table"
     merged["routes"] = list(prev_routes.values())
     if "seq" in patch:

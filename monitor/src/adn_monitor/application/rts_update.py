@@ -27,6 +27,11 @@ from __future__ import annotations
 
 import time
 
+from ..domain.peer_rf import (
+    SIMPLEX_VOICE_SLOT,
+    normalize_ua_voice_slot,
+    peer_downlink_display_slot,
+)
 from ..domain.value_objects import ServerMode
 from .alias_service import AliasService
 from .monitor_controller import MonitorState
@@ -87,20 +92,23 @@ def _apply_voice_single_ts(
     """Track active SINGLE / UA TG on the transmitting peer (RX leg on MASTER)."""
     if trx != "RX" or _is_service_voice_tgid(destination):
         return
-    ts_key = f"SINGLE_TS{time_slot}"
     peers = ctable.get("MASTERS", {}).get(system, {}).get("PEERS") or {}
     if not peers:
         return
     peer_id, peer_row = _resolve_master_peer(peers, source_peer)
     if peer_row is None:
         return
+    ua_slot = normalize_ua_voice_slot(peer_row, time_slot)
     if peer_id is not None:
-        register_ua_session(state, system, peer_id, time_slot, destination)
+        register_ua_session(state, system, peer_id, ua_slot, destination)
     if peer_id is None:
         return
     if _peer_single_mode(state, system, peer_id):
+        ts_key = f"SINGLE_TS{ua_slot}"
+        if ua_slot == SIMPLEX_VOICE_SLOT:
+            peer_row["SINGLE_TS1"] = {"TGID": "", "TO": ""}
         existing = peer_row.get(ts_key) if isinstance(peer_row.get(ts_key), dict) else {}
-        to_str = lookup_ua_timeout_for_peer(state, system, peer_id, time_slot, destination, time_str)
+        to_str = lookup_ua_timeout_for_peer(state, system, peer_id, ua_slot, destination, time_str)
         if not to_str and isinstance(existing, dict):
             to_str = existing.get("TO", "") if isinstance(existing.get("TO"), str) else ""
         peer_row[ts_key] = {"TGID": destination, "TO": to_str}
@@ -110,16 +118,7 @@ def _apply_voice_single_ts(
 
 def _static_tg_slot_for_peer(peer_row: dict, destination: int, event_slot: int) -> int:
     """Map wire timeslot to the peer chip that lists this TG in OPTIONS (TS1/TS2)."""
-    tg = str(destination)
-    ts1 = [str(x).strip() for x in (peer_row.get("TS1_STATIC") or []) if str(x).strip()]
-    ts2 = [str(x).strip() for x in (peer_row.get("TS2_STATIC") or []) if str(x).strip()]
-    in_ts1 = tg in ts1
-    in_ts2 = tg in ts2
-    if in_ts1 and not in_ts2:
-        return 1
-    if in_ts2 and not in_ts1:
-        return 2
-    return event_slot
+    return peer_downlink_display_slot(peer_row, destination, event_slot)
 
 
 def _is_master_peer_row(system: str) -> bool:
