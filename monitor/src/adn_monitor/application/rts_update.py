@@ -376,6 +376,13 @@ def rts_update_impl(
                 peer_ts["TG"] = tg_short
                 peer_ts["TRX"] = crxstatus
             elif action == "END":
+                if (
+                    trx == "TX"
+                    and peer_ts.get("TS")
+                    and not _is_echo_service_live_tgid(destination)
+                    and _peer_slot_busy_other_tg(peer_ts, destination)
+                ):
+                    continue
                 clear_voice_ts_for_destination(peer_row, destination)
 
     server_mode = getattr(state, "server_mode", ServerMode.LEGACY)
