@@ -340,6 +340,81 @@ export default function Help() {
       </Accordion>
 
       <Typography variant="subtitle2" fontWeight={600} color="text.primary" sx={{ mt: 3, mb: 1.5 }}>
+        {t('help_faq_air_section', { defaultValue: 'How ADN works on the air' })}
+      </Typography>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_air_ptt_q', { defaultValue: 'What happens when I press PTT?' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_air_ptt_a1', {
+              defaultValue:
+                'When you press PTT, your radio sends your voice to your hotspot, which forwards it over the internet to the ADN server. The server checks that the talkgroup is free, then delivers your audio to every hotspot that has that talkgroup active. When you release PTT, you hear the other stations on the same talkgroup.',
+            })}
+          </Typography>
+          <FaqBulletList keys={['help_air_ptt_li1', 'help_air_ptt_li2', 'help_air_ptt_li3']} />
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_air_onecall_q', { defaultValue: 'Can two people talk on the same talkgroup at once?' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_air_onecall_a1', {
+              defaultValue:
+                'No. Only one conversation per talkgroup may exist on the server at a time. If someone is already talking and you press PTT on the same talkgroup, the server does not let you interrupt them.',
+            })}
+          </Typography>
+          <Typography variant="body2" paragraph>
+            {t('help_air_onecall_a2', {
+              defaultValue:
+                'However, if the talkgroup is busy and you do not have it in your static list, keying it briefly activates it as a dynamic talkgroup so you can listen to the ongoing conversation.',
+            })}
+          </Typography>
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_air_join_q', { defaultValue: 'Do I miss the beginning of a call if I connect mid-QSO?' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_air_join_a1', {
+              defaultValue:
+                'No. When your hotspot connects and a talkgroup you listen to is already active, the server starts delivering the audio from that moment on. You do not need to wait for the next PTT to start hearing the conversation. You will miss the part that happened before you connected, but you join the live stream immediately.',
+            })}
+          </Typography>
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_air_slot_q', { defaultValue: 'Do I need to worry about timeslots?' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_air_slot_a1', {
+              defaultValue:
+                'Usually no. Your hotspot and the server coordinate the timeslot automatically. You receive a talkgroup on the slot where it is configured in your OPTIONS, regardless of the slot used by the station that is transmitting. DMR has two timeslots (TS1 and TS2); they are independent, so you can talk on TS1 while you listen on TS2 if your hotspot is full-duplex.',
+            })}
+          </Typography>
+        </AccordionDetails>
+      </Accordion>
+
+      <Typography variant="subtitle2" fontWeight={600} color="text.primary" sx={{ mt: 3, mb: 1.5 }}>
         {t('help_faq_tg_section', { defaultValue: 'Talkgroups & hotspot options' })}
       </Typography>
 
@@ -670,6 +745,41 @@ export default function Help() {
           <Button component={Link} to="/systems" variant="outlined" size="small" sx={{ mt: 1 }}>
             {t('nav_lnksys', { defaultValue: 'Linked Systems' })}
           </Button>
+        </AccordionDetails>
+      </Accordion>
+
+      <Typography variant="subtitle2" fontWeight={600} color="text.primary" sx={{ mt: 3, mb: 1.5 }}>
+        {t('help_faq_etiquette_section', { defaultValue: 'Good operating practice' })}
+      </Typography>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_etiquette_q', { defaultValue: 'Tips for better conversations' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_etiquette_intro', {
+              defaultValue:
+                'These habits keep conversations clear and pleasant for everyone on the network:',
+            })}
+          </Typography>
+          <FaqBulletList
+            keys={[
+              'help_etiquette_li1',
+              'help_etiquette_li2',
+              'help_etiquette_li3',
+              'help_etiquette_li4',
+              'help_etiquette_li5',
+            ]}
+          />
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            {t('help_etiquette_summary', {
+              defaultValue:
+                'In short: select the TG, press PTT to talk, release to listen, and key 4000 when you want to “hang up”. The server does everything else.',
+            })}
+          </Typography>
         </AccordionDetails>
       </Accordion>
     </Box>
