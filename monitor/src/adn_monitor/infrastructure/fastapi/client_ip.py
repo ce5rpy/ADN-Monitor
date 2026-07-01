@@ -21,13 +21,41 @@
 # Derived from FDMR Monitor (OA4DOA), HBMonv2 (SP2ONG), hbmonitor3 (KC1AWV),
 # and HBmonitor (Cortney T. Buffington, N0MJS). Original works under GPLv3.
 
-"""Resolve the browser/client IP behind reverse proxies (login-by-ip parity)."""
+"""Resolve the browser/client IP behind reverse proxies (login-by-ip parity).
+
+Supports both literal IPs (``127.0.0.1``) and CIDR ranges (``172.16.0.0/12``)
+in ``TRUSTED_PROXY_IPS`` so Docker / Traefik gateway IPs can be trusted without
+listing every possible container address.
+"""
 
 from __future__ import annotations
+
+import ipaddress
+from dataclasses import dataclass
 
 from fastapi import Request
 
 _DEFAULT_TRUSTED = frozenset({"127.0.0.1", "::1", "localhost"})
+
+
+@dataclass(frozen=True)
+class TrustedProxySet:
+    """Pre-compiled trusted-proxy rules (literal IPs + CIDR networks)."""
+
+    literals: frozenset[str]
+    networks: tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...]
+
+    def __contains__(self, ip: str) -> bool:
+        if ip in self.literals:
+            return True
+        try:
+            addr = ipaddress.ip_address(ip)
+        except ValueError:
+            return False
+        return any(addr in net for net in self.networks)
+
+    def __bool__(self) -> bool:
+        return bool(self.literals) or bool(self.networks)
 
 
 def _normalize_ip(value: str) -> str:
@@ -43,20 +71,23 @@ def _normalize_ip(value: str) -> str:
 def resolve_client_ip(
     request: Request,
     *,
-    trusted_proxies: frozenset[str] | None = None,
+    trusted_proxies: TrustedProxySet | None = None,
 ) -> str:
     """Return the client IP for auth/self-service.
 
-    When the immediate peer is a trusted reverse proxy (nginx on localhost),
-    use ``X-Real-IP`` or the first hop in ``X-Forwarded-For``. Otherwise use
-    ``request.client.host`` (direct access).
+    When the immediate peer is a trusted reverse proxy (nginx on localhost or
+    a Docker gateway in a trusted CIDR), use ``X-Real-IP`` or the first hop
+    in ``X-Forwarded-For``. Otherwise use ``request.client.host`` (direct).
     """
     peer = request.client.host if request.client else ""
     if not peer:
         return ""
 
-    trusted = trusted_proxies if trusted_proxies is not None else _DEFAULT_TRUSTED
-    if peer not in trusted:
+    if trusted_proxies is not None:
+        trusted = peer in trusted_proxies
+    else:
+        trusted = peer in _DEFAULT_TRUSTED
+    if not trusted:
         return peer
 
     real_ip = (request.headers.get("x-real-ip") or "").strip()
@@ -70,8 +101,13 @@ def resolve_client_ip(
     return peer
 
 
-def trusted_proxies_from_config(app_config: dict) -> frozenset[str] | None:
-    """Parse ``APP.TRUSTED_PROXY_IPS`` (comma-separated); ``None`` = defaults."""
+def trusted_proxies_from_config(app_config: dict) -> TrustedProxySet | None:
+    """Parse ``APP.TRUSTED_PROXY_IPS`` (comma-separated or list).
+
+    Each entry can be a literal IP (``127.0.0.1``) or a CIDR range
+    (``172.16.0.0/12``).  Returns ``None`` when the key is absent so the
+    caller falls back to the compile-time defaults.
+    """
     raw = app_config.get("TRUSTED_PROXY_IPS")
     if raw is None:
         return None
@@ -81,4 +117,16 @@ def trusted_proxies_from_config(app_config: dict) -> frozenset[str] | None:
         items = [str(x).strip() for x in raw if str(x).strip()]
     else:
         return None
-    return frozenset(items) if items else frozenset()
+
+    literals: set[str] = set()
+    networks: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
+    for item in items:
+        try:
+            networks.append(ipaddress.ip_network(item, strict=False))
+        except ValueError:
+            literals.add(item)
+
+    return TrustedProxySet(
+        literals=frozenset(literals),
+        networks=tuple(networks),
+    )
