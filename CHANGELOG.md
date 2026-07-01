@@ -4,6 +4,15 @@ All notable changes to **adn-monitor** (monitor + dashboard) are documented here
 
 <!-- version list -->
 
+## v2.2.1 (2026-07-01)
+
+### Bug Fixes
+
+- Support CIDR in TRUSTED_PROXY_IPS for Docker/Traefik auto-login
+  ([#49](https://github.com/ce5rpy/ADN-Monitor/pull/49),
+  [`3213b5d`](https://github.com/ce5rpy/ADN-Monitor/commit/3213b5dfdfb97dee2bd601d4d8d804538e1dc29f))
+
+
 ## v2.2.0 (2026-07-01)
 
 ### Bug Fixes
