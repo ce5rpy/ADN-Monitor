@@ -218,6 +218,7 @@ def load_config(cfg_file: str) -> Result[dict, ConfigError]:
         "FREQUENCY": resync_sec,
         "CLIENT_TIMEOUT": client_timeout,
         "CORS_ORIGINS": _str(app_block.get("CORS_ORIGINS", "")),
+        "TRUSTED_PROXY_IPS": app_block.get("TRUSTED_PROXY_IPS"),
         "MQTT": {
             "URL": mqtt_url,
             "TOPIC_PREFIX": mqtt_prefix.rstrip("/"),
