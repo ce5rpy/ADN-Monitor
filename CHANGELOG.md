@@ -4,6 +4,33 @@ All notable changes to **adn-monitor** (monitor + dashboard) are documented here
 
 <!-- version list -->
 
+## v2.2.0 (2026-07-01)
+
+### Bug Fixes
+
+- **monitor**: Add OPTIONS format help section with hotspot screenshots
+  ([#47](https://github.com/ce5rpy/ADN-Monitor/pull/47),
+  [`eaa6754`](https://github.com/ce5rpy/ADN-Monitor/commit/eaa675456d010bcd9e6aee66305142618a62dc9c))
+
+- **monitor**: Ignore foreign END/TX while peer slot busy on another TG
+  ([#47](https://github.com/ce5rpy/ADN-Monitor/pull/47),
+  [`eaa6754`](https://github.com/ce5rpy/ADN-Monitor/commit/eaa675456d010bcd9e6aee66305142618a62dc9c))
+
+- **monitor**: Voice RTS and peer RF parity for inject-only multi-hotspot
+  ([#47](https://github.com/ce5rpy/ADN-Monitor/pull/47),
+  [`eaa6754`](https://github.com/ce5rpy/ADN-Monitor/commit/eaa675456d010bcd9e6aee66305142618a62dc9c))
+
+### Features
+
+- **monitor**: Add air operation and etiquette FAQ to help page
+  ([#47](https://github.com/ce5rpy/ADN-Monitor/pull/47),
+  [`eaa6754`](https://github.com/ce5rpy/ADN-Monitor/commit/eaa675456d010bcd9e6aee66305142618a62dc9c))
+
+- **monitor**: Downlink parity, OPTIONS help, and air operation FAQ
+  ([#47](https://github.com/ce5rpy/ADN-Monitor/pull/47),
+  [`eaa6754`](https://github.com/ce5rpy/ADN-Monitor/commit/eaa675456d010bcd9e6aee66305142618a62dc9c))
+
+
 ## v2.1.1 (2026-06-22)
 
 ### Bug Fixes
