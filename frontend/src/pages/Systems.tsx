@@ -277,9 +277,25 @@ export default function Systems() {
   return (
     <LiveConnectedProvider ctable={ctable} live={isV2}>
     <Box>
-      <Typography variant="subtitle1" fontWeight={700} color="text.primary" sx={{ mb: 1.5 }}>
+      <Typography variant="subtitle1" fontWeight={700} color="text.primary" sx={{ mb: 0.5 }}>
         {t('lnksys_title', { defaultValue: 'Linked systems' })}
       </Typography>
+      {isNarrow ? (
+        <Stack spacing={0.25} sx={{ mb: 1.5 }}>
+          <Typography variant="caption" color="text.secondary">
+            {t('lnksys_legend_static_single', { defaultValue: 'Amber: static TG active (SINGLE)' })}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {t('lnksys_legend_dynamic', { defaultValue: 'Indigo: user-activated TG (expires after timeout)' })}
+          </Typography>
+        </Stack>
+      ) : (
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+          {t('lnksys_legend_static_single', { defaultValue: 'Amber: static TG active (SINGLE)' })}
+          {' · '}
+          {t('lnksys_legend_dynamic', { defaultValue: 'Indigo: user-activated TG (expires after timeout)' })}
+        </Typography>
+      )}
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} sm={4}>
@@ -346,27 +362,9 @@ export default function Systems() {
 
       {countHotspots > 0 && (
         <Paper sx={tablePaperSx}>
-          <Typography variant="subtitle1" fontWeight={600} sx={{ px: 1.5, pt: 1.5, pb: 0.5 }}>
+          <Typography variant="subtitle1" fontWeight={600} sx={{ p: 1.5 }}>
             {t('lnksys_hotspots', { defaultValue: 'Hotspots' })}
           </Typography>
-          <Box sx={{ px: 1.5, pb: 1 }}>
-            {isNarrow ? (
-              <Stack spacing={0.25}>
-                <Typography variant="caption" color="text.secondary">
-                  {t('lnksys_legend_static_single', { defaultValue: 'Amber: static TG active (SINGLE)' })}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {t('lnksys_legend_dynamic', { defaultValue: 'Indigo: user-activated TG (expires after timeout)' })}
-                </Typography>
-              </Stack>
-            ) : (
-              <Typography variant="caption" color="text.secondary" display="block">
-                {t('lnksys_legend_static_single', { defaultValue: 'Amber: static TG active (SINGLE)' })}
-                {' · '}
-                {t('lnksys_legend_dynamic', { defaultValue: 'Indigo: user-activated TG (expires after timeout)' })}
-              </Typography>
-            )}
-          </Box>
           {isNarrow ? (
             <Box sx={{ px: 1.5, pb: 1.5 }}>
               <MasterPeerCards
