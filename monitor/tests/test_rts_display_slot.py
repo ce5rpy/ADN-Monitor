@@ -321,6 +321,46 @@ def test_tx_downlink_blocked_when_peer_slot_busy_other_tg() -> None:
     assert "7141" in peer[2]["TG"]
 
 
+def test_end_tx_blocked_when_peer_slot_busy_other_tg() -> None:
+    """While QSO on TG 7141, foreign END/TX for TG 71442 must not touch the chip."""
+    state = MonitorState()
+    state.CTABLE = {
+        "MASTERS": {
+            "SYSTEM-2": {
+                "PEERS": {
+                    714002301: {
+                        "TS1_STATIC": [],
+                        "TS2_STATIC": ["7141", "71442"],
+                        1: {"TS": False, "TRX": ""},
+                        2: {"TS": False, "TRX": ""},
+                    }
+                }
+            }
+        },
+        "PEERS": {},
+        "OPENBRIDGES": {},
+    }
+    alias = _alias()
+    rts_update_impl(
+        "GROUP VOICE,START,RX,SYSTEM-2,1,714002301,714002301,2,7141".split(","),
+        state,
+        alias,
+        lambda: "12:00",
+    )
+    peer = state.CTABLE["MASTERS"]["SYSTEM-2"]["PEERS"][714002301]
+    assert peer[2]["TRX"] == "RX"
+    assert "7141" in peer[2]["TG"]
+    rts_update_impl(
+        "GROUP VOICE,END,TX,SYSTEM,99,73010,7000002,2,71442,4.00".split(","),
+        state,
+        alias,
+        lambda: "12:01",
+    )
+    assert peer[2]["TRX"] == "RX"
+    assert peer[2]["TS"] is True
+    assert "7141" in peer[2]["TG"]
+
+
 def test_companion_tx_does_not_replace_own_active_qso_on_other_tg() -> None:
     """While TX on TG 7144 (RX chip), companion TX for another TG must not overwrite the slot."""
     state = MonitorState()
@@ -395,3 +435,53 @@ def test_companion_tx_same_static_tg_does_not_flip_local_tx_to_green() -> None:
     assert peer[2]["TRX"] == "RX"
     assert "7144" in peer[2]["TG"]
     assert peer[2]["SUB"].startswith("HS")
+
+
+def test_simplex_single_mode_ua_chip_on_ts2() -> None:
+    """Simplex hotspot: dynamic UA tracked on SINGLE_TS2 even when wire slot is 1."""
+    state = MonitorState()
+    peer_id = 730001
+    state.CONFIG = {
+        "SYSTEM": {
+            "ENABLED": True,
+            "MODE": "MASTER",
+            "PEERS": {
+                peer_id.to_bytes(4, "big"): {
+                    "CONNECTION": "YES",
+                    "CONNECTED": 0,
+                    "SINGLE_MODE": True,
+                    "RF_MODE": "simplex",
+                    "OPTIONS": b"SINGLE=1;TIMER=10;TS2=730;",
+                }
+            },
+        }
+    }
+    state.CTABLE = {
+        "MASTERS": {
+            "SYSTEM": {
+                "PEERS": {
+                    peer_id: {
+                        "RF_MODE": "simplex",
+                        "TS1_STATIC": [],
+                        "TS2_STATIC": ["730"],
+                        "SINGLE_MODE": True,
+                        1: {"TS": False, "TRX": ""},
+                        2: {"TS": False, "TRX": ""},
+                        "SINGLE_TS1": {"TGID": "", "TO": ""},
+                        "SINGLE_TS2": {"TGID": "", "TO": ""},
+                    }
+                }
+            }
+        },
+        "PEERS": {},
+        "OPENBRIDGES": {},
+    }
+    rts_update_impl(
+        "GROUP VOICE,START,RX,SYSTEM,1,730001,730001,1,730444".split(","),
+        state,
+        _alias(),
+        lambda: "12:00",
+    )
+    peer = state.CTABLE["MASTERS"]["SYSTEM"]["PEERS"][peer_id]
+    assert peer["SINGLE_TS2"]["TGID"] == 730444
+    assert peer["SINGLE_TS1"]["TGID"] == ""

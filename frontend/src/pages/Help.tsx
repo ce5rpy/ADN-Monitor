@@ -49,6 +49,10 @@ const IMG_FAQ = {
   step4: '/img/faq/selfcare4.png',
   step5: '/img/faq/selfcare5.png',
   pista: '/img/faq/passw0rd.jpg',
+  pistarPass: '/img/pi-star_pass.png',
+  wpsdPass: '/img/wpsd_pass.png',
+  pistarOptions: '/img/pi-star_options.png',
+  wpsdOptions: '/img/wpsd_options.png',
 } as const;
 
 type FaqImageKey = keyof typeof IMG_FAQ;
@@ -97,6 +101,43 @@ function FaqImage({ name, alt }: { name: FaqImageKey; alt: string }) {
         sx={{ maxWidth: '100%', height: 'auto', borderRadius: 1, border: 1, borderColor: 'divider' }}
       />
     </Box>
+  );
+}
+
+function OptionsFormatSection() {
+  const { t } = useTranslation();
+  return (
+    <>
+      <Typography variant="body2" paragraph>
+        {t('help_options_format_intro', {
+          defaultValue:
+            'The OPTIONS line is a semicolon-separated list of KEY=value pairs (Homebrew format). The server stores it for your hotspot and applies it on registration.',
+        })}
+      </Typography>
+      <Typography variant="body2" fontWeight={600}>
+        {t('help_ss_options_a2', {
+          defaultValue: 'Common keys:',
+        })}
+      </Typography>
+      <FaqBulletList
+        keys={[
+          'help_ss_options_li1',
+          'help_ss_options_li2',
+          'help_ss_options_li3',
+          'help_ss_options_li4',
+        ]}
+      />
+      <Typography variant="body2" fontWeight={600}>
+        {t('help_ss_options_example_label', { defaultValue: 'Example' })}
+      </Typography>
+      <FaqCode textKey="help_ss_options_example" />
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+        {t('help_options_format_routing', {
+          defaultValue:
+            'You can edit this line in Self Service (if your network enables it) or paste it directly into your hotspot software — see the next sections.',
+        })}
+      </Typography>
+    </>
   );
 }
 
@@ -299,13 +340,99 @@ export default function Help() {
       </Accordion>
 
       <Typography variant="subtitle2" fontWeight={600} color="text.primary" sx={{ mt: 3, mb: 1.5 }}>
+        {t('help_faq_air_section', { defaultValue: 'How ADN works on the air' })}
+      </Typography>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_air_ptt_q', { defaultValue: 'What happens when I press PTT?' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_air_ptt_a1', {
+              defaultValue:
+                'When you press PTT, your radio sends your voice to your hotspot, which forwards it over the internet to the ADN server. The server checks that the talkgroup is free, then delivers your audio to every hotspot that has that talkgroup active. When you release PTT, you hear the other stations on the same talkgroup.',
+            })}
+          </Typography>
+          <FaqBulletList keys={['help_air_ptt_li1', 'help_air_ptt_li2', 'help_air_ptt_li3']} />
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_air_onecall_q', { defaultValue: 'Can two people talk on the same talkgroup at once?' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_air_onecall_a1', {
+              defaultValue:
+                'No. Only one conversation per talkgroup may exist on the server at a time. If someone is already talking and you press PTT on the same talkgroup, the server does not let you interrupt them.',
+            })}
+          </Typography>
+          <Typography variant="body2" paragraph>
+            {t('help_air_onecall_a2', {
+              defaultValue:
+                'However, if the talkgroup is busy and you do not have it in your static list, keying it briefly activates it as a dynamic talkgroup so you can listen to the ongoing conversation.',
+            })}
+          </Typography>
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_air_join_q', { defaultValue: 'Do I miss the beginning of a call if I connect mid-QSO?' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_air_join_a1', {
+              defaultValue:
+                'No. When your hotspot connects and a talkgroup you listen to is already active, the server starts delivering the audio from that moment on. You do not need to wait for the next PTT to start hearing the conversation. You will miss the part that happened before you connected, but you join the live stream immediately.',
+            })}
+          </Typography>
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_air_slot_q', { defaultValue: 'Do I need to worry about timeslots?' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_air_slot_a1', {
+              defaultValue:
+                'Usually no. Your hotspot and the server coordinate the timeslot automatically. You receive a talkgroup on the slot where it is configured in your OPTIONS, regardless of the slot used by the station that is transmitting. DMR has two timeslots (TS1 and TS2); they are independent, so you can talk on TS1 while you listen on TS2 if your hotspot is full-duplex.',
+            })}
+          </Typography>
+        </AccordionDetails>
+      </Accordion>
+
+      <Typography variant="subtitle2" fontWeight={600} color="text.primary" sx={{ mt: 3, mb: 1.5 }}>
         {t('help_faq_tg_section', { defaultValue: 'Talkgroups & hotspot options' })}
       </Typography>
 
       <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography fontWeight={500}>
-            {t('help_ss_options_q', { defaultValue: 'Self Service and the OPTIONS line' })}
+            {t('help_options_format_q', { defaultValue: 'OPTIONS line (reference)' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <OptionsFormatSection />
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_ss_configure_q', { defaultValue: 'Configure OPTIONS with Self Service' })}
           </Typography>
         </AccordionSummary>
         <AccordionDetails>
@@ -315,38 +442,118 @@ export default function Help() {
                 'If your network enables it, the Self Service page lets you log in and edit your hotspot preferences without asking a sysop. Changes are stored as an OPTIONS line and pushed to the ADN server, which updates your hotspot registration.',
             })}
           </Typography>
-          <Typography variant="body2" paragraph>
-            {t('help_ss_options_a2', {
-              defaultValue:
-                'The OPTIONS line is a semicolon-separated list of KEY=value pairs (Homebrew format). Common keys:',
-            })}
+
+          <Typography variant="body2" fontWeight={600} sx={{ mt: 1 }}>
+            {t('help_ss_login_title', { defaultValue: 'Access Self Service' })}
           </Typography>
           <FaqBulletList
             keys={[
-              'help_ss_options_li1',
-              'help_ss_options_li2',
-              'help_ss_options_li3',
-              'help_ss_options_li4',
+              'help_ss_login_li1',
+              'help_ss_login_li2',
+              'help_ss_login_li3',
             ]}
           />
-          <Typography variant="body2" fontWeight={600}>
-            {t('help_ss_options_example_label', { defaultValue: 'Example' })}
+
+          <Typography variant="body2" fontWeight={600} sx={{ mt: 2 }}>
+            {t('help_ss_device_title', { defaultValue: 'Prepare your hotspot software' })}
           </Typography>
-          <FaqCode textKey="help_ss_options_example" />
+          <Typography variant="body2" paragraph>
+            {t('help_ss_device_instruc', {
+              defaultValue:
+                'Clear any local OPTIONS on the hotspot and set only PASS=your_password in Pi-Star or WPSD. The server supplies the OPTIONS line after you save in Self Service.',
+            })}
+          </Typography>
+          <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+            {t('sslog_pistar', { defaultValue: 'Pi-star:' })}
+          </Typography>
+          <FaqImage
+            name="pistarPass"
+            alt={t('help_ss_img_pistar_alt', { defaultValue: 'Pi-Star DMR Network Options and PASS field' })}
+          />
+          <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, mt: 2 }}>
+            {t('sslog_wpsd', { defaultValue: 'WPSD:' })}
+          </Typography>
+          <FaqImage
+            name="wpsdPass"
+            alt={t('help_ss_img_wpsd_alt', { defaultValue: 'WPSD DMR Gateway Options and PASS field' })}
+          />
+
+          <Typography variant="body2" fontWeight={600} sx={{ mt: 2 }}>
+            {t('help_ss_configure_steps_title', { defaultValue: 'Edit and save in Self Service' })}
+          </Typography>
+          <FaqBulletList
+            keys={[
+              'help_ss_configure_li1',
+              'help_ss_configure_li2',
+              'help_ss_configure_li3',
+            ]}
+          />
           <Typography variant="body2" paragraph>
             {t('help_ss_options_calc', {
               defaultValue:
-                'Use the Options Calculator in the menu to build the line, then paste it into Self Service. The line must end with a semicolon (;).',
+                'Use the Options Calculator in the menu to build the line, then paste it into Self Service.',
             })}
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            <Button component={Link} to="/self-service" variant="outlined" size="small">
+            <Button component={Link} to="/self-service" variant="contained" size="small">
               {t('self_service', { defaultValue: 'Self Service' })}
             </Button>
             <Button component={Link} to="/calc" variant="outlined" size="small">
               {t('nav_calc', { defaultValue: 'Options Calculator' })}
             </Button>
           </Box>
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_options_manual_q', { defaultValue: 'Configure OPTIONS without Self Service' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_options_manual_a1', {
+              defaultValue:
+                'If your network does not offer Self Service or you prefer not to use the dashboard, apply the OPTIONS line directly in your hotspot software.',
+            })}
+          </Typography>
+          <FaqBulletList
+            keys={[
+              'help_options_manual_li1',
+              'help_options_manual_li2',
+            ]}
+          />
+          <Typography variant="body2" fontWeight={600} sx={{ mt: 1 }}>
+            {t('help_options_manual_paste_title', { defaultValue: 'Where to paste the line' })}
+          </Typography>
+          <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, mt: 1 }}>
+            {t('sslog_pistar', { defaultValue: 'Pi-star:' })}
+          </Typography>
+          <FaqImage
+            name="pistarOptions"
+            alt={t('help_options_manual_img_pistar_alt', {
+              defaultValue: 'Pi-Star: Options field in DMR Network (MMDVMHost)',
+            })}
+          />
+          <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, mt: 2 }}>
+            {t('sslog_wpsd', { defaultValue: 'WPSD:' })}
+          </Typography>
+          <FaqImage
+            name="wpsdOptions"
+            alt={t('help_options_manual_img_wpsd_alt', {
+              defaultValue: 'WPSD: Options field in DMR Gateway',
+            })}
+          />
+          <Typography variant="body2" paragraph sx={{ mt: 1 }}>
+            {t('help_options_manual_calc', {
+              defaultValue:
+                'Build the line with the Options Calculator, copy it, and paste it into the hotspot Options field.',
+            })}
+          </Typography>
+          <Button component={Link} to="/calc" variant="outlined" size="small">
+            {t('nav_calc', { defaultValue: 'Options Calculator' })}
+          </Button>
         </AccordionDetails>
       </Accordion>
 
@@ -381,28 +588,6 @@ export default function Help() {
                 'Network ACLs may block some TGs. Static lists define what your hotspot advertises; dynamic TGs are created when you actually key them.',
             })}
           </Typography>
-        </AccordionDetails>
-      </Accordion>
-
-      <Accordion>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography fontWeight={500}>
-            {t('help_options_manual_q', { defaultValue: 'Configuring OPTIONS without Self Service' })}
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Typography variant="body2" paragraph>
-            {t('help_options_manual_a1', {
-              defaultValue:
-                'Not every user has dashboard login. The same OPTIONS format can still be applied in other ways:',
-            })}
-          </Typography>
-          <FaqBulletList
-            keys={[
-              'help_options_manual_li1',
-              'help_options_manual_li2',
-            ]}
-          />
         </AccordionDetails>
       </Accordion>
 
@@ -560,6 +745,41 @@ export default function Help() {
           <Button component={Link} to="/systems" variant="outlined" size="small" sx={{ mt: 1 }}>
             {t('nav_lnksys', { defaultValue: 'Linked Systems' })}
           </Button>
+        </AccordionDetails>
+      </Accordion>
+
+      <Typography variant="subtitle2" fontWeight={600} color="text.primary" sx={{ mt: 3, mb: 1.5 }}>
+        {t('help_faq_etiquette_section', { defaultValue: 'Good operating practice' })}
+      </Typography>
+
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight={500}>
+            {t('help_etiquette_q', { defaultValue: 'Tips for better conversations' })}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" paragraph>
+            {t('help_etiquette_intro', {
+              defaultValue:
+                'These habits keep conversations clear and pleasant for everyone on the network:',
+            })}
+          </Typography>
+          <FaqBulletList
+            keys={[
+              'help_etiquette_li1',
+              'help_etiquette_li2',
+              'help_etiquette_li3',
+              'help_etiquette_li4',
+              'help_etiquette_li5',
+            ]}
+          />
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            {t('help_etiquette_summary', {
+              defaultValue:
+                'In short: select the TG, press PTT to talk, release to listen, and key 4000 when you want to “hang up”. The server does everything else.',
+            })}
+          </Typography>
         </AccordionDetails>
       </Accordion>
     </Box>
