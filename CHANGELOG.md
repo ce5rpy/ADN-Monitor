@@ -4,6 +4,14 @@ All notable changes to **adn-monitor** (monitor + dashboard) are documented here
 
 <!-- version list -->
 
+## v2.2.2 (2026-07-02)
+
+### Bug Fixes
+
+- Live device list and REST self-service endpoints
+  ([`a87f491`](https://github.com/ce5rpy/ADN-Monitor/commit/a87f4910974498fb6c07ace274d10c76d2fe6d1c))
+
+
 ## v2.2.1 (2026-07-01)
 
 ### Bug Fixes

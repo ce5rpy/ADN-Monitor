@@ -1,6 +1,6 @@
 # ADN Systems Monitor
 
-**Version 2.2.1** — pairs with **adn-server 2.0.0** (report v2 slim wire + JSON HELLO).
+**Version 2.2.2** — pairs with **adn-server 2.0.0** (report v2 slim wire + JSON HELLO).
 
 Releases are cut from **`master`** (merge `develop` → `master` when ready; semver from commit history since last tag).
 
