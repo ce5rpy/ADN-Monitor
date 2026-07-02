@@ -30,9 +30,9 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ....domain import is_fail
-from ..client_ip import resolve_client_ip, trusted_proxies_from_config
+from ..client_ip import client_ip_from_request
 from ..composition import MonitorApi
-from ..session_http import destroy_session, require_session_user, session_to_me_payload, start_session
+from ..session_http import destroy_session, session_to_me_payload, session_user, start_session
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -65,12 +65,7 @@ async def login_by_ip(request: Request) -> JSONResponse:
     api = _api(request)
     if api.auth is None:
         return JSONResponse({"error": "Self-service DB not configured"}, status_code=503)
-    app_conf = getattr(request.app.state, "monitor_config", {}).get("APP", {})
-    ip = resolve_client_ip(
-        request,
-        trusted_proxies=trusted_proxies_from_config(app_conf),
-    )
-    result = api.auth.login_by_ip(ip)
+    result = api.auth.login_by_ip(client_ip_from_request(request))
     if is_fail(result):
         return JSONResponse({"error": "No single user for this IP"}, status_code=401)
     start_session(request, result.value)
@@ -85,7 +80,7 @@ async def logout(request: Request) -> JSONResponse:
 
 @router.get("/me")
 async def me(request: Request) -> JSONResponse:
-    user = require_session_user(request)
+    user = session_user(request)
     if user is None:
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
     return JSONResponse(session_to_me_payload(user))

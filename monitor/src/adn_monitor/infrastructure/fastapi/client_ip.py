@@ -130,3 +130,12 @@ def trusted_proxies_from_config(app_config: dict) -> TrustedProxySet | None:
         literals=frozenset(literals),
         networks=tuple(networks),
     )
+
+
+def client_ip_from_request(request: Request) -> str:
+    """Resolve the caller's IP using trusted-proxy config from app state."""
+    app_conf = getattr(request.app.state, "monitor_config", {}).get("APP", {})
+    return resolve_client_ip(
+        request,
+        trusted_proxies=trusted_proxies_from_config(app_conf),
+    )

@@ -21,7 +21,7 @@
 # Derived from FDMR Monitor (OA4DOA), HBMonv2 (SP2ONG), hbmonitor3 (KC1AWV),
 # and HBmonitor (Cortney T. Buffington, N0MJS). Original works under GPLv3.
 
-"""Self-service HTTP routes (/api/self-service)."""
+"""Self-service HTTP routes (/api/self-service/devices)."""
 
 from __future__ import annotations
 
@@ -30,34 +30,49 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ....domain import is_fail
+from ..client_ip import client_ip_from_request
 from ..composition import MonitorApi
-from ..session_http import require_session_user, touch_session
+from ..session_http import session_user
 
 router = APIRouter(prefix="/api/self-service", tags=["self-service"])
 
 
 class OptionsBody(BaseModel):
-    int_id: int = 0
     options: str = ""
-
-
-class SelectBody(BaseModel):
-    int_id: int = 0
 
 
 def _api(request: Request) -> MonitorApi:
     return request.app.state.monitor_api
 
 
-@router.get("/device")
-async def get_device(request: Request, int_id: int | None = None) -> JSONResponse:
+@router.get("/devices")
+async def list_devices(request: Request) -> JSONResponse:
+    """Live list of logged-in devices matching the caller's IP (queries DB on every call)."""
     api = _api(request)
     if api.self_service is None:
         return JSONResponse({"error": "Self-service DB not configured"}, status_code=503)
-    user = require_session_user(request)
+    user = session_user(request)
     if user is None:
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
-    result = api.self_service.get_device(user, int_id)
+    devices = api.self_service.list_devices(user, client_ip_from_request(request))
+    int_ids = [int(d["int_id"]) for d in devices]
+    selected = (
+        user.selected_int_id
+        if user.selected_int_id in int_ids
+        else (int_ids[0] if int_ids else None)
+    )
+    return JSONResponse({"devices": devices, "selected_int_id": selected})
+
+
+@router.get("/devices/{int_id}")
+async def get_device(request: Request, int_id: int) -> JSONResponse:
+    api = _api(request)
+    if api.self_service is None:
+        return JSONResponse({"error": "Self-service DB not configured"}, status_code=503)
+    user = session_user(request)
+    if user is None:
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+    result = api.self_service.get_device(user, int_id, client_ip_from_request(request))
     if is_fail(result):
         err = str(result.error)
         if err == "Device not found":
@@ -68,16 +83,15 @@ async def get_device(request: Request, int_id: int | None = None) -> JSONRespons
     return JSONResponse(result.value)
 
 
-@router.post("/device/options")
-async def update_options(request: Request, body: OptionsBody) -> JSONResponse:
+@router.patch("/devices/{int_id}")
+async def update_device(request: Request, int_id: int, body: OptionsBody) -> JSONResponse:
     api = _api(request)
     if api.self_service is None:
         return JSONResponse({"error": "Self-service DB not configured"}, status_code=503)
-    user = require_session_user(request)
+    user = session_user(request)
     if user is None:
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
-    int_id = body.int_id or None
-    result = api.self_service.update_options(user, int_id, body.options)
+    result = api.self_service.update_options(user, int_id, body.options, client_ip_from_request(request))
     if is_fail(result):
         err = str(result.error)
         status = 403 if err == "Device not allowed" else 400
@@ -85,29 +99,13 @@ async def update_options(request: Request, body: OptionsBody) -> JSONResponse:
     return JSONResponse({"ok": True})
 
 
-@router.get("/device/modified")
-async def get_modified(request: Request, int_id: int | None = None) -> JSONResponse:
+@router.get("/devices/{int_id}/modified")
+async def get_modified(request: Request, int_id: int) -> JSONResponse:
     api = _api(request)
     if api.self_service is None:
         return JSONResponse({"modified": 0})
-    user = require_session_user(request)
+    user = session_user(request)
     if user is None:
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
-    modified = api.self_service.get_modified(user, int_id)
+    modified = api.self_service.get_modified(user, int_id, client_ip_from_request(request))
     return JSONResponse({"modified": modified})
-
-
-@router.post("/device/select")
-async def select_device(request: Request, body: SelectBody) -> JSONResponse:
-    user = require_session_user(request)
-    if user is None:
-        return JSONResponse({"error": "Unauthorized"}, status_code=401)
-    api = _api(request)
-    if api.self_service is None:
-        return JSONResponse({"error": "Self-service DB not configured"}, status_code=503)
-    result = api.self_service.select_device(user, body.int_id)
-    if is_fail(result):
-        return JSONResponse({"error": "Invalid device"}, status_code=400)
-    touch_session(request)
-    request.session["selected_int_id"] = result.value
-    return JSONResponse({"ok": True})

@@ -53,7 +53,9 @@ def test_rest_routes_registered():
         "/api/servers/status",
         "/api/aliases/tg-list",
         "/api/auth/me",
-        "/api/self-service/device",
+        "/api/self-service/devices",
+        "/api/self-service/devices/{int_id}",
+        "/api/self-service/devices/{int_id}/modified",
     ):
         assert path in routes
 
