@@ -27,19 +27,39 @@ from __future__ import annotations
 
 from ..domain import Failure, Result, Success
 from ..domain.session import UserSession
-from .ports import DeviceRepository
+from .ports import AuthRepository, DeviceRepository
 from .self_service_options import normalize_options_for_save, parse_options
 
 
 class SelfServiceUseCases:
-    def __init__(self, device_repo: DeviceRepository) -> None:
+    def __init__(
+        self,
+        device_repo: DeviceRepository,
+        auth_repo: AuthRepository | None = None,
+    ) -> None:
         self._repo = device_repo
+        self._auth_repo = auth_repo
 
-    def get_device(self, user: UserSession, int_id: int | None) -> Result[dict[str, object], str]:
+    def list_devices(self, user: UserSession, host: str) -> list[dict[str, object]]:
+        """Live list of logged-in devices, branched by login method.
+
+        - login_method="password": all logged-in devices for the callsign.
+        - login_method="ip": only logged-in devices matching the caller's IP.
+        """
+        if self._auth_repo is None:
+            return [{"int_id": i, "callsign": user.callsign} for i in user.int_ids]
+        if user.login_method == "ip":
+            return self._auth_repo.get_logged_in_devices_by_host(host)
+        return self._auth_repo.get_logged_in_devices_by_callsign(user.callsign)
+
+    def _allowed_int_ids(self, user: UserSession, host: str) -> set[int]:
+        return {int(d["int_id"]) for d in self.list_devices(user, host)}
+
+    def get_device(self, user: UserSession, int_id: int | None, host: str) -> Result[dict[str, object], str]:
         selected = int(int_id or user.selected_int_id or 0)
         if not selected:
             return Failure("Device not selected")
-        if not user.allows_int_id(selected):
+        if selected not in self._allowed_int_ids(user, host):
             return Failure("Device not allowed")
         client = self._repo.get_by_id(selected)
         if client is None:
@@ -58,11 +78,12 @@ class SelfServiceUseCases:
         user: UserSession,
         int_id: int | None,
         options_raw: str,
+        host: str,
     ) -> Result[None, str]:
         selected = int(int_id or user.selected_int_id or 0)
         if not selected:
             return Failure("Invalid request")
-        if not user.allows_int_id(selected):
+        if selected not in self._allowed_int_ids(user, host):
             return Failure("Device not allowed")
         options = normalize_options_for_save(options_raw)
         if options is None:
@@ -73,13 +94,8 @@ class SelfServiceUseCases:
             return Failure("Update failed")
         return Success(None)
 
-    def get_modified(self, user: UserSession, int_id: int | None) -> int:
+    def get_modified(self, user: UserSession, int_id: int | None, host: str) -> int:
         selected = int(int_id or user.selected_int_id or 0)
-        if not selected or not user.allows_int_id(selected):
+        if not selected or selected not in self._allowed_int_ids(user, host):
             return 0
         return 1 if self._repo.get_modified(selected) else 0
-
-    def select_device(self, user: UserSession, int_id: int) -> Result[int, str]:
-        if not user.allows_int_id(int_id):
-            return Failure("Invalid device")
-        return Success(int_id)

@@ -60,6 +60,7 @@ class AuthUseCases:
                         callsign=cs,
                         int_ids=int_ids,
                         selected_int_id=int_ids[0] if int_ids else None,
+                        login_method="password",
                     )
                 )
         return Failure("Invalid callsign or password")
@@ -76,6 +77,7 @@ class AuthUseCases:
                 callsign=str(data["callsign"]),
                 int_ids=int_ids,
                 selected_int_id=int_ids[0] if int_ids else None,
+                login_method="ip",
             )
         )
 

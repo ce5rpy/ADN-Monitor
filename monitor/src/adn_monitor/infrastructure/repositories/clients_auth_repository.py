@@ -64,6 +64,26 @@ class MysqlAuthRepository(AuthRepository):
         ids = sorted({int(r[0]) for r in rows})
         return ids
 
+    def get_logged_in_devices_by_host(self, host: str) -> list[dict[str, object]]:
+        with self._pool.connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT int_id, callsign FROM Clients WHERE host = %s AND logged_in = 1",
+                (host,),
+            )
+            rows = cur.fetchall()
+        return [{"int_id": int(r[0]), "callsign": str(r[1])} for r in rows]
+
+    def get_logged_in_devices_by_callsign(self, callsign: str) -> list[dict[str, object]]:
+        with self._pool.connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT int_id, callsign FROM Clients WHERE callsign = %s AND logged_in = 1",
+                (callsign,),
+            )
+            rows = cur.fetchall()
+        return [{"int_id": int(r[0]), "callsign": str(r[1])} for r in rows]
+
     def find_by_host(self, ip: str) -> dict[str, object] | None:
         with self._pool.connection() as conn:
             cur = conn.cursor()
