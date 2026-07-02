@@ -62,7 +62,7 @@ def build_monitor_api(config: dict[str, Any]) -> MonitorApi:
             pbkdf2_salt=str(db.get("PBKDF2_SALT", "ADN")),
             pbkdf2_iterations=int(db.get("PBKDF2_ITERATIONS", 2000)),
         )
-        self_uc = SelfServiceUseCases(device_repo)
+        self_uc = SelfServiceUseCases(device_repo, auth_repo=auth_repo)
     return MonitorApi(
         auth=auth_uc,
         self_service=self_uc,

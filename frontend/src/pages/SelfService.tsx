@@ -71,11 +71,17 @@ function optionsToStr(d: { options: DeviceOptions }): string {
   return s ? s + ';' : s;
 }
 
+interface DeviceEntry {
+  int_id: number;
+  callsign: string;
+}
+
 export default function SelfService() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [user, setUser] = useState<{ callsign: string; int_ids: number[]; selected_int_id: number | null } | null>(null);
-  const [device, setDevice] = useState<{ int_id: number; options: DeviceOptions; mode: number } | null>(null);
+  const [devices, setDevices] = useState<DeviceEntry[]>([]);
+  const [selectedIntId, setSelectedIntId] = useState<number | null>(null);
+  const [device, setDevice] = useState<{ int_id: number; callsign: string; options: DeviceOptions; mode: number } | null>(null);
   const [optionsStr, setOptionsStr] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -83,43 +89,41 @@ export default function SelfService() {
   const [calcOpen, setCalcOpen] = useState(false);
 
   useEffect(() => {
-    fetch(API_BASE + '/api/auth/me', { credentials: 'include' })
+    fetch(API_BASE + '/api/self-service/devices', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then(setUser)
+      .then((d) => {
+        setDevices(d.devices || []);
+        setSelectedIntId(d.selected_int_id);
+      })
       .catch(() => navigate('/login'));
   }, [navigate]);
 
   useEffect(() => {
-    if (!user?.selected_int_id) return;
+    if (!selectedIntId) return;
     setError('');
     setSuccess('');
-    fetch(API_BASE + '/api/self-service/device?int_id=' + user.selected_int_id, { credentials: 'include' })
+    fetch(API_BASE + '/api/self-service/devices/' + selectedIntId, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => {
         setDevice(d);
         setOptionsStr(optionsToStr(d));
       })
       .catch(() => setError(t('ss_err_device')));
-  }, [user?.selected_int_id, t]);
+  }, [selectedIntId, t]);
 
   const handleSelectDevice = (intId: number) => {
-    fetch(API_BASE + '/api/self-service/device/select', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ int_id: intId }),
-      credentials: 'include',
-    }).then(() => setUser((u) => (u ? { ...u, selected_int_id: intId } : null)));
+    setSelectedIntId(intId);
   };
 
   const handleSave = () => {
-    if (!user?.selected_int_id) return;
+    if (!selectedIntId) return;
     setError('');
     setSuccess('');
     setSaving(true);
-    fetch(API_BASE + '/api/self-service/device/options', {
-      method: 'POST',
+    fetch(API_BASE + '/api/self-service/devices/' + selectedIntId, {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ int_id: user.selected_int_id, options: optionsStr }),
+      body: JSON.stringify({ options: optionsStr }),
       credentials: 'include',
     })
       .then(async (r) => {
@@ -135,29 +139,31 @@ export default function SelfService() {
     fetch(API_BASE + '/api/auth/logout', { method: 'POST', credentials: 'include' }).then(() => navigate('/login'));
   };
 
-  if (!user) return null;
+  if (!devices.length && !device) return null;
+
+  const selectedCallsign = devices.find((d) => d.int_id === selectedIntId)?.callsign || device?.callsign || '';
 
   return (
     <Paper sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">
-          {user.callsign}
-          {user.selected_int_id != null && ` (${user.selected_int_id})`}
+          {selectedCallsign}
+          {selectedIntId != null && ` (${selectedIntId})`}
         </Typography>
         <Button onClick={handleLogout}>{t('calc_lout')}</Button>
       </Box>
 
-      {user.int_ids.length > 1 && (
+      {devices.length > 1 && (
         <FormControl size="small" sx={{ minWidth: 120, mb: 2 }}>
           <InputLabel>{t('calc_dev')}</InputLabel>
           <Select
-            value={user.selected_int_id ?? ''}
+            value={selectedIntId ?? ''}
             label={t('calc_dev')}
             onChange={(e) => handleSelectDevice(Number(e.target.value))}
           >
-            {user.int_ids.map((id) => (
-              <MenuItem key={id} value={id}>
-                {id}
+            {devices.map((d) => (
+              <MenuItem key={d.int_id} value={d.int_id}>
+                {d.int_id}
               </MenuItem>
             ))}
           </Select>

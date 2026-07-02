@@ -21,7 +21,11 @@
 # Derived from FDMR Monitor (OA4DOA), HBMonv2 (SP2ONG), hbmonitor3 (KC1AWV),
 # and HBmonitor (Cortney T. Buffington, N0MJS). Original works under GPLv3.
 
-"""HTTP session cookie adapter (Starlette SessionMiddleware; no business logic)."""
+"""HTTP session cookie adapter (Starlette SessionMiddleware; no business logic).
+
+The cookie is signed with SECRET_KEY via itsdangerous — values are readable
+by the client but cannot be tampered with without invalidating the signature.
+"""
 
 from __future__ import annotations
 
@@ -48,6 +52,7 @@ def start_session(request: Request, user: UserSession) -> None:
     request.session["user_id"] = user.callsign
     request.session["int_ids"] = list(user.int_ids)
     request.session["selected_int_id"] = user.selected_int_id
+    request.session["login_method"] = user.login_method
 
 
 def destroy_session(request: Request) -> None:
@@ -61,15 +66,13 @@ def session_user(request: Request) -> UserSession | None:
         return None
     int_ids = [int(x) for x in (request.session.get("int_ids") or [])]
     selected = request.session.get("selected_int_id")
+    login_method = request.session.get("login_method", "password")
     return UserSession(
         callsign=str(callsign),
         int_ids=int_ids,
         selected_int_id=int(selected) if selected is not None else None,
+        login_method=str(login_method),
     )
-
-
-def require_session_user(request: Request) -> UserSession | None:
-    return session_user(request)
 
 
 def session_to_me_payload(user: UserSession) -> dict[str, Any]:

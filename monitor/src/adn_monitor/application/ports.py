@@ -229,6 +229,16 @@ class AuthRepository(ABC):
         """Return {callsign, int_ids} when exactly one callsign matches host."""
         ...
 
+    @abstractmethod
+    def get_logged_in_devices_by_host(self, host: str) -> list[dict[str, object]]:
+        """Return [{int_id, callsign}, ...] for logged-in rows matching host."""
+        ...
+
+    @abstractmethod
+    def get_logged_in_devices_by_callsign(self, callsign: str) -> list[dict[str, object]]:
+        """Return [{int_id, callsign}, ...] for logged-in rows matching callsign."""
+        ...
+
 
 class DeviceRepository(ABC):
     """Port for self-service device CRUD (Clients table)."""
