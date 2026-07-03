@@ -21,11 +21,34 @@
 # Derived from FDMR Monitor (OA4DOA), HBMonv2 (SP2ONG), hbmonitor3 (KC1AWV),
 # and HBmonitor (Cortney T. Buffington, N0MJS). Original works under GPLv3.
 
-"""Parse and format Clients.options strings."""
+"""Parse and format Clients.options strings.
+
+Supports two TG formats:
+- Standard ADN: ``TS1=262,110;TS2=2628;``
+- OpenSpot: ``TS1_1=262;TS1_2=110;TS2_1=2628;``
+
+OpenSpot keys (``TS1_1``..``TS1_9``, ``TS2_1``..``TS2_9``) are collapsed into
+the ``TS1`` / ``TS2`` arrays so the dashboard and self-service page see a
+single normalized shape. Other OpenSpot parameters (``StartRef``,
+``RelinkTime``, ``UserLink``, ``CQWW``) are preserved as-is for round-trip.
+"""
 
 from __future__ import annotations
 
 OPTIONS_MAX_LENGTH = 4096
+
+_OPENSLOT_SLOTS = ("TS1", "TS2")
+
+
+def _parse_openspot_tgs(parsed: dict[str, str], slot: str) -> list[str]:
+    """Collect TSx_1..TSx_9 into a list, removing them from parsed."""
+    parts: list[str] = []
+    for i in range(1, 10):
+        key = f"{slot}_{i}"
+        val = parsed.pop(key, None)
+        if val is not None and val.strip():
+            parts.append(val.strip())
+    return parts
 
 
 def parse_options(options: str) -> dict[str, object]:
@@ -38,19 +61,23 @@ def parse_options(options: str) -> dict[str, object]:
         "SINGLE": "-1",
         "TIMER": "0",
     }
+    raw: dict[str, str] = {}
     for part in options.split(";"):
         part = part.strip()
         if not part or "=" not in part:
             continue
         key, value = part.split("=", 1)
-        key = key.strip()
-        value = value.strip()
-        if key == "TS1":
-            out["TS1"] = [] if value == "" else [x.strip() for x in value.split(",") if x.strip()]
-        elif key == "TS2":
-            out["TS2"] = [] if value == "" else [x.strip() for x in value.split(",") if x.strip()]
-        elif key in out:
-            out[key] = value
+        raw[key.strip()] = value.strip()
+
+    for slot in _OPENSLOT_SLOTS:
+        openspot_tgs = _parse_openspot_tgs(raw, slot)
+        if slot in raw:
+            val = raw.pop(slot)
+            out[slot] = [] if val == "" else [x.strip() for x in val.split(",") if x.strip()]
+        elif openspot_tgs:
+            out[slot] = openspot_tgs
+
+    out.update(raw)
     return out
 
 

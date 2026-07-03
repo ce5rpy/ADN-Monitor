@@ -54,21 +54,27 @@ interface DeviceOptions {
   LANG: string;
   SINGLE: string;
   TIMER: string;
+  [key: string]: unknown;
 }
+
+const KNOWN_ORDER = ['TS1', 'TS2', 'DIAL', 'VOICE', 'LANG', 'SINGLE', 'TIMER'];
 
 function optionsToStr(d: { options: DeviceOptions }): string {
   const o = d.options;
-  const s = [
-    o.TS1?.length ? 'TS1=' + o.TS1.join(',') : '',
-    o.TS2?.length ? 'TS2=' + o.TS2.join(',') : '',
-    o.VOICE !== '-1' ? 'VOICE=' + o.VOICE : '',
-    o.LANG !== '0' ? 'LANG=' + o.LANG : '',
-    o.SINGLE !== '-1' ? 'SINGLE=' + o.SINGLE : '',
-    o.TIMER !== '0' ? 'TIMER=' + o.TIMER : '',
-  ]
-    .filter(Boolean)
-    .join(';');
-  return s ? s + ';' : s;
+  const parts: string[] = [];
+  if (o.TS1?.length) parts.push('TS1=' + o.TS1.join(','));
+  if (o.TS2?.length) parts.push('TS2=' + o.TS2.join(','));
+  if (o.DIAL && o.DIAL !== '0') parts.push('DIAL=' + o.DIAL);
+  if (o.VOICE && o.VOICE !== '-1') parts.push('VOICE=' + o.VOICE);
+  if (o.LANG && o.LANG !== '0') parts.push('LANG=' + o.LANG);
+  if (o.SINGLE && o.SINGLE !== '-1') parts.push('SINGLE=' + o.SINGLE);
+  if (o.TIMER && o.TIMER !== '0') parts.push('TIMER=' + o.TIMER);
+  for (const key of Object.keys(o)) {
+    if (KNOWN_ORDER.includes(key)) continue;
+    const val = o[key];
+    if (typeof val === 'string' && val !== '') parts.push(key + '=' + val);
+  }
+  return parts.length ? parts.join(';') + ';' : '';
 }
 
 interface DeviceEntry {
