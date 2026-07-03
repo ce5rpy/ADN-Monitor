@@ -4,6 +4,14 @@ All notable changes to **adn-monitor** (monitor + dashboard) are documented here
 
 <!-- version list -->
 
+## v2.2.3 (2026-07-03)
+
+### Bug Fixes
+
+- Parse OpenSpot/DMR+ OPTIONS format in tgstats and self-service
+  ([`42e49af`](https://github.com/ce5rpy/ADN-Monitor/commit/42e49af66ab06b49519175148dbe7911b1ef2833))
+
+
 ## v2.2.2 (2026-07-02)
 
 ### Bug Fixes
