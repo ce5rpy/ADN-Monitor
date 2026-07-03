@@ -57,24 +57,49 @@ def _static_tg_list(value) -> list[str]:
 
 
 def parse_options_to_static(options_str: str | None) -> dict:
-    """Parse Clients.options (TS1/TS2 static lists, TIMER, SINGLE)."""
+    """Parse OPTIONS (TS1/TS2 static lists, TIMER, SINGLE).
+
+    Supports classic (``TS1=262,110;TS2=730;``) and OpenSpot / DMR+
+    (``TS1_1=262;TS1_2=110;TS2_1=714;``) formats. Unknown keys are ignored.
+    """
     out: dict = {"TS1_STATIC": [], "TS2_STATIC": []}
     if not options_str or not isinstance(options_str, str):
         return out
     text = re.sub(r"['\"]", "", options_str.strip())
+    kv: dict[str, str] = {}
     for part in text.split(";"):
         part = part.strip()
-        if part.upper().startswith("TS1=") and len(part) > 4:
-            out["TS1_STATIC"] = [x.strip() for x in part[4:].split(",") if x.strip()]
-        elif part.upper().startswith("TS2=") and len(part) > 4:
-            out["TS2_STATIC"] = [x.strip() for x in part[4:].split(",") if x.strip()]
-        elif part.upper().startswith("TIMER=") and len(part) > 6:
-            try:
-                out["TIMER"] = float(part[6:].strip())
-            except ValueError:
-                pass
-        elif part.upper().startswith("SINGLE=") and len(part) > 7:
-            out["SINGLE"] = part[7:].strip()
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        kv[key.strip().upper()] = value.strip()
+    ts1_parts: list[str] = []
+    if "TS1_1" in kv:
+        ts1_parts.append(kv["TS1_1"])
+        for i in range(2, 10):
+            p = kv.get(f"TS1_{i}")
+            if p:
+                ts1_parts.append(p)
+    elif "TS1" in kv:
+        ts1_parts = [x.strip() for x in kv["TS1"].split(",") if x.strip()]
+    ts2_parts: list[str] = []
+    if "TS2_1" in kv:
+        ts2_parts.append(kv["TS2_1"])
+        for i in range(2, 10):
+            p = kv.get(f"TS2_{i}")
+            if p:
+                ts2_parts.append(p)
+    elif "TS2" in kv:
+        ts2_parts = [x.strip() for x in kv["TS2"].split(",") if x.strip()]
+    out["TS1_STATIC"] = ts1_parts
+    out["TS2_STATIC"] = ts2_parts
+    if "TIMER" in kv:
+        try:
+            out["TIMER"] = float(kv["TIMER"].strip())
+        except ValueError:
+            pass
+    if "SINGLE" in kv:
+        out["SINGLE"] = kv["SINGLE"].strip()
     return out
 
 
