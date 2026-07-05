@@ -359,5 +359,12 @@
   "srvrs_err_code_4": "4 — Sin conexión",
   "srvrs_load_err": "No se pudo cargar el estado de los servidores",
   "srvrs_count": "Servidores: {{count}} (en línea {{online}}, fuera de línea {{offline}})",
-  "srvrs_empty": "No hay servidores en el estado publicado."
+  "srvrs_empty": "No hay servidores en el estado publicado.",
+  "manual_title": "Manual del operador de radio",
+  "manual_subtitle": "Una guía práctica para usar ADN: talk groups, PTT, eco y configuración del hotspot.",
+  "manual_back_help": "Volver a Ayuda",
+  "manual_print": "Imprimir / PDF",
+  "manual_error": "No se pudo cargar el manual. Inténtalo de nuevo más tarde.",
+  "nav_help_faq": "FAQ",
+  "nav_help_manual": "Manual"
 }

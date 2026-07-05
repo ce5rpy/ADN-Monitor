@@ -358,5 +358,12 @@
   "srvrs_err_code_4": "4 — Geen verbinding",
   "srvrs_load_err": "Serverstatus laden mislukt",
   "srvrs_count": "Servers: {{count}} (online {{online}}, offline {{offline}})",
-  "srvrs_empty": "Geen servers in de statusfeed."
+  "srvrs_empty": "Geen servers in de statusfeed.",
+  "manual_title": "Handbook voor de radio-operator",
+  "manual_subtitle": "Een praktische gids voor het gebruik van ADN: talk groups, PTT, echo en hotspot-instelling.",
+  "manual_back_help": "Terug naar Hulp",
+  "manual_print": "Afdrukken / PDF",
+  "manual_error": "Kon de handleiding niet laden. Probeer het later opnieuw.",
+  "nav_help_faq": "FAQ",
+  "nav_help_manual": "Handleiding"
 }
