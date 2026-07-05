@@ -358,5 +358,12 @@
   "srvrs_err_code_4": "4 — Connexion impossible",
   "srvrs_load_err": "Impossible de charger l'état des serveurs",
   "srvrs_count": "Serveurs : {{count}} (en ligne {{online}}, hors ligne {{offline}})",
-  "srvrs_empty": "Aucun serveur dans le flux d'état."
+  "srvrs_empty": "Aucun serveur dans le flux d'état.",
+  "manual_title": "Manuel de l'opérateur radio",
+  "manual_subtitle": "Un guide pratique pour utiliser ADN : talk groups, PTT, écho et configuration du hotspot.",
+  "manual_back_help": "Retour à l'Aide",
+  "manual_print": "Imprimer / PDF",
+  "manual_error": "Impossible de charger le manuel. Réessayez plus tard.",
+  "nav_help_faq": "FAQ",
+  "nav_help_manual": "Manuel"
 }

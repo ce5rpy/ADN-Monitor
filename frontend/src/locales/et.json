@@ -358,5 +358,12 @@
   "srvrs_err_code_4": "4 — Ühendus puudub",
   "srvrs_load_err": "Serveri oleku laadimine ebaõnnestus",
   "srvrs_count": "Serverid: {{count}} (võrgus {{online}}, võrgust väljas {{offline}})",
-  "srvrs_empty": "Oleku voos pole servereid."
+  "srvrs_empty": "Oleku voos pole servereid.",
+  "manual_title": "Raadiooperaatori käsiraamat",
+  "manual_subtitle": "Praktiline juhend ADN-i kasutamiseks: kõnegrupid, PTT, kaja ja hotspotti seadistamine.",
+  "manual_back_help": "Tagasi Abi juurde",
+  "manual_print": "Prindi / PDF",
+  "manual_error": "Käsiraamatut ei õnnestunud laadida. Proovige hiljem uuesti.",
+  "nav_help_faq": "KKK",
+  "nav_help_manual": "Käsiraamat"
 }

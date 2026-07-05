@@ -358,5 +358,12 @@
   "srvrs_err_code_4": "4 — 无法连接",
   "srvrs_load_err": "无法加载服务器状态",
   "srvrs_count": "服务器：{{count}}（在线 {{online}}，离线 {{offline}}）",
-  "srvrs_empty": "状态源中没有服务器。"
+  "srvrs_empty": "状态源中没有服务器。",
+  "manual_title": "无线电操作员手册",
+  "manual_subtitle": "ADN 使用实用指南：通话组、PTT、回声和热点设置。",
+  "manual_back_help": "返回帮助",
+  "manual_print": "打印 / PDF",
+  "manual_error": "无法加载手册。请稍后再试。",
+  "nav_help_faq": "常见问题",
+  "nav_help_manual": "手册"
 }

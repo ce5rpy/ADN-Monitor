@@ -358,5 +358,12 @@
   "srvrs_err_code_4": "4 — Bağlanılamıyor",
   "srvrs_load_err": "Sunucu durumu yüklenemedi",
   "srvrs_count": "Sunucular: {{count}} (çevrimiçi {{online}}, çevrimdışı {{offline}})",
-  "srvrs_empty": "Durum akışında sunucu yok."
+  "srvrs_empty": "Durum akışında sunucu yok.",
+  "manual_title": "Radyo operatörü kılavuzu",
+  "manual_subtitle": "ADN kullanımı için pratik bir rehber: konuşma grupları, PTT, yankı ve hotspot kurulumu.",
+  "manual_back_help": "Yardıma Dön",
+  "manual_print": "Yazdır / PDF",
+  "manual_error": "Kılavuz yüklenemedi. Daha sonra tekrar deneyin.",
+  "nav_help_faq": "SSS",
+  "nav_help_manual": "Kılavuz"
 }

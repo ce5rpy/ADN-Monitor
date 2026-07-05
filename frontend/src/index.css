@@ -47,3 +47,147 @@ body {
   flex-direction: column;
   overflow: hidden;
 }
+
+/* ---- Manual flow diagram (renders on screen and in print) ---- */
+.manual-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 1.5rem 0;
+  padding: 1rem;
+}
+
+.manual-flow-node {
+  display: inline-block;
+  padding: 0.45rem 1.1rem;
+  border: 1.5px solid #94a3b8;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  position: relative;
+}
+
+.manual-flow-server {
+  border-color: #6366f1;
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.manual-flow-link {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 26px;
+  margin: 1px 0;
+}
+
+.manual-flow-arrow {
+  width: 2px;
+  height: 22px;
+  background: #94a3b8;
+  position: relative;
+  display: block;
+}
+
+.manual-flow-arrow::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid #94a3b8;
+}
+
+.manual-flow-label {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 500;
+  margin-left: 6px;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+@media (max-width: 600px) {
+  .manual-flow-node {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.85rem;
+  }
+}
+
+@media print {
+  .manual-flow {
+    break-inside: avoid;
+  }
+  .manual-img {
+    max-width: 90% !important;
+    break-inside: avoid;
+  }
+}
+
+/* ---- Manual images (Pi-Star / WPSD screenshots) ---- */
+.manual-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.75rem auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
+/* ---- Print: show the full manual content, hide app chrome ---- */
+@media print {
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* Hide everything by default, show only the print area */
+  #root > div > header,
+  #root > div > .no-print {
+    display: none !important;
+  }
+
+  /* Reset the scrolling main container so all content flows */
+  #root > div > main,
+  #root > div > div {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* Only the manual print area is visible */
+  body * {
+    visibility: hidden;
+  }
+  #manual-print-area,
+  #manual-print-area * {
+    visibility: visible;
+  }
+  #manual-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0 !important;
+  }
+
+  /* Ensure manual content uses full width without app container padding */
+  .manual-body {
+    max-width: 100% !important;
+  }
+}

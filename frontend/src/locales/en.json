@@ -359,5 +359,12 @@
   "srvrs_err_code_4": "4 — Cannot connect",
   "srvrs_load_err": "Could not load server status",
   "srvrs_count": "Servers: {{count}} (online {{online}}, offline {{offline}})",
-  "srvrs_empty": "No servers in status feed."
+  "srvrs_empty": "No servers in status feed.",
+  "manual_title": "Radio operator manual",
+  "manual_subtitle": "A practical guide to using ADN: talk groups, PTT, echo, and hotspot setup.",
+  "manual_back_help": "Back to Help",
+  "manual_print": "Print / PDF",
+  "manual_error": "Could not load the manual. Try again later.",
+  "nav_help_faq": "FAQ",
+  "nav_help_manual": "Manual"
 }

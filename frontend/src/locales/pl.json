@@ -358,5 +358,12 @@
   "srvrs_err_code_4": "4 — Brak połączenia",
   "srvrs_load_err": "Nie udało się załadować statusu serwerów",
   "srvrs_count": "Serwery: {{count}} (online {{online}}, offline {{offline}})",
-  "srvrs_empty": "Brak serwerów w kanale statusu."
+  "srvrs_empty": "Brak serwerów w kanale statusu.",
+  "manual_title": "Podręcznik operatora radiowego",
+  "manual_subtitle": "Praktyczny przewodnik po korzystaniu z ADN: grupy rozmów, PTT, echo i konfiguracja hotspotu.",
+  "manual_back_help": "Wróć do Pomocy",
+  "manual_print": "Drukuj / PDF",
+  "manual_error": "Nie udało się załadować podręcznika. Spróbuj ponownie później.",
+  "nav_help_faq": "FAQ",
+  "nav_help_manual": "Podręcznik"
 }

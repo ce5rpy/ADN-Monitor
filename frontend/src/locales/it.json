@@ -358,5 +358,12 @@
   "srvrs_err_code_4": "4 — Connessione impossibile",
   "srvrs_load_err": "Impossibile caricare lo stato dei server",
   "srvrs_count": "Server: {{count}} (online {{online}}, offline {{offline}})",
-  "srvrs_empty": "Nessun server nel feed di stato."
+  "srvrs_empty": "Nessun server nel feed di stato.",
+  "manual_title": "Manuale dell'operatore radio",
+  "manual_subtitle": "Una guida pratica per usare ADN: talk group, PTT, eco e configurazione dell'hotspot.",
+  "manual_back_help": "Torna ad Aiuto",
+  "manual_print": "Stampa / PDF",
+  "manual_error": "Impossibile caricare il manuale. Riprova più tardi.",
+  "nav_help_faq": "FAQ",
+  "nav_help_manual": "Manuale"
 }
