@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from ..domain import Failure, Result, Success
 from ..domain.session import UserSession
-from .ports import AuthRepository, DeviceRepository
+from .ports import AuthRepository, DeviceRepository, DynamicTgRepository
 from .self_service_options import normalize_options_for_save, parse_options
 
 
@@ -36,9 +36,11 @@ class SelfServiceUseCases:
         self,
         device_repo: DeviceRepository,
         auth_repo: AuthRepository | None = None,
+        dynamic_tg_repo: DynamicTgRepository | None = None,
     ) -> None:
         self._repo = device_repo
         self._auth_repo = auth_repo
+        self._dynamic_tg_repo = dynamic_tg_repo
 
     def list_devices(self, user: UserSession, host: str) -> list[dict[str, object]]:
         """Live list of logged-in devices, branched by login method.
@@ -99,3 +101,26 @@ class SelfServiceUseCases:
         if not selected or selected not in self._allowed_int_ids(user, host):
             return 0
         return 1 if self._repo.get_modified(selected) else 0
+
+    def request_dynamic_reload(
+        self,
+        user: UserSession,
+        int_id: int,
+        host: str,
+        *,
+        fallback_system_names: list[str] | None = None,
+    ) -> Result[None, str]:
+        """Queue server-side TG 4000-equivalent purge (``peer_dynamic_tgs.need_reload``)."""
+        if self._dynamic_tg_repo is None:
+            return Failure("Dynamic TG reload not configured")
+        selected = int(int_id)
+        if not selected:
+            return Failure("Invalid request")
+        if selected not in self._allowed_int_ids(user, host):
+            return Failure("Device not allowed")
+        if not self._dynamic_tg_repo.mark_need_reload(
+            selected,
+            fallback_system_names=fallback_system_names,
+        ):
+            return Failure("Reload request failed")
+        return Success(None)

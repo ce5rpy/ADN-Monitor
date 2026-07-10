@@ -114,6 +114,15 @@ def _column_exists(cursor: Any, table: str, column: str) -> bool:
     return cursor.fetchone() is not None
 
 
+def _index_exists(cursor: Any, table: str, index_name: str) -> bool:
+    cursor.execute(
+        "SELECT 1 FROM information_schema.STATISTICS "
+        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND INDEX_NAME = %s",
+        (table, index_name),
+    )
+    return cursor.fetchone() is not None
+
+
 def _table_exists(cursor: Any, table: str) -> bool:
     cursor.execute(
         "SELECT 1 FROM information_schema.TABLES "
@@ -177,6 +186,20 @@ def apply_migrations(cursor: Any) -> None:
                 "WHERE single_mode = 1 AND expires_at = 0"
             )
         _mark_migration(cursor, "005_peer_dynamic_tgs_expires_null")
+
+    if not _migration_applied(cursor, "006_peer_dynamic_tgs_need_reload"):
+        if _table_exists(cursor, "peer_dynamic_tgs"):
+            if not _column_exists(cursor, "peer_dynamic_tgs", "need_reload"):
+                cursor.execute(
+                    "ALTER TABLE peer_dynamic_tgs "
+                    "ADD COLUMN need_reload TINYINT(1) NOT NULL DEFAULT 0"
+                )
+            if not _index_exists(cursor, "peer_dynamic_tgs", "idx_need_reload_peer"):
+                cursor.execute(
+                    "ALTER TABLE peer_dynamic_tgs "
+                    "ADD INDEX idx_need_reload_peer (need_reload, int_id, system_name)"
+                )
+        _mark_migration(cursor, "006_peer_dynamic_tgs_need_reload")
 
     cleanup_staging_tables(cursor)
 
