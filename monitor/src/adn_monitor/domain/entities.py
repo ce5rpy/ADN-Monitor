@@ -28,7 +28,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from .value_objects import DmrId, ElapsedTime, decode_utf8_field
 
 
 @dataclass(frozen=True, slots=True)

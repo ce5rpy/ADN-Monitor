@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 from adn_monitor.infrastructure.persistence.alias_bulk_import import (
     MERGE_BATCH_SIZE,
-    STAGING_BATCH_SIZE,
     _executemany_batches,
     merge_alias_table,
     replace_alias_table,

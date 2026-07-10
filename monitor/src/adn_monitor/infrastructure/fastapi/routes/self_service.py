@@ -30,6 +30,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ....domain import is_fail
+from ....application.peer_system_lookup import peer_master_names
 from ..client_ip import client_ip_from_request
 from ..composition import MonitorApi
 from ..session_http import session_user
@@ -39,6 +40,13 @@ router = APIRouter(prefix="/api/self-service", tags=["self-service"])
 
 class OptionsBody(BaseModel):
     options: str = ""
+
+
+def _fallback_system_names(request: Request, int_id: int) -> list[str]:
+    runtime = getattr(request.app.state, "monitor_runtime", None)
+    if runtime is None:
+        return []
+    return peer_master_names(runtime.state.CTABLE, int_id)
 
 
 def _api(request: Request) -> MonitorApi:
@@ -54,14 +62,18 @@ async def list_devices(request: Request) -> JSONResponse:
     user = session_user(request)
     if user is None:
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
-    devices = api.self_service.list_devices(user, client_ip_from_request(request))
+    host = client_ip_from_request(request)
+    devices = api.self_service.list_devices(user, host)
     int_ids = [int(d["int_id"]) for d in devices]
     selected = (
         user.selected_int_id
         if user.selected_int_id in int_ids
         else (int_ids[0] if int_ids else None)
     )
-    return JSONResponse({"devices": devices, "selected_int_id": selected})
+    return JSONResponse({
+        "devices": devices,
+        "selected_int_id": selected,
+    })
 
 
 @router.get("/devices/{int_id}")
@@ -109,3 +121,24 @@ async def get_modified(request: Request, int_id: int) -> JSONResponse:
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
     modified = api.self_service.get_modified(user, int_id, client_ip_from_request(request))
     return JSONResponse({"modified": modified})
+
+
+@router.post("/devices/{int_id}/request-dynamic-reload")
+async def request_dynamic_reload(request: Request, int_id: int) -> JSONResponse:
+    api = _api(request)
+    if api.self_service is None:
+        return JSONResponse({"error": "Self-service DB not configured"}, status_code=503)
+    user = session_user(request)
+    if user is None:
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+    result = api.self_service.request_dynamic_reload(
+        user,
+        int_id,
+        client_ip_from_request(request),
+        fallback_system_names=_fallback_system_names(request, int_id),
+    )
+    if is_fail(result):
+        err = str(result.error)
+        status = 403 if err == "Device not allowed" else 400
+        return JSONResponse({"error": err}, status_code=status)
+    return JSONResponse({"ok": True})

@@ -32,12 +32,97 @@ import {
 } from '@mui/material';
 import PrintIcon from '@mui/icons-material/Print';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGE_CODES } from '../i18n';
+
+const manualMarkdownComponents: Components = {
+  a: ({ href, children }) => (
+    <Box
+      component="a"
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+    >
+      {children}
+    </Box>
+  ),
+  blockquote: ({ children }) => (
+    <Box
+      component="blockquote"
+      sx={{
+        borderLeft: 4,
+        borderColor: 'primary.main',
+        pl: 2,
+        my: 2,
+        ml: 0,
+        color: 'text.secondary',
+        fontStyle: 'italic',
+      }}
+    >
+      {children}
+    </Box>
+  ),
+  table: ({ children }) => (
+    <Box
+      component="table"
+      sx={{
+        width: '100%',
+        borderCollapse: 'collapse',
+        my: 2,
+        '& th, & td': {
+          border: 1,
+          borderColor: 'divider',
+          p: 1,
+          textAlign: 'left',
+          fontSize: '0.875rem',
+          verticalAlign: 'top',
+        },
+        '& th': {
+          bgcolor: 'action.hover',
+          fontWeight: 600,
+        },
+      }}
+    >
+      {children}
+    </Box>
+  ),
+  code: ({ children }) => (
+    <Box
+      component="code"
+      sx={{
+        fontFamily: 'monospace',
+        fontSize: '0.85em',
+        bgcolor: 'action.hover',
+        px: 0.5,
+        borderRadius: 0.5,
+      }}
+    >
+      {children}
+    </Box>
+  ),
+  pre: ({ children }) => (
+    <Box
+      component="pre"
+      sx={{
+        p: 1.5,
+        my: 1.5,
+        bgcolor: 'action.hover',
+        borderRadius: 1,
+        fontSize: '0.8rem',
+        overflow: 'auto',
+        border: 1,
+        borderColor: 'divider',
+      }}
+    >
+      {children}
+    </Box>
+  ),
+};
 
 /**
  * Resolve the manual path for the current UI language.
@@ -162,90 +247,7 @@ export default function RadioManual() {
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeRaw]}
-              components={{
-                a: ({ node: _node, href, children }) => (
-                  <Box
-                    component="a"
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-                  >
-                    {children}
-                  </Box>
-                ),
-                blockquote: ({ children }) => (
-                  <Box
-                    component="blockquote"
-                    sx={{
-                      borderLeft: 4,
-                      borderColor: 'primary.main',
-                      pl: 2,
-                      my: 2,
-                      ml: 0,
-                      color: 'text.secondary',
-                      fontStyle: 'italic',
-                    }}
-                  >
-                    {children}
-                  </Box>
-                ),
-                table: ({ children }) => (
-                  <Box
-                    component="table"
-                    sx={{
-                      width: '100%',
-                      borderCollapse: 'collapse',
-                      my: 2,
-                      '& th, & td': {
-                        border: 1,
-                        borderColor: 'divider',
-                        p: 1,
-                        textAlign: 'left',
-                        fontSize: '0.875rem',
-                        verticalAlign: 'top',
-                      },
-                      '& th': {
-                        bgcolor: 'action.hover',
-                        fontWeight: 600,
-                      },
-                    }}
-                  >
-                    {children}
-                  </Box>
-                ),
-                code: ({ children }) => (
-                  <Box
-                    component="code"
-                    sx={{
-                      fontFamily: 'monospace',
-                      fontSize: '0.85em',
-                      bgcolor: 'action.hover',
-                      px: 0.5,
-                      borderRadius: 0.5,
-                    }}
-                  >
-                    {children}
-                  </Box>
-                ),
-                pre: ({ children }) => (
-                  <Box
-                    component="pre"
-                    sx={{
-                      p: 1.5,
-                      my: 1.5,
-                      bgcolor: 'action.hover',
-                      borderRadius: 1,
-                      fontSize: '0.8rem',
-                      overflow: 'auto',
-                      border: 1,
-                      borderColor: 'divider',
-                    }}
-                  >
-                    {children}
-                  </Box>
-                ),
-              }}
+              components={manualMarkdownComponents}
             >
               {content}
             </ReactMarkdown>

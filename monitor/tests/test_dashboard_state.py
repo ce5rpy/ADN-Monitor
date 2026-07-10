@@ -221,7 +221,6 @@ def test_dashboard_state_reapply_preserves_voice_timeslots_and_ob_streams():
 
     process_report_json({**snap, "ts": snap["ts"] + 1.0}, state, **deps)
     assert state.CTABLE["OPENBRIDGES"]["OBP-CL"]["STREAMS"]
-    peer_ts = state.CTABLE["MASTERS"]["ECHO"]["PEERS"][2][1]
     voice_master = {
         **voice,
         "system": "ECHO",
@@ -1016,7 +1015,6 @@ def test_register_ua_session_uses_peer_timer_minutes() -> None:
 
 def test_build_tgstats_omits_to_for_infinite_ua_timer() -> None:
     """TIMER=0 (legacy no-expiry) must not show ~24855d on the indigo chip."""
-    import time as _time
 
     from adn_monitor.application.tgstats import build_tgstats_impl, register_ua_session
     from adn_monitor.application.time_utils import time_str
