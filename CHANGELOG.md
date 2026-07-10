@@ -4,6 +4,23 @@ All notable changes to **adn-monitor** (monitor + dashboard) are documented here
 
 <!-- version list -->
 
+## v2.3.0 (2026-07-10)
+
+### Chores
+
+- Add radio operator manual to dashboard help
+  ([`a85f267`](https://github.com/ce5rpy/ADN-Monitor/commit/a85f2677f8c60b06ee305a0466d0d508aec57985))
+
+- Ruff and frontend lint fixes ([#56](https://github.com/ce5rpy/ADN-Monitor/pull/56),
+  [`f56b6bf`](https://github.com/ce5rpy/ADN-Monitor/commit/f56b6bfc2e1964ec394f145b5b7c0dc60ee4a61e))
+
+### Features
+
+- Self-service purge of dynamic TGs via need_reload
+  ([#56](https://github.com/ce5rpy/ADN-Monitor/pull/56),
+  [`f56b6bf`](https://github.com/ce5rpy/ADN-Monitor/commit/f56b6bfc2e1964ec394f145b5b7c0dc60ee4a61e))
+
+
 ## v2.2.3 (2026-07-03)
 
 ### Bug Fixes

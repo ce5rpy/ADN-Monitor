@@ -1,6 +1,6 @@
 # ADN Systems Monitor
 
-**Versión 2.2.3** — emparejado con **adn-server 2.0.0** (report v2 slim wire + HELLO JSON).
+**Versión 2.3.0** — emparejado con **adn-server 2.0.0** (report v2 slim wire + HELLO JSON).
 
 Dashboard para redes ADN: proceso **FastAPI** unificado (REST + WebSocket + ingest de informes), frontend React y MySQL opcional para self-service y Last Heard.
 
