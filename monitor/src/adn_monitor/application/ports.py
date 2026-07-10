@@ -28,10 +28,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Protocol
 
-from ..domain import ReportProtocolError, Result, Success
+from ..domain import ReportProtocolError, Result
 from ..domain.client import Client
 from ..domain.entities import (
-    LastHeardEntry,
     PeerAlias,
     SubscriberAlias,
     TalkgroupAlias,
@@ -256,6 +255,20 @@ class DeviceRepository(ABC):
     @abstractmethod
     def get_modified(self, int_id: int) -> bool:
         """Return Clients.modified flag."""
+        ...
+
+
+class DynamicTgRepository(ABC):
+    """Port for monitor-initiated dynamic TG reload requests."""
+
+    @abstractmethod
+    def mark_need_reload(
+        self,
+        int_id: int,
+        *,
+        fallback_system_names: list[str] | None = None,
+    ) -> bool:
+        """Set ``need_reload=1`` for all peer rows; optional CTABLE fallback inserts."""
         ...
 
 

@@ -35,6 +35,7 @@ import {
   TextField,
   Box,
   Alert,
+  Snackbar,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -43,6 +44,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import Calc from './Calc';
+import PurgeDynamicTgsButton from '../components/PurgeDynamicTgsButton';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
@@ -176,16 +178,38 @@ export default function SelfService() {
         </FormControl>
       )}
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-          {error}
+      <Snackbar
+        open={Boolean(success || error)}
+        autoHideDuration={6000}
+        onClose={() => {
+          setSuccess('');
+          setError('');
+        }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{
+          top: { xs: 56, sm: 64 },
+          left: '50%',
+          right: 'auto',
+          transform: 'translateX(-50%)',
+        }}
+      >
+        <Alert
+          severity={error ? 'error' : 'success'}
+          variant="filled"
+          onClose={() => {
+            setSuccess('');
+            setError('');
+          }}
+          sx={{
+            width: 'auto',
+            minWidth: 280,
+            maxWidth: 'min(520px, calc(100vw - 32px))',
+            boxShadow: 4,
+          }}
+        >
+          {error || success}
         </Alert>
-      )}
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
-          {success}
-        </Alert>
-      )}
+      </Snackbar>
 
       {device && (
         <>
@@ -215,6 +239,20 @@ export default function SelfService() {
           <Button variant="contained" onClick={handleSave} disabled={saving}>
             {saving ? t('calc_saving', { defaultValue: 'Saving...' }) : t('calc_save')}
           </Button>
+          {selectedIntId != null ? (
+            <PurgeDynamicTgsButton
+              intId={selectedIntId}
+              disabled={saving}
+              onSuccess={(msg) => {
+                setError('');
+                setSuccess(msg);
+              }}
+              onError={(msg) => {
+                setSuccess('');
+                setError(msg);
+              }}
+            />
+          ) : null}
         </>
       )}
     </Paper>

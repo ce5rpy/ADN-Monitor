@@ -341,6 +341,10 @@
   "ss_err_device": "Failed to load device",
   "ss_intro": "Hier können Sie die Einstellungen Ihres Hotspots und die statischen Talkgruppen verwalten.",
   "ss_calc_hint": "Hilfe beim Erstellen der Optionszeile? Nutzen Sie den",
+  "ss_purge_dynamic": "Dynamische TGs entfernen",
+  "ss_purge_dynamic_hint": "Löscht vom Benutzer aktivierte Talkgroups (wie Senden auf TG 4000).",
+  "ss_purge_dynamic_confirm": "Vom Benutzer aktivierte TGs für diesen Hotspot entfernen? (entspricht TG 4000)",
+  "ss_purge_dynamic_ok": "Neuladen läuft — dynamische TGs werden in etwa 10 Sekunden gelöscht.",
   "srvrs_title": "Netzwerk-Serverstatus",
   "srvrs_loading": "Serverstatus wird geladen…",
   "srvrs_country": "Land",
@@ -358,5 +362,12 @@
   "srvrs_err_code_4": "4 — Keine Verbindung",
   "srvrs_load_err": "Serverstatus konnte nicht geladen werden",
   "srvrs_count": "Server: {{count}} (online {{online}}, offline {{offline}})",
-  "srvrs_empty": "Keine Server im Status-Feed."
+  "srvrs_empty": "Keine Server im Status-Feed.",
+  "manual_title": "Handbuch für Funkbetreiber",
+  "manual_subtitle": "Ein praktischer Leitfaden zur Nutzung von ADN: Talk Groups, PTT, Echo und Hotspot-Einrichtung.",
+  "manual_back_help": "Zurück zur Hilfe",
+  "manual_print": "Drucken / PDF",
+  "manual_error": "Das Handbuch konnte nicht geladen werden. Versuchen Sie es später erneut.",
+  "nav_help_faq": "FAQ",
+  "nav_help_manual": "Handbuch"
 }

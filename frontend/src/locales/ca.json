@@ -341,6 +341,10 @@
   },
   "ss_intro": "Aquí podeu gestionar les preferències del vostre hotspot i els grups estàtics.",
   "ss_calc_hint": "Necessiteu ajuda per muntar la línia d'opcions? Feu servir la",
+  "ss_purge_dynamic": "Eliminar TG dinàmics",
+  "ss_purge_dynamic_hint": "Esborra els talkgroups activats per l'usuari (equivalent a transmetre al TG 4000).",
+  "ss_purge_dynamic_confirm": "Eliminar els TG activats per l'usuari en aquest hotspot? (equivalent a marcar TG 4000)",
+  "ss_purge_dynamic_ok": "Recàrrega en procés — els TG dinàmics s'esborraran en uns 10 segons.",
   "srvrs_title": "Estat dels servidors de xarxa",
   "srvrs_loading": "S'està carregant l'estat dels servidors…",
   "srvrs_country": "País",
@@ -358,5 +362,12 @@
   "srvrs_err_code_4": "4 — Sense connexió",
   "srvrs_load_err": "No s'ha pogut carregar l'estat dels servidors",
   "srvrs_count": "Servidors: {{count}} (en línia {{online}}, fora de línia {{offline}})",
-  "srvrs_empty": "No hi ha servidors a l'estat publicat."
+  "srvrs_empty": "No hi ha servidors a l'estat publicat.",
+  "manual_title": "Manual de l'operador de ràdio",
+  "manual_subtitle": "Una guia pràctica per utilitzar ADN: grups de conversa, PTT, eco i configuració del hotspot.",
+  "manual_back_help": "Torna a Ajuda",
+  "manual_print": "Imprimeix / PDF",
+  "manual_error": "No s'ha pogut carregar el manual. Proveu-ho més tard.",
+  "nav_help_faq": "PMF",
+  "nav_help_manual": "Manual"
 }

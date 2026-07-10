@@ -64,6 +64,7 @@ const WorldServersStatus = lazy(() => import('./pages/WorldServersStatus'));
 const Login = lazy(() => import('./pages/Login'));
 const SelfService = lazy(() => import('./pages/SelfService'));
 const Help = lazy(() => import('./pages/Help'));
+const RadioManual = lazy(() => import('./pages/RadioManual'));
 import { useDashboardConfig } from './context/DashboardConfigContext';
 
 const LANGUAGES = [
@@ -97,6 +98,7 @@ function App() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [infoAnchor, setInfoAnchor] = useState<null | HTMLElement>(null);
   const [linksAnchor, setLinksAnchor] = useState<null | HTMLElement>(null);
+  const [helpAnchor, setHelpAnchor] = useState<null | HTMLElement>(null);
   const [uiZoom, setUiZoom] = useState(() => getUiZoom());
 
   const theme = useMemo(
@@ -304,7 +306,7 @@ function App() {
               <Button color="inherit" onClick={(e) => setInfoAnchor(e.currentTarget)}>
                 {t('nav_info', { defaultValue: 'Info' })}
               </Button>
-              <Button color="inherit" component={Link} to="/help">
+              <Button color="inherit" onClick={(e) => setHelpAnchor(e.currentTarget)}>
                 {t('nav_help', { defaultValue: 'Help' })}
               </Button>
               {(dashboard.navLinks?.items?.length ?? 0) === 1 && (
@@ -380,7 +382,10 @@ function App() {
             {t('selfcare', { defaultValue: 'SelfCare' })}
           </MenuItem>
           <MenuItem component={Link} to="/help" onClick={() => setAnchorEl(null)}>
-            {t('nav_help', { defaultValue: 'Help' })}
+            {t('nav_help_faq', { defaultValue: 'FAQ' })}
+          </MenuItem>
+          <MenuItem component={Link} to="/manual" onClick={() => setAnchorEl(null)}>
+            {t('nav_help_manual', { defaultValue: 'Manual' })}
           </MenuItem>
           {dashboard.showConsole && (
             <MenuItem component={Link} to="/console" onClick={() => setAnchorEl(null)}>
@@ -484,6 +489,15 @@ function App() {
           ))}
         </Menu>
 
+        <Menu anchorEl={helpAnchor} open={Boolean(helpAnchor)} onClose={() => setHelpAnchor(null)}>
+          <MenuItem component={Link} to="/help" onClick={() => setHelpAnchor(null)}>
+            {t('nav_help_faq', { defaultValue: 'FAQ' })}
+          </MenuItem>
+          <MenuItem component={Link} to="/manual" onClick={() => setHelpAnchor(null)}>
+            {t('nav_help_manual', { defaultValue: 'Manual' })}
+          </MenuItem>
+        </Menu>
+
         <Box
           component="main"
           sx={{
@@ -559,6 +573,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/self-service" element={<SelfService />} />
                 <Route path="/help" element={<Help />} />
+                <Route path="/manual" element={<RadioManual />} />
               </Routes>
             </Suspense>
           </Container>

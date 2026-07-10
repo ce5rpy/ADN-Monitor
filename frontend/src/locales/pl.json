@@ -341,6 +341,10 @@
   },
   "ss_intro": "Tutaj możesz zarządzać ustawieniami swojego hotspotu i statycznymi grupami rozmów.",
   "ss_calc_hint": "Potrzebujesz pomocy w zbudowaniu linii opcji? Użyj",
+  "ss_purge_dynamic": "Usuń dynamiczne TG",
+  "ss_purge_dynamic_hint": "Czyści talkgroupi aktywowane przez użytkownika (jak nadawanie na TG 4000).",
+  "ss_purge_dynamic_confirm": "Usunąć talkgroupi aktywowane przez użytkownika na tym hotspocie? (równoważne TG 4000)",
+  "ss_purge_dynamic_ok": "Przeładowanie w toku — dynamiczne TG zostaną usunięte w około 10 sekund.",
   "srvrs_title": "Status serwerów sieciowych",
   "srvrs_loading": "Ładowanie statusu serwerów…",
   "srvrs_country": "Kraj",
@@ -358,5 +362,12 @@
   "srvrs_err_code_4": "4 — Brak połączenia",
   "srvrs_load_err": "Nie udało się załadować statusu serwerów",
   "srvrs_count": "Serwery: {{count}} (online {{online}}, offline {{offline}})",
-  "srvrs_empty": "Brak serwerów w kanale statusu."
+  "srvrs_empty": "Brak serwerów w kanale statusu.",
+  "manual_title": "Podręcznik operatora radiowego",
+  "manual_subtitle": "Praktyczny przewodnik po korzystaniu z ADN: grupy rozmów, PTT, echo i konfiguracja hotspotu.",
+  "manual_back_help": "Wróć do Pomocy",
+  "manual_print": "Drukuj / PDF",
+  "manual_error": "Nie udało się załadować podręcznika. Spróbuj ponownie później.",
+  "nav_help_faq": "FAQ",
+  "nav_help_manual": "Podręcznik"
 }

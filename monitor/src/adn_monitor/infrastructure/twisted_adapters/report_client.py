@@ -32,6 +32,18 @@ from typing import Any, Callable
 from twisted.internet.protocol import ReconnectingClientFactory
 from twisted.protocols.basic import NetstringReceiver
 
+from ...application.alias_service import AliasService
+from ...application.monitor_controller import MonitorState, process_message
+from ...application.ports import (
+    AliasRepository,
+    BroadcastPort,
+    LastHeardRepository,
+    ReportPayloadDecoder,
+    TgCountRepository,
+)
+from ...domain import is_fail
+from ...domain.value_objects import Opcode, ServerMode
+
 _CALL_FAMILY_TO_CSV = {
     "GROUP": "GROUP VOICE",
     "PRIVATE": "PRIVATE VOICE",
@@ -68,18 +80,6 @@ def _voice_event_brdg_meta(data: bytes) -> dict[str, str] | None:
         "system": parts[3],
         "direction": parts[2] if len(parts) > 2 else "",
     }
-
-from ...application.alias_service import AliasService
-from ...application.monitor_controller import MonitorState, process_message
-from ...application.ports import (
-    AliasRepository,
-    BroadcastPort,
-    LastHeardRepository,
-    ReportPayloadDecoder,
-    TgCountRepository,
-)
-from ...domain import is_fail
-from ...domain.value_objects import Opcode, ServerMode
 
 logger = logging.getLogger("adn-monitor")
 

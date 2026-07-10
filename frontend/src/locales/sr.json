@@ -341,6 +341,10 @@
   },
   "ss_intro": "Овде можете да управљате подешавањима свог hotspot-а и статичким групама.",
   "ss_calc_hint": "Потребна вам је помоћ око линије опција? Користите",
+  "ss_purge_dynamic": "Ukloni dinamičke TG",
+  "ss_purge_dynamic_hint": "Briše talkgroup-ove koje je aktivirao korisnik (isto kao slanje na TG 4000).",
+  "ss_purge_dynamic_confirm": "Ukloniti TG aktivirane od strane korisnika za ovaj hotspot? (ekvivalentno TG 4000)",
+  "ss_purge_dynamic_ok": "Ponovno učitavanje u toku — dinamički TG će biti obrisani za oko 10 sekundi.",
   "srvrs_title": "Статус мрежних сервера",
   "srvrs_loading": "Учитавање статуса сервера…",
   "srvrs_country": "Држава",
@@ -358,5 +362,12 @@
   "srvrs_err_code_4": "4 — Нема везе",
   "srvrs_load_err": "Учитавање статуса није успело",
   "srvrs_count": "Сервери: {{count}} (на мрежи {{online}}, ван мреже {{offline}})",
-  "srvrs_empty": "Нема сервера у статусу."
+  "srvrs_empty": "Нема сервера у статусу.",
+  "manual_title": "Упутство за радио оператера",
+  "manual_subtitle": "Практичан водич за коришћење ADN-а: разговорне групе, PTT, ехо и подешавање хотспота.",
+  "manual_back_help": "Назад у Помоћ",
+  "manual_print": "Штампај / PDF",
+  "manual_error": "Упутство није могло да се учита. Покушајте поново касније.",
+  "nav_help_faq": "ЧПП",
+  "nav_help_manual": "Упутство"
 }

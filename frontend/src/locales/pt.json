@@ -341,6 +341,10 @@
   "ss_err_device": "Failed to load device",
   "ss_intro": "Aqui pode gerir as preferências do seu hotspot e os talk groups estáticos.",
   "ss_calc_hint": "Precisa de ajuda para montar a linha de opções? Use a",
+  "ss_purge_dynamic": "Remover TGs dinâmicos",
+  "ss_purge_dynamic_hint": "Apaga talkgroups ativados pelo utilizador (equivalente a transmitir no TG 4000).",
+  "ss_purge_dynamic_confirm": "Remover os TGs ativados pelo utilizador neste hotspot? (equivalente a marcar TG 4000)",
+  "ss_purge_dynamic_ok": "Recarregamento em curso — os TGs dinâmicos serão apagados em cerca de 10 segundos.",
   "srvrs_title": "Estado dos servidores da rede",
   "srvrs_loading": "A carregar estado dos servidores…",
   "srvrs_country": "País",
@@ -358,5 +362,12 @@
   "srvrs_err_code_4": "4 — Sem ligação",
   "srvrs_load_err": "Não foi possível carregar o estado dos servidores",
   "srvrs_count": "Servidores: {{count}} (online {{online}}, offline {{offline}})",
-  "srvrs_empty": "Nenhum servidor no feed de estado."
+  "srvrs_empty": "Nenhum servidor no feed de estado.",
+  "manual_title": "Manual do operador de rádio",
+  "manual_subtitle": "Um guia prático para usar a ADN: talk groups, PTT, eco e configuração do hotspot.",
+  "manual_back_help": "Voltar à Ajuda",
+  "manual_print": "Imprimir / PDF",
+  "manual_error": "Não foi possível carregar o manual. Tente novamente mais tarde.",
+  "nav_help_faq": "FAQ",
+  "nav_help_manual": "Manual"
 }

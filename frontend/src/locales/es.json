@@ -170,6 +170,10 @@
   "self_service": "Autoservicio",
   "ss_intro": "Aquí puede gestionar las preferencias de su hotspot y los talk groups estáticos.",
   "ss_calc_hint": "¿Necesita ayuda para armar la línea de opciones? Use la",
+  "ss_purge_dynamic": "Quitar TGs dinámicos",
+  "ss_purge_dynamic_hint": "Borra los talkgroups activados por el usuario (equivalente a transmitir al TG 4000).",
+  "ss_purge_dynamic_confirm": "¿Quitar los TGs activados por el usuario en este hotspot? (equivalente a marcar TG 4000)",
+  "ss_purge_dynamic_ok": "Recarga en proceso — los TGs dinámicos se borrarán en unos 10 segundos.",
   "pre_wait": "Esperando información del servidor...",
   "active_qso": "QSO activos",
   "active_qso_none": "Ningún QSO activo en este momento.",
@@ -359,5 +363,12 @@
   "srvrs_err_code_4": "4 — Sin conexión",
   "srvrs_load_err": "No se pudo cargar el estado de los servidores",
   "srvrs_count": "Servidores: {{count}} (en línea {{online}}, fuera de línea {{offline}})",
-  "srvrs_empty": "No hay servidores en el estado publicado."
+  "srvrs_empty": "No hay servidores en el estado publicado.",
+  "manual_title": "Manual del operador de radio",
+  "manual_subtitle": "Una guía práctica para usar ADN: talk groups, PTT, eco y configuración del hotspot.",
+  "manual_back_help": "Volver a Ayuda",
+  "manual_print": "Imprimir / PDF",
+  "manual_error": "No se pudo cargar el manual. Inténtalo de nuevo más tarde.",
+  "nav_help_faq": "FAQ",
+  "nav_help_manual": "Manual"
 }

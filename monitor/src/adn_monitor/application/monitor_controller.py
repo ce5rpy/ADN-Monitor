@@ -29,7 +29,7 @@ import json
 import logging
 import time
 from collections import deque
-from ..domain import Failure, ReportProtocolError, ServerMode, Success, is_fail, unwrap_or
+from ..domain import Failure, ReportProtocolError, ServerMode, Success, is_fail
 from ..domain.value_objects import Opcode
 from .alias_service import AliasService
 from .ports import (

@@ -170,6 +170,10 @@
   "self_service": "Self Service",
   "ss_intro": "Here you can manage your hotspot preferences and static talk groups.",
   "ss_calc_hint": "Need help building your options line? Use the",
+  "ss_purge_dynamic": "Remove dynamic TGs",
+  "ss_purge_dynamic_hint": "Clears user-activated talkgroups (same as transmitting to TG 4000).",
+  "ss_purge_dynamic_confirm": "Remove user-activated TGs for this hotspot? (equivalent to keying TG 4000)",
+  "ss_purge_dynamic_ok": "Reload in progress — dynamic TGs will clear within about 10 seconds.",
   "pre_wait": "Waiting for server info...",
   "active_qso": "Active QSO's",
   "active_qso_none": "No active QSO at the moment.",
@@ -359,5 +363,12 @@
   "srvrs_err_code_4": "4 — Cannot connect",
   "srvrs_load_err": "Could not load server status",
   "srvrs_count": "Servers: {{count}} (online {{online}}, offline {{offline}})",
-  "srvrs_empty": "No servers in status feed."
+  "srvrs_empty": "No servers in status feed.",
+  "manual_title": "Radio operator manual",
+  "manual_subtitle": "A practical guide to using ADN: talk groups, PTT, echo, and hotspot setup.",
+  "manual_back_help": "Back to Help",
+  "manual_print": "Print / PDF",
+  "manual_error": "Could not load the manual. Try again later.",
+  "nav_help_faq": "FAQ",
+  "nav_help_manual": "Manual"
 }
