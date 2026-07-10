@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
 
 from adn_monitor.application.time_utils import (
     dashboard_calendar_date,

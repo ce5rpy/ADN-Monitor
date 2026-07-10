@@ -35,7 +35,7 @@ from fastapi import WebSocket
 
 from ...application import ws_ctable_views
 from ...application.dashboard_rows import lastheard_rows, tgcount_rows
-from ...application.dashboard_ws import handle_conf_groups, parse_conf_message, send_json
+from ...application.dashboard_ws import handle_conf_groups, parse_conf_message
 from ...application.monitor_controller import MonitorState
 from ...application.ports import BroadcastPort
 from .db_sync_render import sync_select_for_render, sync_select_tgcount
