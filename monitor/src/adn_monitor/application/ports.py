@@ -65,6 +65,14 @@ class AliasRepository(ABC):
         """Load talkgroup from persistence into cache if not present (async-friendly)."""
         ...
 
+    def resolve_subscriber_sync(self, dmr_id: int) -> None:
+        """Load subscriber into cache before synchronous alias reads (voice hot path)."""
+        self.ensure_subscriber_in_cache(dmr_id)
+
+    def resolve_talkgroup_sync(self, tg_id: int) -> None:
+        """Load talkgroup into cache before synchronous alias reads (voice hot path)."""
+        self.ensure_talkgroup_in_cache(tg_id)
+
 
 class AliasTableRepository(ABC):
     """Port for populating alias tables from files (CSV/JSON) and table counts."""
