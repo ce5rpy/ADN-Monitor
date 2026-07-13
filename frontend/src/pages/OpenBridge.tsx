@@ -22,6 +22,7 @@
  * Original works and this derivative are under GPLv3.
  */
 
+import { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -54,6 +55,10 @@ type Ctable = {
 
 type OpbPayload = { ctable?: Ctable; dbridges?: boolean };
 
+/** Suppress BCSQ fan-out flashes (START then END with Time: 0s in the same second). */
+const OBP_CHIP_MIN_AGE_SEC = 0.1;
+const OBP_CHIP_TICK_MS = 1000;
+
 /** One visible row per (direction, callsign, TG); report may still carry duplicate stream_ids. */
 function dedupeStreamRows(streams: Record<string, StreamEntry>) {
   type Row = { id: string; dir: string; subCall: string; tg: string; timeout: number };
@@ -79,9 +84,21 @@ function dedupeStreamRows(streams: Record<string, StreamEntry>) {
   });
 }
 
+function visibleStreamRows(streams: Record<string, StreamEntry>, nowSec: number) {
+  return dedupeStreamRows(streams).filter(
+    (row) => row.timeout > 0 && nowSec - row.timeout >= OBP_CHIP_MIN_AGE_SEC,
+  );
+}
+
 export default function OpenBridge() {
   const { t } = useTranslation();
+  const [nowSec, setNowSec] = useState(() => Date.now() / 1000);
   const { data } = useWebSocketGroup('opb');
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowSec(Date.now() / 1000), OBP_CHIP_TICK_MS);
+    return () => window.clearInterval(id);
+  }, []);
   const payload = data as OpbPayload | null;
   const ctable = payload?.ctable;
   const openbridges = ctable?.OPENBRIDGES ?? {};
@@ -119,7 +136,7 @@ export default function OpenBridge() {
               <TableBody>
                 {Object.entries(openbridges).map(([name, ob]) => {
                   const streams = ob?.STREAMS ?? {};
-                  const streamList = dedupeStreamRows(streams);
+                  const streamList = visibleStreamRows(streams, nowSec);
                   return (
                     <TableRow
                       key={name}

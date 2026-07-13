@@ -397,9 +397,13 @@ def rts_update_impl(
                     ent = streams[sid]
                     if not isinstance(ent, (list, tuple)) or len(ent) < 3:
                         continue
-                    if ent[0] == trx and ent[1] == sub_call and ent[2] == tg_str:
+                    ent_src = int(ent[4]) if len(ent) >= 5 else None
+                    same_qso = ent[0] == trx and ent[2] == tg_str and (
+                        ent_src == source_sub or (ent_src is None and ent[1] == sub_call)
+                    )
+                    if same_qso:
                         del streams[sid]
-                streams[stream_id] = (trx, sub_call, tg_str, timeout)
+                streams[stream_id] = (trx, sub_call, tg_str, timeout, source_sub)
             elif action == "END" and stream_id in streams:
                 ent = streams.get(stream_id)
                 if isinstance(ent, (list, tuple)) and len(ent) >= 1 and ent[0] == trx:

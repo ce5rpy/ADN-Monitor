@@ -561,8 +561,8 @@ def _handle_brdg_event_parts(
         logger.warning("(REPORT) bridge event ignored: state or CTABLE missing")
         return Success(None)
     logger.debug("(REPORT) bridge event parts[0]=%s parts[1]=%s parts[2]=%s", parts[0], parts[1], parts[2])
-    alias_repo.ensure_subscriber_in_cache(int(parts[6]))
-    alias_repo.ensure_talkgroup_in_cache(int(parts[8]))
+    alias_repo.resolve_subscriber_sync(int(parts[6]))
+    alias_repo.resolve_talkgroup_sync(int(parts[8]))
     if parts[0] in ("GROUP VOICE", "PRIVATE VOICE"):
         _event_ts = time.time()
         rts_update(parts, state, alias_svc, time_str)
