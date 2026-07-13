@@ -4,6 +4,14 @@ All notable changes to **adn-monitor** (monitor + dashboard) are documented here
 
 <!-- version list -->
 
+## v2.3.1 (2026-07-13)
+
+### Bug Fixes
+
+- Resolve callsigns on voice events and dedupe OBP streams
+  ([`73e6d4e`](https://github.com/ce5rpy/ADN-Monitor/commit/73e6d4e0c54b9b4f60a8be9ed5e64cc8cd559ed5))
+
+
 ## v2.3.0 (2026-07-10)
 
 ### Chores
