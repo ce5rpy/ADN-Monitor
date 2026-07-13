@@ -46,3 +46,33 @@ def test_fresh_entry_skips_reload() -> None:
     repo.ensure_subscriber_in_cache(7)
 
     repo._pool.runQuery.assert_not_called()
+
+
+def test_resolve_subscriber_sync_loads_from_db() -> None:
+    pool = MagicMock()
+    sync_pool = MagicMock()
+    conn = MagicMock()
+    cur = MagicMock()
+    sync_pool.connection.return_value.__enter__ = MagicMock(return_value=conn)
+    sync_pool.connection.return_value.__exit__ = MagicMock(return_value=False)
+    conn.cursor.return_value = cur
+    cur.fetchone.return_value = (42, "CE5RPY", "Rod")
+
+    repo = MoniDBAliasRepository(pool, sync_pool=sync_pool)
+    repo.resolve_subscriber_sync(42)
+
+    alias = repo.get_subscriber(42)
+    assert alias is not None
+    assert alias.callsign == "CE5RPY"
+    pool.runQuery.assert_not_called()
+
+
+def test_resolve_subscriber_sync_uses_cache_when_fresh() -> None:
+    sync_pool = MagicMock()
+    repo = MoniDBAliasRepository(MagicMock(), stale_seconds=3600, sync_pool=sync_pool)
+    repo._subscriber_ids[7] = SubscriberAlias(id=7, callsign="OK", name="Y")
+    repo._touch(7, repo._subscriber_loaded_at)
+
+    repo.resolve_subscriber_sync(7)
+
+    sync_pool.connection.assert_not_called()

@@ -27,19 +27,22 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from twisted.enterprise import adbapi
 
 from ...application.ports import AliasRepository
 from ...domain.entities import PeerAlias, SubscriberAlias, TalkgroupAlias
 
+if TYPE_CHECKING:
+    from ..persistence.sync_mysql import SyncMysqlPool
+
 logger = logging.getLogger("adn-monitor")
 
 # Cap in-memory caches to avoid unbounded growth
-MAX_SUBSCRIBER_CACHE = 100_000
-MAX_TALKGROUP_CACHE = 20_000
-MAX_NOT_IN_DB = 50_000
+MAX_SUBSCRIBER_CACHE = 1_000
+MAX_TALKGROUP_CACHE = 1_000
+MAX_NOT_IN_DB = 1_000
 EVICT_FRACTION = 0.2  # When at cap, evict this fraction of oldest entries
 _DEFAULT_STALE_SECONDS = 24 * 3600
 _TABLE_CACHE_ATTRS = {
@@ -57,8 +60,10 @@ class MoniDBAliasRepository(AliasRepository):
         pool: adbapi.ConnectionPool,
         *,
         stale_seconds: float = _DEFAULT_STALE_SECONDS,
+        sync_pool: SyncMysqlPool | None = None,
     ) -> None:
         self._pool = pool
+        self._sync_pool = sync_pool
         self._stale_seconds = max(0.0, float(stale_seconds))
         self._subscriber_ids: dict[int, SubscriberAlias] = {}
         self._peer_ids: dict[int, PeerAlias] = {}
@@ -151,6 +156,80 @@ class MoniDBAliasRepository(AliasRepository):
         stm = "SELECT * FROM subscriber_ids WHERE id = %s" if table == "subscriber_ids" else "SELECT * FROM talkgroup_ids WHERE id = %s"
         return self._pool.runQuery(stm, (row_id,)).addCallback(lambda rows: rows[0] if rows else None)
 
+    def resolve_subscriber_sync(self, dmr_id: int) -> None:
+        if self._is_fresh(dmr_id, self._subscriber_loaded_at) and dmr_id in self._subscriber_ids:
+            return
+        if dmr_id in self._not_in_db and self._is_fresh(dmr_id, self._not_in_db_at):
+            return
+        if self._sync_pool is not None:
+            self._load_subscriber_sync(dmr_id)
+            return
+        self.ensure_subscriber_in_cache(dmr_id)
+
+    def resolve_talkgroup_sync(self, tg_id: int) -> None:
+        if self._is_fresh(tg_id, self._talkgroup_loaded_at) and tg_id in self._talkgroup_ids:
+            return
+        if tg_id in self._not_in_db and self._is_fresh(tg_id, self._not_in_db_at):
+            return
+        if self._sync_pool is not None:
+            self._load_talkgroup_sync(tg_id)
+            return
+        self.ensure_talkgroup_in_cache(tg_id)
+
+    def _load_subscriber_sync(self, dmr_id: int) -> None:
+        if self._sync_pool is None:
+            return
+        try:
+            with self._sync_pool.connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT id, callsign, name FROM subscriber_ids WHERE id = %s",
+                    (dmr_id,),
+                )
+                row = cur.fetchone()
+        except Exception as err:
+            logger.error("alias_repository sync subscriber %s: %s", dmr_id, err)
+            return
+        if row:
+            self._drop_negative(dmr_id)
+            self._subscriber_ids[row[0]] = SubscriberAlias(
+                id=row[0],
+                callsign=row[1] or "",
+                name=row[2] or "",
+            )
+            self._touch(row[0], self._subscriber_loaded_at)
+            self._evict_subscriber_cache_if_needed()
+        else:
+            if dmr_id not in self._not_in_db:
+                self._not_in_db.append(dmr_id)
+            self._touch(dmr_id, self._not_in_db_at)
+            self._cap_not_in_db()
+
+    def _load_talkgroup_sync(self, tg_id: int) -> None:
+        if self._sync_pool is None:
+            return
+        try:
+            with self._sync_pool.connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT id, name FROM talkgroup_ids WHERE id = %s",
+                    (tg_id,),
+                )
+                row = cur.fetchone()
+        except Exception as err:
+            logger.error("alias_repository sync talkgroup %s: %s", tg_id, err)
+            return
+        if row:
+            self._drop_negative(tg_id)
+            self._talkgroup_ids[row[0]] = TalkgroupAlias(id=row[0], name=row[1] or "")
+            self._touch(row[0], self._talkgroup_loaded_at)
+            self._evict_talkgroup_cache_if_needed()
+        else:
+            if tg_id not in self._not_in_db:
+                self._not_in_db.append(tg_id)
+            self._touch(tg_id, self._not_in_db_at)
+            self._cap_not_in_db()
+
     def ensure_subscriber_in_cache(self, dmr_id: int) -> None:
         if dmr_id in self._act_query:
             return
@@ -216,6 +295,7 @@ class MoniDBAliasRepository(AliasRepository):
     def populate_subscriber(self, dmr_id: int, callsign: str, name: str) -> None:
         self._subscriber_ids[dmr_id] = SubscriberAlias(id=dmr_id, callsign=callsign, name=name)
         self._touch(dmr_id, self._subscriber_loaded_at)
+        self._evict_subscriber_cache_if_needed()
 
     def populate_talkgroup(self, tg_id: int, name: str) -> None:
         self._talkgroup_ids[tg_id] = TalkgroupAlias(id=tg_id, name=name)

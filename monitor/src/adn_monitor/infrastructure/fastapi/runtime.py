@@ -502,7 +502,11 @@ class MonitorRuntime:
             files = self.config.get("FILES") or {}
             stale_sec = float(files.get("RELOAD_TIME", 24 * 3600))
             self._pool = pool
-            self._alias_repo = MoniDBAliasRepository(self._pool, stale_seconds=stale_sec)
+            self._alias_repo = MoniDBAliasRepository(
+                self._pool,
+                stale_seconds=stale_sec,
+                sync_pool=sync_pool,
+            )
             self._alias_table_repo = MoniDBAliasTableRepository(self._pool, sync_pool=sync_pool)
             self._lastheard_repo = MoniDBLastHeardRepository(self._pool)
             self._tgcount_repo = MoniDBTgCountRepository(self._pool, self.config_global)
