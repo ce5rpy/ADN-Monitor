@@ -124,6 +124,57 @@ def test_dashboard_state_to_config_maps_linked_systems():
     assert cfg["OBP-CL"]["ENHANCED_OBP"] is True
 
 
+def test_dashboard_state_to_config_maps_obp_connected():
+    payload = {
+        "type": "dashboard_state",
+        "ts": 1.0,
+        "ctable": {
+            "MASTERS": {},
+            "PEERS": {},
+            "OPENBRIDGES": {
+                "OBP-CL": {
+                    "mode": "OPENBRIDGE",
+                    "network_id": 73010,
+                    "enhanced_obp": True,
+                    "connected": True,
+                    "streams": {},
+                }
+            },
+        },
+    }
+    cfg = dashboard_state_to_config(payload)
+    assert cfg["OBP-CL"]["OBP_CONNECTED"] is True
+
+
+def test_process_state_snd_applies_obp_connected():
+    state = MonitorState()
+    state.server_mode = ServerMode.V2
+    state.report_protocol = 2
+    deps = _deps()
+    deps["report_decoder"] = PickleJsonReportPayloadDecoder()
+    payload = {
+        "type": "dashboard_state",
+        "ts": 1.0,
+        "ctable": {
+            "MASTERS": {},
+            "PEERS": {},
+            "OPENBRIDGES": {
+                "OBP-CL": {
+                    "mode": "OPENBRIDGE",
+                    "network_id": 73010,
+                    "enhanced_obp": True,
+                    "connected": False,
+                    "streams": {},
+                }
+            },
+        },
+    }
+    frame = Opcode.STATE_SND + json.dumps(payload, separators=(",", ":")).encode()
+    result = process_message(frame, state, **deps)
+    assert not is_fail(result)
+    assert state.CTABLE["OPENBRIDGES"]["OBP-CL"]["CONNECTED"] is False
+
+
 def test_process_state_snd_applies_ctable():
     state = MonitorState()
     state.server_mode = ServerMode.V2

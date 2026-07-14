@@ -137,7 +137,10 @@ def opb_semantic_fingerprint(ctable: dict[str, Any], dbridges: bool) -> str:
         if not isinstance(sys_ob, dict):
             continue
         streams = sys_ob.get("STREAMS") or {}
-        ob_out[sys_name] = {"STREAMS": _streams_semantic(streams)}
+        ob_entry: dict[str, Any] = {"STREAMS": _streams_semantic(streams)}
+        if isinstance(sys_ob.get("CONNECTED"), bool):
+            ob_entry["CONNECTED"] = sys_ob["CONNECTED"]
+        ob_out[sys_name] = ob_entry
     return _fingerprint_dumps({"ctable": {"OPENBRIDGES": ob_out}, "dbridges": dbridges})
 
 

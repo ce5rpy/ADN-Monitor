@@ -227,6 +227,8 @@ def dashboard_state_to_config(doc: dict[str, Any], *, ts: float | None = None) -
             entry["NETWORK_ID"] = _bytes_4(int(obp["network_id"]))
         if obp.get("enhanced_obp"):
             entry["ENHANCED_OBP"] = True
+        if isinstance(obp.get("connected"), bool):
+            entry["OBP_CONNECTED"] = obp["connected"]
         config[str(name)] = entry
 
     return config

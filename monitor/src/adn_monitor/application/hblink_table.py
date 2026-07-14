@@ -223,6 +223,15 @@ def build_hblink_table_impl(
             stats_table["OPENBRIDGES"][name]["NETWORK_ID"] = int_id_fn(data.get("NETWORK_ID", 0))
             # TARGET_IP/TARGET_PORT omitted on purpose: not sent over WebSocket, not shown in UI
             stats_table["OPENBRIDGES"][name]["STREAMS"] = {}
+            _apply_openbridge_connected(stats_table["OPENBRIDGES"][name], data)
+
+
+def _apply_openbridge_connected(obp_row: dict[str, Any], data: dict[str, Any]) -> None:
+    """Sync ENHANCED OBP keepalive status from CONFIG into CTABLE (boolean CONNECTED)."""
+    if "OBP_CONNECTED" in data:
+        obp_row["CONNECTED"] = bool(data["OBP_CONNECTED"])
+    else:
+        obp_row.pop("CONNECTED", None)
 
 
 def clean_te(stats_table: dict) -> None:
@@ -277,6 +286,9 @@ def update_hblink_table_impl(
                 "NETWORK_ID": int_id_fn(data.get("NETWORK_ID", 0)),
                 "STREAMS": {},
             }
+        obp_row = stats_table["OPENBRIDGES"][name]
+        obp_row["NETWORK_ID"] = int_id_fn(data.get("NETWORK_ID", 0))
+        _apply_openbridge_connected(obp_row, data)
     masters_table = stats_table.setdefault("MASTERS", {})
     for name in config:
         if config[name].get("MODE") != "MASTER":
