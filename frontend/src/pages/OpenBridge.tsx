@@ -45,6 +45,7 @@ type OpenBridgeEntry = {
   NETWORK_ID?: number | string;
   TARGET_IP?: string;
   TARGET_PORT?: string;
+  CONNECTED?: boolean;
   STREAMS?: Record<string, StreamEntry>;
 };
 type Ctable = {
@@ -56,8 +57,29 @@ type Ctable = {
 type OpbPayload = { ctable?: Ctable; dbridges?: boolean };
 
 /** Suppress BCSQ fan-out flashes (START then END with Time: 0s in the same second). */
-const OBP_CHIP_MIN_AGE_SEC = 0.1;
+const OBP_CHIP_MIN_AGE_SEC = 0.5;
 const OBP_CHIP_TICK_MS = 1000;
+
+/** Country code from numeric network id (first 2-3 digits). */
+function getCountryCodeFromId(id: number | string): string {
+  const n = String(id).replace(/\D/g, '');
+  if (n.length >= 3) return n.slice(0, 3);
+  if (n.length >= 2) return n.slice(0, 2);
+  return n || '';
+}
+
+function FlagImg({ code, fallback = 'world' }: { code: string; fallback?: string }) {
+  const src = code ? `/img/flags/${code}.png` : `/img/flags/${fallback}.png`;
+  return (
+    <Box
+      component="img"
+      src={src}
+      alt=""
+      onError={(e) => { (e.target as HTMLImageElement).src = `/img/flags/world.png`; }}
+      sx={{ width: 20, height: 14, objectFit: 'contain', flexShrink: 0 }}
+    />
+  );
+}
 
 /** One visible row per (direction, callsign, TG); report may still carry duplicate stream_ids. */
 function dedupeStreamRows(streams: Record<string, StreamEntry>) {
@@ -87,6 +109,29 @@ function dedupeStreamRows(streams: Record<string, StreamEntry>) {
 function visibleStreamRows(streams: Record<string, StreamEntry>, nowSec: number) {
   return dedupeStreamRows(streams).filter(
     (row) => row.timeout > 0 && nowSec - row.timeout >= OBP_CHIP_MIN_AGE_SEC,
+  );
+}
+
+function ObpStatusDot({ connected, t }: { connected: boolean; t: (key: string, opts?: { defaultValue?: string }) => string }) {
+  const label = connected
+    ? t('opb_status_online', { defaultValue: 'Online' })
+    : t('opb_status_offline', { defaultValue: 'Offline' });
+  const color = connected ? 'success.main' : 'error.main';
+  return (
+    <Box
+      component="span"
+      role="img"
+      aria-label={label}
+      title={label}
+      sx={{
+        display: 'inline-block',
+        width: 10,
+        height: 10,
+        borderRadius: '50%',
+        bgcolor: color,
+        flexShrink: 0,
+      }}
+    />
   );
 }
 
@@ -128,8 +173,8 @@ export default function OpenBridge() {
               <TableCaptionTitle>{t('opb_title', { defaultValue: 'OpenBridge' })}</TableCaptionTitle>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ width: '18%', minWidth: 88, maxWidth: 140, whiteSpace: 'nowrap' }}>{t('lnksys_system', { defaultValue: 'OpenBridge' })}</TableCell>
-                  <TableCell sx={{ width: '12%', minWidth: 72, maxWidth: 88, whiteSpace: 'nowrap' }}>{t('lnksys_network_id', { defaultValue: 'Network ID' })}</TableCell>
+                  <TableCell sx={{ width: '18%', minWidth: 88, maxWidth: 140, whiteSpace: 'nowrap' }}>{t('lnksys_system', { defaultValue: 'Service' })}</TableCell>
+                  <TableCell sx={{ width: '12%', minWidth: 88, maxWidth: 120, whiteSpace: 'nowrap' }}>{t('lnksys_network_id', { defaultValue: 'Network ID' })}</TableCell>
                   <TableCell sx={{ width: '70%', minWidth: 120 }}>{t('opb_activity', { defaultValue: 'Active streams' })}</TableCell>
                 </TableRow>
               </TableHead>
@@ -137,6 +182,8 @@ export default function OpenBridge() {
                 {Object.entries(openbridges).map(([name, ob]) => {
                   const streams = ob?.STREAMS ?? {};
                   const streamList = visibleStreamRows(streams, nowSec);
+                  const networkId = ob?.NETWORK_ID ?? '';
+                  const flagCode = networkId !== '' ? getCountryCodeFromId(networkId) : '';
                   return (
                     <TableRow
                       key={name}
@@ -147,10 +194,18 @@ export default function OpenBridge() {
                       }}
                     >
                       <TableCell sx={{ width: '18%', minWidth: 88, maxWidth: 140, whiteSpace: 'nowrap' }}>
-                        <Typography fontWeight="bold" component="span" noWrap>{name}</Typography>
+                        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, maxWidth: '100%' }}>
+                          {typeof ob?.CONNECTED === 'boolean' && (
+                            <ObpStatusDot connected={ob.CONNECTED} t={t} />
+                          )}
+                          <Typography fontWeight="bold" component="span" noWrap>{name}</Typography>
+                        </Box>
                       </TableCell>
-                      <TableCell sx={{ width: '12%', minWidth: 72, maxWidth: 88, whiteSpace: 'nowrap' }}>
-                        <Typography fontWeight="bold" component="span" noWrap>{String(ob?.NETWORK_ID ?? '')}</Typography>
+                      <TableCell sx={{ width: '12%', minWidth: 88, maxWidth: 120, whiteSpace: 'nowrap' }}>
+                        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                          {networkId !== '' && <FlagImg code={flagCode} />}
+                          <Typography fontWeight="bold" component="span" noWrap>{String(networkId)}</Typography>
+                        </Box>
                       </TableCell>
                       <TableCell sx={{ width: '70%', overflow: 'auto', minWidth: 120 }}>
                         {/*

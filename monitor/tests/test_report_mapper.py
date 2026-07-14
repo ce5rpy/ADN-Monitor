@@ -9,6 +9,7 @@ import pytest
 
 from adn_monitor.application.report_mapper import (
     REPORT_PROTOCOL,
+    dashboard_state_to_config,
     decode_report_payload,
     merge_routing_delta,
     merge_topology_delta,
@@ -115,6 +116,26 @@ def test_topology_to_config_maps_rf_mode_and_ua_multi():
     peer = config["SYS-1"]["PEERS"][(3120001).to_bytes(4, "big")]
     assert peer["RF_MODE"] == "simplex"
     assert peer["UA_MULTI_TGS"] == {"2": [730444]}
+
+
+def test_dashboard_state_to_config_omits_obp_connected_when_absent():
+    payload = {
+        "type": "dashboard_state",
+        "ts": 1.0,
+        "ctable": {
+            "MASTERS": {},
+            "PEERS": {},
+            "OPENBRIDGES": {
+                "OBP-CL": {
+                    "mode": "OPENBRIDGE",
+                    "network_id": 73010,
+                    "streams": {},
+                }
+            },
+        },
+    }
+    cfg = dashboard_state_to_config(payload)
+    assert "OBP_CONNECTED" not in cfg["OBP-CL"]
 
 
 def test_routing_table_to_bridges_accepts_legacy_bridge_key():
