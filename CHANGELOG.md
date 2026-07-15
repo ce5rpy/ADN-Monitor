@@ -4,6 +4,14 @@ All notable changes to **adn-monitor** (monitor + dashboard) are documented here
 
 <!-- version list -->
 
+## v2.4.0 (2026-07-15)
+
+### Features
+
+- Show OBP keepalive status on OpenBridge page
+  ([`08823e5`](https://github.com/ce5rpy/ADN-Monitor/commit/08823e5381f7e55f2ba9a90e032d81888ca87ea6))
+
+
 ## v2.3.1 (2026-07-13)
 
 ### Bug Fixes
