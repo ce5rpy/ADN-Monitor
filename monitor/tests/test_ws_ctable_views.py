@@ -35,6 +35,28 @@ def test_main_dashboard_fingerprint_ignores_timeout() -> None:
     assert fp1 == fp2
 
 
+def test_opb_semantic_fingerprint_includes_connected() -> None:
+    ctable_online = {
+        "OPENBRIDGES": {
+            "OBP-CL": {
+                "CONNECTED": True,
+                "STREAMS": {"1": ["RX", "CE5RPY", "730", 1000.0]},
+            },
+        },
+    }
+    ctable_offline = {
+        "OPENBRIDGES": {
+            "OBP-CL": {
+                "CONNECTED": False,
+                "STREAMS": {"1": ["RX", "CE5RPY", "730", 1000.0]},
+            },
+        },
+    }
+    fp_online = ws_ctable_views.opb_semantic_fingerprint(ctable_online, False)
+    fp_offline = ws_ctable_views.opb_semantic_fingerprint(ctable_offline, False)
+    assert fp_online != fp_offline
+
+
 def test_lastheard_db_refresh_needed() -> None:
     assert ws_ctable_views.lastheard_db_refresh_needed(
         {"call_type": "GROUP VOICE", "action": "START", "direction": "RX"}
