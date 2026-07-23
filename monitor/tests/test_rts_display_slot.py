@@ -104,6 +104,30 @@ def test_transmitter_rx_uses_wire_slot_not_options() -> None:
     assert peer[2]["TRX"] == "RX"
 
 
+def test_start_stores_announcement_flag_from_trailing_field() -> None:
+    state = _state_with_peer(peer_id=730002, ts1_static=[], ts2_static=["73010"])
+    rts_update_impl(
+        "GROUP VOICE,START,RX,SYSTEM,1,730002,730002,2,73010,1".split(","),
+        state,
+        _alias(),
+        lambda: "12:00",
+    )
+    peer = state.CTABLE["MASTERS"]["SYSTEM"]["PEERS"][730002]
+    assert peer[2]["ANNOUNCEMENT"] is True
+
+
+def test_start_without_trailing_field_defaults_announcement_false() -> None:
+    state = _state_with_peer(peer_id=730002, ts1_static=[], ts2_static=["73010"])
+    rts_update_impl(
+        "GROUP VOICE,START,RX,SYSTEM,1,730002,730002,2,73010".split(","),
+        state,
+        _alias(),
+        lambda: "12:00",
+    )
+    peer = state.CTABLE["MASTERS"]["SYSTEM"]["PEERS"][730002]
+    assert peer[2]["ANNOUNCEMENT"] is False
+
+
 def test_end_clears_cross_slot_when_static_tg_removed() -> None:
     """END must clear the slot lit at START even if OPTIONS no longer map the TG there."""
     state = _state_with_peer(peer_id=730001, ts1_static=["52090"], ts2_static=[])

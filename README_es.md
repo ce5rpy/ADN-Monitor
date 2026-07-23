@@ -205,6 +205,10 @@ Este proyecto es **GPL v3**. El **monitor** (Python) y el **frontend** (dashboar
 
 **Este código:** Copyright (C) 2026 Rodrigo Pérez, CE5RPY. Las obras originales y estos derivados son software libre bajo la [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html). Conserva licencia y atribución al distribuir o modificar.
 
+## Agradecimientos
+
+Gracias a **[Esteban Mackay, HP3ICC](https://gitlab.com/hp3icc)**, por las ideas, ayudas, pruebas y sugerencias a lo largo del desarrollo.
+
 ---
 
 ## Lecturas adicionales

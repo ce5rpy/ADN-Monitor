@@ -288,6 +288,7 @@ def rts_update_impl(
     source_sub = int(p[6])
     time_slot = int(p[7])
     destination = int(p[8])
+    is_announcement = len(p) > 9 and p[-1] == "1"
     timeout = time.time()
     ctable = state.CTABLE
     sub_short = alias_svc.alias_short(source_sub)
@@ -375,6 +376,7 @@ def rts_update_impl(
                 peer_ts["DEST"] = tg_dest
                 peer_ts["TG"] = tg_short
                 peer_ts["TRX"] = crxstatus
+                peer_ts["ANNOUNCEMENT"] = is_announcement
             elif action == "END":
                 if (
                     trx == "TX"

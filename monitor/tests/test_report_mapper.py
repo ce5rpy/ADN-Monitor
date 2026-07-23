@@ -225,6 +225,7 @@ def test_voice_event_to_csv_parts_start():
         "3120001",
         "2",
         "52090",
+        "0",
     ]
 
 
@@ -243,7 +244,8 @@ def test_voice_event_to_csv_parts_end_with_duration():
         "duration_s": 12.5,
     }
     parts = voice_event_to_csv_parts(voice)
-    assert parts[-1] == "12.50"
+    assert parts[-2] == "12.50"
+    assert parts[-1] == "0"
 
 
 def test_voice_event_unit_data_header():
