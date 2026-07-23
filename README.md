@@ -207,6 +207,10 @@ This project is **GPL v3**. The **monitor** (Python) and **frontend** (React das
 
 **This codebase:** Copyright (C) 2026 Rodrigo Pérez, CE5RPY. Original works and these derivatives are free software under the [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html). Preserve license and attribution when distributing or modifying.
 
+## Acknowledgments
+
+Thanks to **[Esteban Mackay, HP3ICC](https://gitlab.com/hp3icc)**, for ideas, help, testing, and suggestions throughout development.
+
 ---
 
 ## Further reading
