@@ -4,6 +4,19 @@ All notable changes to **adn-monitor** (monitor + dashboard) are documented here
 
 <!-- version list -->
 
+## v2.5.0 (2026-07-23)
+
+### Chores
+
+- Add HP3ICC acknowledgments to README files
+  ([`bc662c0`](https://github.com/ce5rpy/ADN-Monitor/commit/bc662c036337b1a8e438a8d1ab4c1171f99d71d4))
+
+### Features
+
+- Track is_announcement flag on GROUP VOICE events
+  ([`1f66106`](https://github.com/ce5rpy/ADN-Monitor/commit/1f6610695b0217794c50044575810ef57f6a1d77))
+
+
 ## v2.4.0 (2026-07-15)
 
 ### Features
